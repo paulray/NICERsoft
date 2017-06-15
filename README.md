@@ -13,3 +13,5 @@ NOTES:
 
 * Need to be able to generate TOAs from a template and photon data, either with
 phases already assigned or assigning them using PINT
+
+test
