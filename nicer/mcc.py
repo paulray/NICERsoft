@@ -43,5 +43,22 @@ class MCC:
         ecef = eci.transform_to(ITRS(obstime=self.t))
         self.lat = ecef.earth_location.latitude
         self.lon = ecef.earth_location.longitude
-        self.lat_interp = InterpolatedUnivariateSpline(self.met,self.lat,ext='raise')
-        self.lon_interp = InterpolatedUnivariateSpline(self.met,self.lon,ext='raise')
+
+    def latlon(self, met):
+        x = self.eci_x_interp(met)
+        y = self.eci_y_interp(met)
+        z = self.eci_z_interp(met)
+        cart = CartesianRepresentation(x, y, z, unit=u.m)
+        eci = GCRS(cart,obstime=MET0+met*u.s)
+        ecef = eci.transform_to(ITRS(obstime=MET0+met*u.s))
+        lat = ecef.earth_location.latitude
+        lon = ecef.earth_location.longitude
+        return (lat, lon)
+
+    def plot(self):
+        import matplotlib.pyplot as plt
+
+        plt.plot(self.met,self.eci_x)
+        plt.plot(self.met,self.eci_y)
+        plt.plot(self.met,self.eci_z)
+        plt.show()
