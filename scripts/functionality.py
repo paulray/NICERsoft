@@ -73,7 +73,7 @@ def get_FITS(filename):
     hdulist = fits.open(filename)
     data_headerlist = ["TIME", "RAWX", "RAWY", "PHA", "PHA_FAST", "DET_ID", "DEADTIME"]
     event_flags = hdulist[1].data["EVENT_FLAGS"]
-    info_headerlist = ["TARG_ID", "DATE-OBS", "TSTART"]
+    info_headerlist = ["OBJECT", "DATE-OBS", "TSTART"]
     
     '''
     DO NOT EDIT THIS

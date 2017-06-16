@@ -34,7 +34,7 @@ def eng_plots(data1, event_flags, info, reset_rate, ID_resets):
     stddev = "Standard deviation for total event count is " + str(round(np.std(num_events),2)) + "."
     reset = "Average detector reset rate is " + str(round(reset_rate, 3)) + " Hz per detector."
 
-    figure1.suptitle('Target ID: ' + str(info['TARG_ID']) + ', Observed on ' + str(info['DATE-OBS'][0:9]) + ' at ' + str(info['DATE-OBS'][11:19]), fontsize = 25)
+    figure1.suptitle('Target ID: ' + str(info['OBJECT']) + ', Observed on ' + str(info['DATE-OBS'][0:9]) + ' at ' + str(info['DATE-OBS'][11:19]), fontsize = 25)
                      
     text1 = plot.figtext(.02, .9, average, fontsize = 12.5)
     text2 = plot.figtext(.02, .85, stddev, fontsize = 12.5)
