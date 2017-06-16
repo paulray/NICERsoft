@@ -40,7 +40,7 @@ CTRL + F WORDS FOR QUICK TROUBLESHOOTING:
 
 *PI(data1)
     maps pha_slow values to a PI value based on E0 and gains which are defined here.
-    
+
 *plot_power_spec(pha_slow, sci_grid, power_spec, event_flags)
     Plots the energy spectrum [sorry the name is wrong]
 
@@ -55,7 +55,7 @@ CTRL + F WORDS FOR QUICK TROUBLESHOOTING:
 
 *plot_pulseprofile()
     plots pulse profile
-    
+
 *reset_rate(data1, event_flags)
     calculates the reset rate. Is used by plot_resetrate and the text maker on both plots.
 
@@ -74,10 +74,10 @@ def get_FITS(filename):
     data_headerlist = ["TIME", "RAWX", "RAWY", "PHA", "PHA_FAST", "DET_ID", "DEADTIME"]
     event_flags = hdulist[1].data["EVENT_FLAGS"]
     info_headerlist = ["OBJECT", "DATE-OBS", "TSTART"]
-    
+
     '''
     DO NOT EDIT THIS
-    
+
     TIME 0
     RAWX 1
     RAWY 2
@@ -100,16 +100,16 @@ def get_FITS(filename):
     info= {}
     for header in info_headerlist:
         info[header] = hdulist[0].header[header]
-    
+
     return data1, event_flags,info
 def smush(filenames):
 ##    filenames =['/data/NICER/prelaunch/nicer-sample-data-2016-09-28/psrb1821/XNAV_FPM_7_1_STATIC1821_2015OCT23_1704_mpu6_det60.evt.gz']
     count = 0
-    
+
     for name in filenames:
         count += 1
         data, ef, i = get_FITS(name)
-            
+
         if count > 1: #all subsequent files
             data1 = np.hstack((data1, data))
             event_flags = np.vstack((event_flags, ef))
@@ -117,10 +117,10 @@ def smush(filenames):
             data1 = copy.deepcopy(data)
             event_flags = copy.deepcopy(ef)
             info = i
-    
+
 ##    data1 = data1[:,data1[0].argsort()]
 ##    event_flags = event_flags[data1[0].argsort(), :]
-    
+
     return data1, event_flags, info
 
 '''
@@ -137,12 +137,12 @@ def event_counter(data1):
     IDS = np.array([0, 1, 2, 3, 4, 5,6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 20, 21, 22, 23, 24, 25, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 42, 43, 44, 45, 46, 47, 50, 51, 52, 53, 54, 55, 56, 57, 60, 61, 62, 63, 64, 65, 66, 67])
     IDevents = np.zeros(shape = (2, 56))
     IDevents[0] = IDS[:]
-        
+
         #finding all the instances of each ID
     for id in IDS:
         IDevents[1][np.where(IDS == id)] = np.count_nonzero(data1[5] == (id))
 
-    return IDevents           
+    return IDevents
 
 def hist_use(data1):
     IDevents = event_counter(data1)
@@ -166,22 +166,22 @@ def plot_total_count_hist(data1, countrate, total_counts):
 
     tc = total_counts.bar((IDS), num_events, color = colors)
     rate = num_events / 60
-        
+
     ##cr = countrate.bar(IDS, rate, color = 'y')
     countrate.set_ylabel('Counts per second')
     countrate.set_ylim([np.min(rate)-20,np.max(rate)+20])
-                        
+
     total_counts.set_xlabel('DET_ID')
     total_counts.set_ylabel('Total # of Events')
     plot.locator_params(nticks = 20)
     plot.title('Total Event Count by Detector')
     total_counts.set_ylim([np.min(num_events)-20, np.max(num_events)+20])
-    
+
     return tc, IDS, num_events, rate
 
 #----------------------THIS MAKES THE GRAYSCALE ID/EVENT COUNT CHART---------------------
 def structure(data1, IDS, num_events):
-    rawx = np.zeros(IDS.size) 
+    rawx = np.zeros(IDS.size)
     rawy = np.zeros(IDS.size)
     count = 0
 
@@ -191,23 +191,23 @@ def structure(data1, IDS, num_events):
         if len(x[0]) > 0:
             rawx[count] = data1[1,x[0][0]]
             rawy[count] = data1[2,x[0][0]]
-            
+
         else:
             rawx[count] = 0
             rawy[count] = 0
 
         x = []
         count += 1
-        
-        #In STRUCTURE, each element corresponds to the geometric position of each detector, while the value is the # of counts  
+
+        #In STRUCTURE, each element corresponds to the geometric position of each detector, while the value is the # of counts
     structure = np.zeros(shape = (7,8))
 
-    for i in xrange(len(rawx)): 
+    for i in xrange(len(rawx)):
         structure[int(rawy[i])][int(rawx[i])] = num_events[i]
 
     return structure
 
-def plot_detector_chart(data1, IDS, num_events, sci_grid, detector_map):   
+def plot_detector_chart(data1, IDS, num_events, sci_grid, detector_map):
     #WANT TO GET THE ORIGIN IN THE TOP RIGHT HAND CORNER
     struct = structure(data1, IDS, num_events)
     plot.style.use('grayscale')
@@ -219,7 +219,7 @@ def plot_detector_chart(data1, IDS, num_events, sci_grid, detector_map):
     plot.xlabel('Raw X')
     plot.ylabel('Raw Y')
     plot.colorbar(detector_map, orientation = 'horizontal')
-    
+
     return detector_map
 #----------------------THIS MAKES THE LIGHT CURVE---------------------------
 def light_curve(data1, event_flags):
@@ -230,7 +230,7 @@ def light_curve(data1, event_flags):
 
     return sums, average_counts
 
-def plot_light_curve(data1, sci_grid, light_curve_plot, event_flags):    
+def plot_light_curve(data1, sci_grid, light_curve_plot, event_flags):
     sums, average_counts = light_curve(data1, event_flags)
     time_elapsed = range(1,len(sums)+1)
     light_curve_plot = plot.plot(time_elapsed, sums, linewidth = .6)
@@ -239,11 +239,11 @@ def plot_light_curve(data1, sci_grid, light_curve_plot, event_flags):
     mean_shown = np.array([average_counts for i in xrange(len(time_elapsed))])
     label = 'Mean Rate: ' + str(int(average_counts)) + ' counts / sec'
     plot.plot(time_elapsed, mean_shown, 'r--', label = label)
-    plot.legend(loc = 4)    
+    plot.legend(loc = 4)
     plot.title('Light Curve')
     plot.xlabel('Time Elapsed (s)')
     plot.ylabel('Counts')
-    
+
     return light_curve_plot
 
 #-------------------------------THIS PLOTS THE FAST TO SLOW AND SLOW TO FAST------------------
@@ -257,13 +257,13 @@ def slow_fast(data1):
 def plot_slowx_fasty(data1, sci_grid, fastslow_ratio, fast, slow, total):
     acceptable_range = data1[3] * 1.8
     colors = range(len(acceptable_range))
-    
+
     for i in xrange(0,len(data1[4])-1):
         if data1[4][i] > acceptable_range[i]:
             colors[i] = 'r'
         else:
             colors[i] = 'k'
-            
+
     fastslow_ratio = plot.scatter(data1[3], data1[4], s=.4, c = colors)
     label = 'Expected ratio of 1.8'
     plot.plot(data1[3], acceptable_range, 'g', linewidth = '.3', label = label)
@@ -279,7 +279,7 @@ def plot_slowx_fasty(data1, sci_grid, fastslow_ratio, fast, slow, total):
     plot.annotate(fast_str, xy=(0.03, 0.85), xycoords='axes fraction')
     plot.annotate(slow_str, xy=(0.03, 0.8), xycoords='axes fraction')
     plot.annotate(total, xy=(0.03, 0.75), xycoords='axes fraction')
-    
+
     return fastslow_ratio
 
 #-------------------------------THIS PLOTS THE ENERGY SPECTRUM------------------
@@ -290,7 +290,7 @@ def PI(data1):
     gains[1] = E0
     gains[2] = gains
     '''
-    
+
     a = np.array([0, 1, 2, 3, 4, 5,6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 20, 21, 22, 23, 24, 25, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 42, 43, 44, 45, 46, 47, 50, 51, 52, 53, 54, 55, 56, 57, 60, 61, 62, 63, 64, 65, 66, 67])
     b = -1 * np.array([1.192, 1.099, 1.042, 1.147, 1.279, 1.277, 1.215, 1.311, .865, 1.190, 1.044,1.221,1.240,1.212,1.557,1.356,1.294,1.281,1.315,1.023,1.260, 1.076,1.093,1.195,1.058,1.293,1.344,1.386,1.046,1.204,1.143,1.316,1.247,1.148,1.423,1.191,1.244,1.297,1.298,1.227, 1.280,1.351,1.191,1.379,1.288,1.238,1.128,1.110,1.035,1.060,1.228,1.231,1.261,1.314,1.110,1.247])
     c = .001* np.array([3.6645, 3.6818,3.6945,3.886,3.7975,3.7161,3.6516,3.7166,3.7661,3.7229,3.5702,3.6318,3.7039,3.7458,3.7408,3.7955,3.7282,3.6350,3.7843,3.6560,3.6763,3.6945,3.7050,3.6872,3.6768,3.6293,3.7926,3.6682,3.7413,3.7667,3.7721,3.5859,3.6732,3.7951,3.8908,3.6876,3.7517,3.6848,3.7658,3.6901,3.7326,3.6779,3.7166,3.7133,3.6560,3.7387,3.7423,3.6756,3.7016,3.7115,3.7597,3.6493,3.7406,3.6480,3.7113,3.7657])
@@ -305,9 +305,9 @@ def PI(data1):
         count += 1
 
     return PI_list
-        
-def plot_power_spec(data1, sci_grid, power_spec, event_flags, PI_flag):  
-    if PI_flag > 0:
+
+def plot_power_spec(data1, sci_grid, power_spec, event_flags, PI_flag):
+    if PI_flag:
         PIshit = PI(data1)
         pha_slow = no_more_resets(PIshit, event_flags)
     else:
@@ -322,7 +322,7 @@ def plot_power_spec(data1, sci_grid, power_spec, event_flags, PI_flag):
 #-------------------------------THIS PLOTS THE POWER SPECTRUM (FFT)--------------
 def no_more_resets(data, event_flags):
     temp = np.array(copy.deepcopy(data))
-    
+
     for i in xrange(0,len(event_flags)-1):
         if event_flags[i][5]:
             temp[i] = 0
@@ -332,7 +332,7 @@ def no_more_resets(data, event_flags):
             temp[i] = 0
 
     filtered = temp[np.nonzero(temp)]
-    
+
     return filtered
 
 def plot_fft_of_power(time, data1):
@@ -364,11 +364,11 @@ def plot_deadtime(data1, sci_grid, dead):
 
 #-------------------------PULSE PROFILE----------------------------------
 def pulse_profile(data1):
-    
+
 ##    from astropy import log
 ##    import astropy.io.fits as pyfits
 ##    import pint
-##    
+##
 ##    ### Make arguments for parfile and orbfile and only do this if both are present
 ##
 ##    hdr = pyfits.getheader(args.eventname,ext=1)
@@ -382,7 +382,7 @@ def pulse_profile(data1):
 ##            NICERObs(name='NICER',FPorbname=args.orbfile,tt2tdb_mode='none')
 ##        # Read event file and return list of TOA objects
 ##        tl  = load_NICER_TOAs(args.eventname)
-##    
+##
 ##    elif hdr['TELESCOP'] == 'XTE':
 ##        # Instantiate RXTEObs once so it gets added to the observatory registry
 ##        if args.orbfile is not None:
@@ -415,7 +415,7 @@ def reset_rate(data1, event_flags, IDS):
     #getting the reset rate
     ID_resets = np.zeros(shape = (2,56))
     ID_resets[0] = IDS
-    
+
     for i in xrange(0,len(event_flags)-1):
         if event_flags[i][5]:
             ID_resets[1][np.where(ID_resets[0] == (data1[5][i]))] += 1

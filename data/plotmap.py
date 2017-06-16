@@ -15,10 +15,10 @@ saa_lon, saa_lat = np.loadtxt('saa_lonlat.txt',unpack=True)
 MET0 = Time("2014-01-01T00:00:00.0",scale='utc')
 GPS0 = Time("1980-01-06T00:00:00",scale='utc')
 
-gpssec, overshootrate = np.loadtxt('data/20170614_turnon_all_particles.lc',
+gpssec, overshootrate = np.loadtxt('20170614_turnon_all_particles.lc',
     unpack=True,dtype=np.float)
 
-eph = MCC('data/MCC1_On_Console_20171631440_V01.txt')
+eph = MCC('MCC1_On_Console_20171631440_V01.txt')
 t = gpssec*u.s + GPS0
 met = (t-MET0).to(u.s).value
 
