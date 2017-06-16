@@ -20,13 +20,13 @@ parser.add_argument("-p", "--pi", help = "Turn the pha_slow into nice PI values"
 args = parser.parse_args()
 
 #TO CHANGE THE FILES, EDIT THE LIST BELOW:
-filenames =['/export/home/zarzouma/pipeline/1706140000/xti/event_cl/ni1706140000_0mpu0_uf.evt',
-'/export/home/zarzouma/pipeline/1706140000/xti/event_cl/ni1706140000_0mpu1_uf.evt',
-'/export/home/zarzouma/pipeline/1706140000/xti/event_cl/ni1706140000_0mpu2_uf.evt',
-'/export/home/zarzouma/pipeline/1706140000/xti/event_cl/ni1706140000_0mpu3_uf.evt',
-'/export/home/zarzouma/pipeline/1706140000/xti/event_cl/ni1706140000_0mpu4_uf.evt',
-'/export/home/zarzouma/pipeline/1706140000/xti/event_cl/ni1706140000_0mpu5_uf.evt',
-'/export/home/zarzouma/pipeline/1706140000/xti/event_cl/ni1706140000_0mpu6_uf.evt'
+filenames =['/data/NICER/6hr/ni1706140000_0mpu0_uf.evt',
+'/data/NICER/6hr/ni1706140000_0mpu1_uf.evt',
+#'/data/NICER/6hr/ni1706140000_0mpu2_uf.evt',
+'/data/NICER/6hr/ni1706140000_0mpu3_uf.evt',
+'/data/NICER/6hr/ni1706140000_0mpu4_uf.evt',
+'/data/NICER/6hr/ni1706140000_0mpu5_uf.evt',
+'/data/NICER/6hr/ni1706140000_0mpu6_uf.evt'
 ]
 
 log.info('Reading files')
@@ -51,12 +51,12 @@ elif args.pi:
     plot.show()
 else:
     figure1, num_events = eng_plots(data1, event_flags, info, avg_rate, ID_rates)
-    figure2 = sci_plots(data1, event_flags, info, num_events, avg_rate, 0, ID_rates)
+#    figure2 = sci_plots(data1, event_flags, info, num_events, avg_rate, 0, ID_rates)
     
 if args.save:
     figure1.set_size_inches(16,12)
-    figure2.set_size_inches(16,12)
+#    figure2.set_size_inches(16,12)
     figure1.savefig(str(info["OBJECT"])+ str(info["DATE-OBS"]) +  "_ENG_.png", dpi = 100)
-    figure2.savefig(str(info["OBJECT"])+ str(info["DATE-OBS"]) +  "_SCI_.png", dpi = 100)
+#    figure2.savefig(str(info["OBJECT"])+ str(info["DATE-OBS"]) +  "_SCI_.png", dpi = 100)
 elif args.display:
     plot.show()
