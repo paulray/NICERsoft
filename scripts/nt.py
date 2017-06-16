@@ -19,11 +19,12 @@ if args.met is not None:
 elif args.iso is not None:
     x = Time(args.iso,scale='utc')
 elif args.gps is not None:
-    x = GPS0+args.gps
+    x = GPS0+args.gps*u.s
 else:
     x = Time.now()
 
-print('UTC        : ',x)
+print('UTC        : ',x.utc.iso)
+print('TT         : ',x.tt.iso)
 x.format = 'yday'
 x.out_subfmt = 'date'
 print('YEAR:DOY   : ',x)
