@@ -77,9 +77,8 @@ if args.eng:
         plt.show()
 
 if args.sci:
-    IDS, num_events, stdev, colors = hist_use(etable)
     figure2 = sci_plots(etable)
-    figure2.set_size_inches(16,12)
+    figure2.set_size_inches(11,8.5)
     if args.save:
         figure2.savefig(str(etable.meta["OBJECT"])+ str(etable.meta["DATE-OBS"]) +  "_SCI_.png", dpi = 100)
     else:

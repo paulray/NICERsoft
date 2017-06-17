@@ -6,15 +6,8 @@ from scipy import ndimage
 
 from nicer.values import *
 
-#CURRENTLY RESET RATE IS NOT FUNCTIONAL
 '''
 CTRL + F WORDS FOR QUICK TROUBLESHOOTING:
-
-*get_FITS(filename)
-    gets data from 1 FITS file and puts it into an array called data1, along with event_flags and the identifying information in info
-
-*smush()
-    takes data from multiple FITS files for the same time scale and organizes them into one data1 array, an event_flags array, and 1 info array.
 
 *event_counter(data1)
     counts events / ID
@@ -28,26 +21,14 @@ CTRL + F WORDS FOR QUICK TROUBLESHOOTING:
 *plot_detector_chart(data1, IDS, num_events, sci_grid, detector_map)
     plots the structure (created above) as a grayscale map of event count intensities.
 
-*light_curve(data1,event_flags)
-    creates a histogram of total event count / second. Calls no_more_resets which filters out all RESETS
-
-*plot_light_curve(data1, sci_grid, light_curve_plot, event_flags)
-    plots the light curve based on the histogram created by light_curve
-
 *slow_fast(data1)
     calculates number of slow only, fast only, and both from pha fast and slow. This is used to create text on the slow vs fast plot.
-
-*plot_slowx_fasty(data1, sci_grid, fastslow_ratio, fast, slow, total)
-    plots slow on x, fast on y. Includes an expected maximum ratio of 1.8. Highlights fast data > ratio = 1.8. Includes text created in slow_fast and a legend.
 
 *PI(data1)
     maps pha_slow values to a PI value based on E0 and gains which are defined here.
 
 *plot_power_spec(pha_slow, sci_grid, power_spec, event_flags)
     Plots the energy spectrum [sorry the name is wrong]
-
-*no_more_resets(data, event_flags)
-    This pulls out all data with the same indices as a RESET as flagged by event_flags. THIS IS CALLED BY MULTIPLE OTHER FUNCTIONS AND IS A GOOD PLACE TO TROUBLESHOOT.
 
 *plot_fft_of_power(time)
     plots the power spectrum. bins data (filtered by no_more_resets) at .5 ms, takes the rfft, and plots.
@@ -159,63 +140,68 @@ def plot_detector_chart(data1, IDS, num_events, sci_grid, detector_map):
 
     return detector_map
 #----------------------THIS MAKES THE LIGHT CURVE---------------------------
-def light_curve(data1, event_flags):
-    time = no_more_resets(data1[0], event_flags)
-    bins = np.arange(time[0],time[-1],1)
-    sums, edges = np.histogram(time, bins)
-    average_counts = np.mean(sums)
+def light_curve(etable,binsize):
+    met0 = etable['MET'].min()
+    t = etable['MET']-met0
 
-    return sums, average_counts
+    # Add 1 bin to make sure last bin covers last events
+    bins = np.arange(0.0,t.max()+binsize,binsize)
+    sums, edges = np.histogram(t, bins=bins)
 
-def plot_light_curve(data1, sci_grid, light_curve_plot, event_flags):
-    sums, average_counts = light_curve(data1, event_flags)
-    time_elapsed = range(1,len(sums)+1)
-    light_curve_plot = plot.plot(time_elapsed, sums, linewidth = .6)
+    # Chop off last bin edge, which is only for computing histogram, not plotting
+    return bins[:-1], sums
 
-    #Plotting the Mean line
-    mean_shown = np.array([average_counts for i in xrange(len(time_elapsed))])
-    label = 'Mean Rate: ' + str(int(average_counts)) + ' counts / sec'
-    plot.plot(time_elapsed, mean_shown, 'r--', label = label)
+def plot_light_curve(etable,binsize=1.0):
+    'Compute binned light curve of events and return mean rate'
+    bins, sums = light_curve(etable, binsize=binsize)
+    light_curve_plot = plot.plot(bins, sums, linewidth = .6)
+
+
+    # Compute mean rate
+    rate = sums/binsize
+    mean_rate = rate.mean()
+
+    label = 'Mean Rate: {0} c/s'.format(rate.mean())
+    # Plot line at mean counts per bin
+    mean_counts = sums.mean()
+    plot.plot([bins[0],bins[-1]], [mean_counts,mean_counts], 'r--', label = label)
+
     plot.legend(loc = 4)
     plot.title('Light Curve')
     plot.xlabel('Time Elapsed (s)')
     plot.ylabel('Counts')
 
-    return light_curve_plot
+    # Compute the mean rate
+    return mean_rate
 
 #-------------------------------THIS PLOTS THE FAST TO SLOW AND SLOW TO FAST------------------
-def slow_fast(data1):
-    fast = len(np.where(data1[4] == 0)[0])
-    slow = len(np.where(data1[3] ==0)[0])
-    total = len(data1[3]) - fast - slow
 
-    return fast, slow, total
+def plot_slowfast(etable):
+    'Scatter plot of slow and fast PHA, highlighting points above ratio cut'
 
-def plot_slowx_fasty(data1, sci_grid, fastslow_ratio, fast, slow, total):
-    acceptable_range = data1[3] * 1.8
-    colors = range(len(acceptable_range))
+    # Ratio is SLOW to FAST. Edge events should have ratio bigger than cut
+    ratio = etable['PHA']/etable['PHA_FAST']
 
-    for i in xrange(0,len(data1[4])-1):
-        if data1[4][i] > acceptable_range[i]:
-            colors[i] = 'r'
-        else:
-            colors[i] = 'k'
+    ratio_cut = 1.8
+    colors = np.array(['k']*len(ratio))
+    idx = np.where(ratio>ratio_cut)
+    colors[idx] = 'r'
 
-    fastslow_ratio = plot.scatter(data1[3], data1[4], s=.4, c = colors)
-    label = 'Expected ratio of 1.8'
-    plot.plot(data1[3], acceptable_range, 'g', linewidth = '.3', label = label)
+    fastslow_ratio = plot.scatter(etable['PHA'], etable['PHA_FAST'], s=.4, c = colors)
 
-    plot.legend(loc = 0)
-    plot.title('PHA Slow vs. PHA Fast')
-    plot.xlabel('PHA Slow')
-    plot.ylabel('PHA Fast')
+    phax = np.arange(0,etable['PHA'].max())
+    plot.plot(phax, phax/ratio_cut, 'g--', linewidth = 0.3)
 
-    fast_str = "# of fast only: " + str(slow)
-    slow_str = "# of slow only: " + str(fast)
-    total = "# of both: " + str(total)
-    plot.annotate(fast_str, xy=(0.03, 0.85), xycoords='axes fraction')
-    plot.annotate(slow_str, xy=(0.03, 0.8), xycoords='axes fraction')
-    plot.annotate(total, xy=(0.03, 0.75), xycoords='axes fraction')
+    plot.title('PHA Fast vs. PHA Slow')
+    plot.xlabel('PHA')
+    plot.ylabel('PHA_FAST')
+
+    # fast_str = "# of fast only : " + str(slow)
+    # slow_str = "# of slow only : " + str(fast)
+    # total =    "# of both      : " + str(total)
+    # plot.annotate(fast_str, xy=(0.03, 0.85), xycoords='axes fraction')
+    # plot.annotate(slow_str, xy=(0.03, 0.8), xycoords='axes fraction')
+    # plot.annotate(total, xy=(0.03, 0.75), xycoords='axes fraction')
 
     return fastslow_ratio
 
@@ -257,20 +243,6 @@ def plot_power_spec(data1, sci_grid, power_spec, event_flags, PI_flag):
 
     return power_spec
 #-------------------------------THIS PLOTS THE POWER SPECTRUM (FFT)--------------
-def no_more_resets(data, event_flags):
-    temp = np.array(copy.deepcopy(data))
-
-    for i in xrange(0,len(event_flags)-1):
-        if event_flags[i][5]:
-            temp[i] = 0
-        elif event_flags[i][6]:
-            temp[i] = 0
-        elif event_flags[i][7]:
-            temp[i] = 0
-
-    filtered = temp[np.nonzero(temp)]
-
-    return filtered
 
 def plot_fft_of_power(time, data1):
     #taking out the event flags
