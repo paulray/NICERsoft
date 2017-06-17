@@ -1,43 +1,63 @@
-import matplotlib.pyplot as plot
+import matplotlib.pyplot as plt
 import numpy as np
-import pylab
-import matplotlib.gridspec as gridspec
 import argparse
+import sys
+from astropy import log
+from astropy.table import Table, vstack
+import astropy.io.fits as pyfits
+import astropy.units as u
+from astropy.time import Time
+from nicer.values import *
+
 from functionality import *
 from sci_plots import sci_plots
 from eng_plots import eng_plots
-from astropy import log
-plot.close('all')
-
-#"What's efficiency?" Prof Darmofal re: code
 
 parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
 parser.add_argument("infiles", help="Input files", nargs='+')
-parser.add_argument("-s", "--save", help = "Save the output plots nicely.", action = "store_true")
+parser.add_argument("-s", "--save", help = "Save plots to file", action = "store_true")
 parser.add_argument("-c", "--sci", help = "Makes some nice science plots", action = "store_true")
 parser.add_argument("-e", "--eng", help = "Makes some nice engineering plots", action = "store_true")
-parser.add_argument("-p", "--pi", help = "Turn the pha_slow into nice PI values", action = "store_true")
+parser.add_argument("-p", "--pi", help = "Use approximate calibration to compute PI", action = "store_true")
 args = parser.parse_args()
 
 log.info('Reading files')
-data1, event_flags, info = smush(args.infiles)
+tlist = []
+hdr = pyfits.getheader(args.infiles[0])
+for fn in args.infiles:
+    tlist.append(Table.read(fn,hdu=1))
 
-IDS = np.array([0, 1, 2, 3, 4, 5,6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 20, 21, 22, 23, 24, 25, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 42, 43, 44, 45, 46, 47, 50, 51, 52, 53, 54, 55, 56, 57, 60, 61, 62, 63, 64, 65, 66, 67])
+etable = vstack(tlist,metadata_conflicts='silent')
+# Change TIME column name to MET to reflect what it really is
+etable.columns['TIME'].name = 'MET'
+etime = etable.columns['MET'] + MET0
+# Add Time column with astropy Time for computations
+etable['T'] = etime
+
+# Note: To access event flags, use etable['EVENT_FLAGS'][:,B], where B is
+# the bit number for the flag (e.g. FLAG_UNDERSHOOT)
+
+#data1, event_flags, info = smush(args.infiles)
+exposure = etable.meta['EXPOSURE'] * u.s
 
 log.info('Computing reset rates')
-avg_rate, ID_rates = reset_rate(data1, event_flags, IDS)
+nresets = reset_rate(etable, IDS)
+reset_rates = nresets/exposure
 
 #Making the plots
 if args.eng:
-    figure1, num_events = eng_plots(data1, event_flags, info, avg_rate, ID_rates)
+    figure1 = eng_plots(etable, reset_rates)
     figure1.set_size_inches(16,12)
-    plot.show()
     if args.save:
-        figure1.savefig(str(info["OBJECT"])+ str(info["DATE-OBS"]) +  "_ENG_.png", dpi = 100)
+        figure1.savefig(str(etable.meta["OBJECT"])+ str(etable.meta["DATE-OBS"]) +  "_ENG_.png", dpi = 100)
+    else:
+        plt.show()
+
 if args.sci:
-    IDS, num_events, stdev, colors = hist_use(data1)
-    figure2 = sci_plots(data1, event_flags, info, num_events, avg_rate, args.pi, ID_rates)
+    IDS, num_events, stdev, colors = hist_use(etable)
+    figure2 = sci_plots(etable)
     figure2.set_size_inches(16,12)
-    plot.show()
     if args.save:
-        figure2.savefig(str(info["OBJECT"])+ str(info["DATE-OBS"]) +  "_SCI_.png", dpi = 100)
+        figure2.savefig(str(etable.meta["OBJECT"])+ str(etable.meta["DATE-OBS"]) +  "_SCI_.png", dpi = 100)
+    else:
+        plt.show()

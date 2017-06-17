@@ -4,6 +4,8 @@ import copy
 import scipy
 from scipy import ndimage
 
+from nicer.values import *
+
 #CURRENTLY RESET RATE IS NOT FUNCTIONAL
 '''
 CTRL + F WORDS FOR QUICK TROUBLESHOOTING:
@@ -65,71 +67,6 @@ CTRL + F WORDS FOR QUICK TROUBLESHOOTING:
 *plot_nicetextinfo(num_events, sci_grid, figure1, reset_rate, info)
     creates text strings that are included in both figures.
 
-'''
-
-def get_FITS(filename):
-    #load the data
-    from astropy.io import fits
-    hdulist = fits.open(filename)
-    data_headerlist = ["TIME", "RAWX", "RAWY", "PHA", "PHA_FAST", "DET_ID", "DEADTIME"]
-    event_flags = hdulist[1].data["EVENT_FLAGS"]
-    info_headerlist = ["OBJECT", "DATE-OBS", "TSTART"]
-
-    '''
-    DO NOT EDIT THIS
-
-    TIME 0
-    RAWX 1
-    RAWY 2
-    PHA 3
-    PHA_FAST 4
-    DET_ID 5
-    DEADTIME 6
-    EVENT_FLAGS 7
-    '''
-
-    #creating an array to put all the data in
-    data1 = np.zeros(shape=(len(data_headerlist), hdulist[1].data["TIME"].size))
-    counter = 0
-
-    #putting data in places
-    for header in data_headerlist:
-        data1[counter] = hdulist[1].data[header]
-        counter += 1
-
-    info= {}
-    for header in info_headerlist:
-        info[header] = hdulist[0].header[header]
-
-    return data1, event_flags,info
-def smush(filenames):
-##    filenames =['/data/NICER/prelaunch/nicer-sample-data-2016-09-28/psrb1821/XNAV_FPM_7_1_STATIC1821_2015OCT23_1704_mpu6_det60.evt.gz']
-    count = 0
-
-    for name in filenames:
-        count += 1
-        data, ef, i = get_FITS(name)
-
-        if count > 1: #all subsequent files
-            data1 = np.hstack((data1, data))
-            event_flags = np.vstack((event_flags, ef))
-        else: #first file case
-            data1 = copy.deepcopy(data)
-            event_flags = copy.deepcopy(ef)
-            info = i
-
-##    data1 = data1[:,data1[0].argsort()]
-##    event_flags = event_flags[data1[0].argsort(), :]
-
-    return data1, event_flags, info
-
-'''
-def fake_data(data1):
-    from random import randint
-    data1[1][x] = randint(0,7)
-    data1[2][x] = randint(0,6)
-    data1[5][x] = randint(60, 67)
-    return data1
 '''
 
 #------------------------THIS MAKES THE TOTAL COUNT HISTOGRAM---------------------------
@@ -411,28 +348,22 @@ def pulse_profile(data1):
     pulse = plot.plot(data1[0],data1[3])
     return pulse
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-----------
-def reset_rate(data1, event_flags, IDS):
-    #getting the reset rate
-    ID_resets = np.zeros(shape = (2,56))
-    ID_resets[0] = IDS
+def reset_rate(etable, IDS):
+    'Count resets (detector undershoots) for each detector'
 
-    for i in xrange(0,len(event_flags)-1):
-        if event_flags[i][5]:
-            ID_resets[1][np.where(ID_resets[0] == (data1[5][i]))] += 1
-        elif event_flags[i][6]:
-            ID_resets[1][np.where(ID_resets[0] == (data1[5][i]))] += 1
-        elif event_flags[i][7]:
-            ID_resets[1][np.where(ID_resets[0] == (data1[5][i]))] += 1
+    nresets = np.zeros_like(IDS)
 
-    ID_resets[1] = ID_resets[1] / (data1[0][-1]-data1[0][0])
-    a = np.delete(ID_resets[1], np.where(ID_resets[1] == 0))
-    avg_rate = np.mean(a)
+    # For each DET_ID count the number of events with undershoot flag set
+    for i in range(len(IDS)):
+        idx = np.where(np.logical_and(etable['DET_ID'] == IDS[i],
+                        etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]))[0]
+        nresets[i] = len(idx)
 
-    return avg_rate, ID_resets
+    return nresets
 
-def plot_resetrate(IDS, reset, ID_resets, data1, event_flags):
-    reset = plot.bar(IDS, ID_resets[1], width = .85)
+def plot_resetrate(IDS, reset_rates):
+    reset = plot.bar(IDS, reset_rates.value, width = .85)
     plot.title('Reset Rate by Detector')
     plot.ylabel('Reset Rate [Hz]')
     plot.xlabel('DET_ID')
-    plot.ylim([0, np.max(ID_resets[1])+2])
+    #plot.ylim([0, np.max(reset_rates)+2])
