@@ -6,10 +6,12 @@ import argparse
 from functionality import *
 from nicer.values import *
 
-def eng_plots(etable, reset_rates):
+def eng_plots(etable):
     #GRID SET UP
-    figure1 = plot.figure(figsize = (8.0, 5.0))
+    figure1 = plot.figure(figsize = (11.0, 8.5))
     sci_grid = gridspec.GridSpec(5,6)
+
+    exposure = etable.meta['EXPOSURE']
 
     #Total Count Histogram
     total_counts = plot.subplot(sci_grid[2:5, :3]) #totcount hist
@@ -26,8 +28,12 @@ def eng_plots(etable, reset_rates):
     #dead_plot = plot_deadtime(data1, sci_grid, dead)
 
     #RESET RATE PER DETECTOR
-    reset = plot.subplot(sci_grid[:2, 2:4])
-    reset_plot = plot_resetrate(IDS, reset_rates)
+    log.info('Computing reset rates')
+    nresets = reset_rate(etable, IDS)
+    reset_rates = nresets/exposure
+
+    plot.subplot(sci_grid[:2, 2:4])
+    plot_resetrate(IDS, reset_rates)
 
     #Making the plot all nice and stuff
     plot.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .7, hspace = .8)

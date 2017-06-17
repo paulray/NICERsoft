@@ -3,6 +3,7 @@ import matplotlib.pyplot as plot
 import copy
 import scipy
 from scipy import ndimage
+from astropy import log
 
 from nicer.values import *
 
@@ -23,12 +24,6 @@ CTRL + F WORDS FOR QUICK TROUBLESHOOTING:
 
 *slow_fast(data1)
     calculates number of slow only, fast only, and both from pha fast and slow. This is used to create text on the slow vs fast plot.
-
-*PI(data1)
-    maps pha_slow values to a PI value based on E0 and gains which are defined here.
-
-*plot_power_spec(pha_slow, sci_grid, power_spec, event_flags)
-    Plots the energy spectrum [sorry the name is wrong]
 
 *plot_fft_of_power(time)
     plots the power spectrum. bins data (filtered by no_more_resets) at .5 ms, takes the rfft, and plots.
@@ -161,7 +156,7 @@ def plot_light_curve(etable,binsize=1.0):
     rate = sums/binsize
     mean_rate = rate.mean()
 
-    label = 'Mean Rate: {0} c/s'.format(rate.mean())
+    label = 'Mean Rate: {0:.3f} c/s'.format(rate.mean())
     # Plot line at mean counts per bin
     mean_counts = sums.mean()
     plot.plot([bins[0],bins[-1]], [mean_counts,mean_counts], 'r--', label = label)
@@ -206,45 +201,35 @@ def plot_slowfast(etable):
     return fastslow_ratio
 
 #-------------------------------THIS PLOTS THE ENERGY SPECTRUM------------------
-def PI(data1):
+def calc_pi(etable, calfile):
+    'Compute PI from PHA (slow) using approximate linear calibration'
 
-    '''
-    gains[0] = DET_IDS
-    gains[1] = E0
-    gains[2] = gains
-    '''
+    # Load calibration file
+    det_ids, e0s, gains = np.loadtxt(calfile,unpack=True)
+    det_ids = np.array(det_ids,dtype=int)
 
-    a = np.array([0, 1, 2, 3, 4, 5,6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 20, 21, 22, 23, 24, 25, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 42, 43, 44, 45, 46, 47, 50, 51, 52, 53, 54, 55, 56, 57, 60, 61, 62, 63, 64, 65, 66, 67])
-    b = -1 * np.array([1.192, 1.099, 1.042, 1.147, 1.279, 1.277, 1.215, 1.311, .865, 1.190, 1.044,1.221,1.240,1.212,1.557,1.356,1.294,1.281,1.315,1.023,1.260, 1.076,1.093,1.195,1.058,1.293,1.344,1.386,1.046,1.204,1.143,1.316,1.247,1.148,1.423,1.191,1.244,1.297,1.298,1.227, 1.280,1.351,1.191,1.379,1.288,1.238,1.128,1.110,1.035,1.060,1.228,1.231,1.261,1.314,1.110,1.247])
-    c = .001* np.array([3.6645, 3.6818,3.6945,3.886,3.7975,3.7161,3.6516,3.7166,3.7661,3.7229,3.5702,3.6318,3.7039,3.7458,3.7408,3.7955,3.7282,3.6350,3.7843,3.6560,3.6763,3.6945,3.7050,3.6872,3.6768,3.6293,3.7926,3.6682,3.7413,3.7667,3.7721,3.5859,3.6732,3.7951,3.8908,3.6876,3.7517,3.6848,3.7658,3.6901,3.7326,3.6779,3.7166,3.7133,3.6560,3.7387,3.7423,3.6756,3.7016,3.7115,3.7597,3.6493,3.7406,3.6480,3.7113,3.7657])
-    converter = np.vstack((a,b,c))
-    PI_list = np.zeros(len(data1[0])-1)
+    e_keV = np.zeros_like(etable['PHA'],dtype=np.float)
 
-    count = 0
-    for i in xrange(0,len(data1[0])-1):
-        E0 = converter[1][np.where(converter[0] == data1[5][i])[0][0]]
-        gain = converter[2][np.where(converter[0] == data1[5][i])[0][0]]
-        PI_list[count] = E0 + (gain*data1[3][i])
-        count += 1
+    for d, e0, g  in zip(det_ids,e0s,gains):
+        idx = np.where(etable['DET_ID'] == d)[0]
+        e_keV[idx] = e0 + g*etable['PHA'][idx]
 
-    return PI_list
+    pi = np.array(e_keV/PI_TO_KEV,dtype=np.int)
+    return pi
 
-def plot_power_spec(data1, sci_grid, power_spec, event_flags, PI_flag):
-    if PI_flag:
-        PIshit = PI(data1)
-        pha_slow = no_more_resets(PIshit, event_flags)
-    else:
-        pha_slow = no_more_resets(data1[3],event_flags)
-    power_spec = plot.hist((pha_slow / (1000)), 1000, histtype='step')
+def plot_energy_spec(etable):
+    plot.hist(etable['PI']*PI_TO_KEV, bins=200, range=(0.0,15.0),
+        histtype='step')
     plot.yscale('log')
-    plot.title('Energy Spectrum')
+    #plot.xscale('log')
+    plot.title('PI Spectrum')
     plot.xlabel('Energy (keV)')
     plot.ylabel('Counts')
 
-    return power_spec
+    return
 #-------------------------------THIS PLOTS THE POWER SPECTRUM (FFT)--------------
 
-def plot_fft_of_power(time, data1):
+def plot_fft_of_power(etable):
     #taking out the event flags
     bins = np.arange(time[0], time[-1], .0005)
     stuff, edges = np.histogram(time,bins)

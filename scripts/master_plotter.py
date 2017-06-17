@@ -20,6 +20,8 @@ parser.add_argument("--sci", help = "Makes some nice science plots", action = "s
 parser.add_argument("--eng", help = "Makes some nice engineering plots", action = "store_true")
 parser.add_argument("--emin", help="Minimum energy (keV) to keep", default=0.2, type=float)
 parser.add_argument("--emax", help="Minimum energy (keV) to keep", default=12.0, type=float)
+parser.add_argument("--pi", help="Force use of internal PHA to PI conversion", action='store_true')
+parser.add_argument("--basename", help="Basename for output plots", default=None)
 args = parser.parse_args()
 
 # Load files and build events table
@@ -34,25 +36,25 @@ etable = vstack(tlist,metadata_conflicts='silent')
 del tlist
 # Change TIME column name to MET to reflect what it really is
 etable.columns['TIME'].name = 'MET'
+
 # Add Time column with astropy Time for ease of use
 log.info('Adding time column')
+# This should really be done the FITS way using MJDREF etc...
+# For now, just using MET0
 etime = etable.columns['MET'] + MET0
 etable['T'] = etime
 
 # If there are no PI columns, add them with approximate calibration
-if not ('PI' in etable.colnames):
+if args.pi or not ('PI' in etable.colnames):
     log.info('Adding PI')
-    pi = PI(etable)
+    calfile = 'data/gaincal_linear.txt'
+    pi = calc_pi(etable,calfile)
+    etable['PI'] = pi
 
 # Note: To access event flags, use etable['EVENT_FLAGS'][:,B], where B is
 # the bit number for the flag (e.g. FLAG_UNDERSHOOT)
 
-#data1, event_flags, info = smush(args.infiles)
-exposure = etable.meta['EXPOSURE'] * u.s
-
-log.info('Computing reset rates')
-nresets = reset_rate(etable, IDS)
-reset_rates = nresets/exposure
+exposure = etable.meta['EXPOSURE']
 
 log.info('Filtering...')
 # Apply filters for good events
@@ -67,19 +69,25 @@ filttable = etable[idx]
 log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
     len(filttable), 100*len(filttable)/len(etable)))
 
+if args.basename is None:
+    basename = '{0}-{1}'.format(etable.meta['OBJECT'],etable.meta['OBS_ID'])
+else:
+    basename = args.basename
+
 #Making the plots
 if args.eng:
-    figure1 = eng_plots(etable, reset_rates)
+    figure1 = eng_plots(etable)
     figure1.set_size_inches(16,12)
     if args.save:
-        figure1.savefig(str(etable.meta["OBJECT"])+ str(etable.meta["DATE-OBS"]) +  "_ENG_.png", dpi = 100)
+        figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
     else:
         plt.show()
 
 if args.sci:
-    figure2 = sci_plots(etable)
+    # Make science plots using filtered events
+    figure2 = sci_plots(filttable)
     figure2.set_size_inches(11,8.5)
     if args.save:
-        figure2.savefig(str(etable.meta["OBJECT"])+ str(etable.meta["DATE-OBS"]) +  "_SCI_.png", dpi = 100)
+        figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
     else:
         plt.show()

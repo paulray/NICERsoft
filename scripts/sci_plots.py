@@ -7,7 +7,7 @@ from functionality import *
 
 def sci_plots(etable):
     #GRID SET UP
-    figure2 = plt.figure(figsize = (8.0, 5.0), facecolor = 'white')
+    figure2 = plt.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,7)
     plt.style.use('grayscale')
 
@@ -25,8 +25,8 @@ def sci_plots(etable):
 
     #Energy Spectrum
     log.info('Building energy spectrum')
-    power_spec = plt.subplot(sci_grid[3:5,2:5])
-    #power_spec = plot_power_spec(data1, sci_grid, power_spec, event_flags, PI_flag)
+    plt.subplot(sci_grid[3:5,2:5])
+    plot_energy_spec(etable)
 
     #Power SPpectrum
     log.info('Building power spectrum')
