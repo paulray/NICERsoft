@@ -37,6 +37,9 @@ del tlist
 # Change TIME column name to MET to reflect what it really is
 etable.columns['TIME'].name = 'MET'
 
+# Sort table by MET
+etable.sort('MET')
+log.info("MET Range : {0} to {1}".format(etable['MET'].min(), etable['MET'].max()))
 # Add Time column with astropy Time for ease of use
 log.info('Adding time column')
 # This should really be done the FITS way using MJDREF etc...
@@ -55,7 +58,7 @@ if args.pi or not ('PI' in etable.colnames):
 # the bit number for the flag (e.g. FLAG_UNDERSHOOT)
 
 exposure = etable.meta['EXPOSURE']
-
+log.info('Exposure : {0:.2f}'.format(exposure))
 log.info('Filtering...')
 # Apply filters for good events
 b1 = etable['EVENT_FLAGS'][:,FLAG_SWTRIG] == False

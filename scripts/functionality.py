@@ -10,9 +10,6 @@ from nicer.values import *
 '''
 CTRL + F WORDS FOR QUICK TROUBLESHOOTING:
 
-*event_counter(data1)
-    counts events / ID
-
 *plot_total_count_hist(data1, countrate, total_counts)
     plots the histogram of event count / ID. highlights those > 1 std dev from the mean.
 
@@ -46,73 +43,69 @@ CTRL + F WORDS FOR QUICK TROUBLESHOOTING:
 '''
 
 #------------------------THIS MAKES THE TOTAL COUNT HISTOGRAM---------------------------
-def event_counter(data1):
-    IDS = np.array([0, 1, 2, 3, 4, 5,6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 20, 21, 22, 23, 24, 25, 26, 27, 30, 31, 32, 33, 34, 35, 36, 37, 40, 41, 42, 43, 44, 45, 46, 47, 50, 51, 52, 53, 54, 55, 56, 57, 60, 61, 62, 63, 64, 65, 66, 67])
-    IDevents = np.zeros(shape = (2, 56))
-    IDevents[0] = IDS[:]
+def event_counter(etable):
+    'Count events by DET_ID'
+    IDevents = np.zeros_like(IDS)
 
-        #finding all the instances of each ID
-    for id in IDS:
-        IDevents[1][np.where(IDS == id)] = np.count_nonzero(data1[5] == (id))
+    for i, id in enumerate(IDS):
+        IDevents[i] = np.count_nonzero(etable['DET_ID'] == id)
 
     return IDevents
 
-def hist_use(data1):
-    IDevents = event_counter(data1)
-    IDS = copy.deepcopy(IDevents[0])
-    temp = np.delete(IDevents[1], np.where(IDevents[1] == 0))
+def hist_use(etable):
+
+    # Make array of event counts by DET_ID
+    IDevents = event_counter(etable)
+
+    # Remove any that have 0 counts and compute std dev
+    temp = np.delete(IDevents, np.where(IDevents == 0))
     stdev = np.std(temp)
-    colors = range(IDevents[0].size)
+    colors = np.array(['k']*len(IDevents))
 
-        #creating colors for the histogram
-    for i in xrange(0, IDevents[1].size):
-        if abs(IDevents[1][i] - np.mean(temp))> stdev:
-            colors[i] = 'r'
-        else:
-            colors[i] = 'k'
+    # Set points that are off by more that 1 sigma to red
+    diff = np.array(IDevents,dtype=np.float)-np.mean(temp)
+    idx = np.where(diff>stdev)[0]
+    colors[idx] = 'r'
 
-    return IDS, IDevents[1], stdev, colors
+    return IDevents, colors
 
 
-def plot_total_count_hist(data1, countrate, total_counts):
-    IDS, num_events, stdev, colors = hist_use(data1)
+def plot_total_count_hist(etable, ax_rate, ax_counts):
+    num_events, colors = hist_use(etable)
 
-    tc = total_counts.bar((IDS), num_events, color = colors)
-    rate = num_events / 60
+    tc = ax_counts.bar(IDS, num_events, color = colors)
+    rate = np.array(num_events,dtype=np.float) / etable.meta['EXPOSURE']
 
-    ##cr = countrate.bar(IDS, rate, color = 'y')
-    countrate.set_ylabel('Counts per second')
-    countrate.set_ylim([np.min(rate)-20,np.max(rate)+20])
+    ax_rate.set_ylabel('c/s')
+    #countrate.set_ylim([np.min(rate)-20,np.max(rate)+20])
 
-    total_counts.set_xlabel('DET_ID')
-    total_counts.set_ylabel('Total # of Events')
+    ax_counts.set_xlabel('DET_ID')
+    ax_counts.set_ylabel('# of Events')
     plot.locator_params(nticks = 20)
     plot.title('Total Event Count by Detector')
-    total_counts.set_ylim([np.min(num_events)-20, np.max(num_events)+20])
+    #total_counts.set_ylim([np.min(num_events)-20, np.max(num_events)+20])
 
-    return tc, IDS, num_events, rate
+    return num_events
 
 #----------------------THIS MAKES THE GRAYSCALE ID/EVENT COUNT CHART---------------------
-def structure(data1, IDS, num_events):
-    rawx = np.zeros(IDS.size)
-    rawy = np.zeros(IDS.size)
-    count = 0
+def structure(etable, num_events):
+    rawx = np.zeros_like(IDS)
+    rawy = np.zeros_like(IDS)
 
-    #getting x and y vals for each ID
-    for id in IDS:
-        x = np.where(data1[5]==(id))
-        if len(x[0]) > 0:
-            rawx[count] = data1[1,x[0][0]]
-            rawy[count] = data1[2,x[0][0]]
+
+    #getting RAWX and RAWY vals for each ID
+    for count, id in enumerate(IDS):
+        idx = np.where(etable['DET_ID']==(id))[0]
+        if len(idx) > 0:
+            rawx[count] = etable['RAWX'][idx][0]
+            rawy[count] = etable['RAWY'][idx][0]
 
         else:
             rawx[count] = 0
             rawy[count] = 0
 
-        x = []
-        count += 1
-
-        #In STRUCTURE, each element corresponds to the geometric position of each detector, while the value is the # of counts
+    #In STRUCTURE, each element corresponds to the geometric position
+    # of each detector, while the value is the # of counts
     structure = np.zeros(shape = (7,8))
 
     for i in xrange(len(rawx)):
@@ -120,20 +113,21 @@ def structure(data1, IDS, num_events):
 
     return structure
 
-def plot_detector_chart(data1, IDS, num_events, sci_grid, detector_map):
+def plot_detector_chart(etable, num_events,  ax_map):
     #WANT TO GET THE ORIGIN IN THE TOP RIGHT HAND CORNER
-    struct = structure(data1, IDS, num_events)
+    struct = structure(etable, num_events)
     plot.style.use('grayscale')
-    detector_map = plot.imshow(struct, origin = 'lower')
+    ax_img = plot.imshow(struct, origin = 'lower')
     plot.gca().invert_yaxis()
     plot.gca().invert_xaxis()
     plot.rcParams.update({'font.size' : 8})
     plot.title('Total Event Count by Detector Location')
     plot.xlabel('Raw X')
     plot.ylabel('Raw Y')
-    plot.colorbar(detector_map, orientation = 'horizontal')
+    plot.colorbar(ax_img, orientation = 'horizontal')
 
-    return detector_map
+    return
+
 #----------------------THIS MAKES THE LIGHT CURVE---------------------------
 def light_curve(etable,binsize):
     met0 = etable['MET'].min()
@@ -245,16 +239,18 @@ def plot_fft_of_power(etable):
     plot.ylabel('Power')
     return noflags
 #-------------------------------THIS PLOTS THE DEADTIME HISTOGRAM------------------
-def plot_deadtime(data1, sci_grid, dead):
-    ms = data1[6]*1000000
-    dead = plot.hist(ms, 50)
-    plot.ticklabel_format(style = 'sci', axis='x', scilimits = (0,0))
+def plot_deadtime(etable):
+    'Plot histogram of detector deadtime in microseconds.'
+    us = etable['DEADTIME']*1.0e6
+    # Bin at 1 us resolution
+    max = np.floor(us.max())+1
+    plot.hist(us,range=(0.0,max), bins=int(max),log=True)
+    #plot.ticklabel_format(style = 'sci', axis='x', scilimits = (0,0))
     plot.title('Histogram of deadtime')
     plot.xlabel('Deadtime [microseconds]')
     plot.ylabel('Frequency [occurrences]')
-    plot.ticklabel_format(style = 'plain')
 
-    return dead
+    return
 
 #-------------------------PULSE PROFILE----------------------------------
 def pulse_profile(data1):
@@ -319,7 +315,7 @@ def reset_rate(etable, IDS):
     return nresets
 
 def plot_resetrate(IDS, reset_rates):
-    reset = plot.bar(IDS, reset_rates.value, width = .85)
+    reset = plot.bar(IDS, reset_rates, width = .85)
     plot.title('Reset Rate by Detector')
     plot.ylabel('Reset Rate [Hz]')
     plot.xlabel('DET_ID')
