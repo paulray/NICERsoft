@@ -31,7 +31,7 @@ def sci_plots(etable):
     #Power SPpectrum
     log.info('Building power spectrum')
     fourier = plt.subplot(sci_grid[3:5,5:7])
-    #power_spec = plot_fft_of_power(time, data1)
+    plot_fft_of_power(etable)
 
     #PULSE PROFILE
     log.info('Building pulse profile')

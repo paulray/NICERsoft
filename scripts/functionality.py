@@ -7,41 +7,6 @@ from astropy import log
 
 from nicer.values import *
 
-'''
-CTRL + F WORDS FOR QUICK TROUBLESHOOTING:
-
-*plot_total_count_hist(data1, countrate, total_counts)
-    plots the histogram of event count / ID. highlights those > 1 std dev from the mean.
-
-*structure(data1, IDS, num_events)
-    creates an array of rawx rawy coordinates with the total count per rawx,rawy pair.
-
-*plot_detector_chart(data1, IDS, num_events, sci_grid, detector_map)
-    plots the structure (created above) as a grayscale map of event count intensities.
-
-*slow_fast(data1)
-    calculates number of slow only, fast only, and both from pha fast and slow. This is used to create text on the slow vs fast plot.
-
-*plot_fft_of_power(time)
-    plots the power spectrum. bins data (filtered by no_more_resets) at .5 ms, takes the rfft, and plots.
-
-*plot_deadtime(data1, sci_grid, dead)
-    plots a histogram of the deadtime.
-
-*plot_pulseprofile()
-    plots pulse profile
-
-*reset_rate(data1, event_flags)
-    calculates the reset rate. Is used by plot_resetrate and the text maker on both plots.
-
-*plot_resetrate(IDS, reset, rate)
-    plots a histogram of the reset rate per ID
-
-*plot_nicetextinfo(num_events, sci_grid, figure1, reset_rate, info)
-    creates text strings that are included in both figures.
-
-'''
-
 #------------------------THIS MAKES THE TOTAL COUNT HISTOGRAM---------------------------
 def event_counter(etable):
     'Count events by DET_ID'
@@ -222,22 +187,69 @@ def plot_energy_spec(etable):
 
     return
 #-------------------------------THIS PLOTS THE POWER SPECTRUM (FFT)--------------
+def choose_N(orig_N):
+    """
+    choose_N(orig_N):
+        Choose a time series length that is larger than
+            the input value but that is highly factorable.
+            Note that the returned value must be divisible
+            by at least the maximum downsample factor * 2.
+            Currently, this is 8 * 2 = 16.
+    """
+    # A list of 4-digit numbers that are highly factorable by small primes
+    goodfactors = [1008, 1024, 1056, 1120, 1152, 1200, 1232, 1280, 1296,
+                   1344, 1408, 1440, 1536, 1568, 1584, 1600, 1680, 1728,
+                   1760, 1792, 1920, 1936, 2000, 2016, 2048, 2112, 2160,
+                   2240, 2304, 2352, 2400, 2464, 2560, 2592, 2640, 2688,
+                   2800, 2816, 2880, 3024, 3072, 3136, 3168, 3200, 3360,
+                   3456, 3520, 3584, 3600, 3696, 3840, 3872, 3888, 3920,
+                   4000, 4032, 4096, 4224, 4320, 4400, 4480, 4608, 4704,
+                   4752, 4800, 4928, 5040, 5120, 5184, 5280, 5376, 5488,
+                   5600, 5632, 5760, 5808, 6000, 6048, 6144, 6160, 6272,
+                   6336, 6400, 6480, 6720, 6912, 7040, 7056, 7168, 7200,
+                   7392, 7680, 7744, 7776, 7840, 7920, 8000, 8064, 8192,
+                   8400, 8448, 8624, 8640, 8800, 8960, 9072, 9216, 9408,
+                   9504, 9600, 9680, 9856]
+    if orig_N < 10000:
+        return 0
+    # Get the number represented by the first 4 digits of orig_N
+    first4 = int(str(orig_N)[:4])
+    # Now get the number that is just bigger than orig_N
+    # that has its first 4 digits equal to "factor"
+    for factor in goodfactors:
+        if factor > first4: break
+    new_N = factor
+    while new_N < orig_N:
+        new_N *= 10
+    # Finally, compare new_N to the closest power_of_two
+    # greater than orig_N.  Take the closest.
+    two_N = 2
+    while two_N < orig_N:
+        two_N *= 2
+    if two_N < new_N: return two_N
+    else: return new_N
 
 def plot_fft_of_power(etable):
-    #taking out the event flags
-    bins = np.arange(time[0], time[-1], .0005)
-    stuff, edges = np.histogram(time,bins)
 
-    ft = np.fft.rfft(stuff)
-    power = ft * ft.conj().real
-    power[0:10] = 0
-    power = power / len(data1[0])
-    x = np.fft.rfftfreq(len(stuff), .0005)
-    noflags = plot.plot(x,power)
+    METmin = etable['MET'].min()
+    T = etable['MET'].max() - etable['MET'].min()
+    dt = 0.0005
+
+    # Choose good number of bins for efficient FFT
+    n = choose_N(T/dt)
+    bins = np.arange(n)*dt
+    ts, edges = np.histogram(etable['MET']-METmin,bins)
+
+    ft = np.fft.rfft(ts)
+    power = (ft * ft.conj()).real
+    power /= len(etable['MET'])
+    power[0:100] = 0.0
+    x = np.fft.rfftfreq(len(ts), dt)
+    plot.semilogy(x,power)
     plot.title('Power Spectrum')
     plot.xlabel('Frequency')
     plot.ylabel('Power')
-    return noflags
+    return
 #-------------------------------THIS PLOTS THE DEADTIME HISTOGRAM------------------
 def plot_deadtime(etable):
     'Plot histogram of detector deadtime in microseconds.'
@@ -253,7 +265,7 @@ def plot_deadtime(etable):
     return
 
 #-------------------------PULSE PROFILE----------------------------------
-def pulse_profile(data1):
+def pulse_profile(etable):
 
 ##    from astropy import log
 ##    import astropy.io.fits as pyfits
@@ -298,8 +310,7 @@ def pulse_profile(data1):
 ##
 ##    mjds = ts.get_mjds()
 
-    pulse = plot.plot(data1[0],data1[3])
-    return pulse
+    return
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-----------
 def reset_rate(etable, IDS):
     'Count resets (detector undershoots) for each detector'
