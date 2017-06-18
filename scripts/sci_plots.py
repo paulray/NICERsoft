@@ -31,7 +31,7 @@ def sci_plots(etable):
     #Power SPpectrum
     log.info('Building power spectrum')
     fourier = plt.subplot(sci_grid[3:5,5:7])
-    plot_fft_of_power(etable)
+    #plot_fft_of_power(etable)
 
     #PULSE PROFILE
     log.info('Building pulse profile')
@@ -41,11 +41,12 @@ def sci_plots(etable):
     #Making the plot all nice and stuff
     plt.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .7, hspace = .8)
 
-    figure2.suptitle('Object: {0} at {1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS']),
-        fontsize=18)
+    figure2.suptitle('ObsID {0}: {1} at {2}'.format(etable.meta['OBS_ID'],
+            etable.meta['OBJECT'],etable.meta['DATE-OBS']),
+            fontsize=18)
 
     # Add text info here:
     plt.figtext(.07, .9, 'Mean count rate {0:.3f} c/s'.format(meanrate), fontsize = 10)
-
+    plt.figtext(0.07, 0.8, etable.meta['FILT_STR'], fontsize=10)
 
     return figure2

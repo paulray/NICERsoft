@@ -134,11 +134,11 @@ def plot_slowfast(etable):
     'Scatter plot of slow and fast PHA, highlighting points above ratio cut'
 
     # Ratio is SLOW to FAST. Edge events should have ratio bigger than cut
-    ratio = etable['PHA']/etable['PHA_FAST']
+    ratio = np.array(etable['PHA'],dtype=np.float)/np.array(etable['PHA_FAST'],dtype=np.float)
 
-    ratio_cut = 1.8
+    ratio_cut = 1.4
     colors = np.array(['k']*len(ratio))
-    idx = np.where(ratio>ratio_cut)
+    idx = np.where(ratio>ratio_cut)[0]
     colors[idx] = 'r'
 
     fastslow_ratio = plot.scatter(etable['PHA'], etable['PHA_FAST'], s=.4, c = colors)
@@ -150,13 +150,19 @@ def plot_slowfast(etable):
     plot.xlabel('PHA')
     plot.ylabel('PHA_FAST')
 
-    # fast_str = "# of fast only : " + str(slow)
-    # slow_str = "# of slow only : " + str(fast)
-    # total =    "# of both      : " + str(total)
-    # plot.annotate(fast_str, xy=(0.03, 0.85), xycoords='axes fraction')
-    # plot.annotate(slow_str, xy=(0.03, 0.8), xycoords='axes fraction')
-    # plot.annotate(total, xy=(0.03, 0.75), xycoords='axes fraction')
-
+    nfastonly = np.count_nonzero(np.logical_and(etable['EVENT_FLAGS'][:,FLAG_FAST],
+                                            np.logical_not(etable['EVENT_FLAGS'][:,FLAG_SLOW])))
+    nslowonly = np.count_nonzero(np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],
+                                            np.logical_not(etable['EVENT_FLAGS'][:,FLAG_FAST])))
+    nboth = np.count_nonzero(np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],
+                                            etable['EVENT_FLAGS'][:,FLAG_FAST]))
+    fast_str = "# of fast only  : " + str(nfastonly)
+    slow_str = "# of slow only : " + str(nslowonly)
+    total =    "# of both        : " + str(nboth)
+    plot.annotate(fast_str, xy=(0.03, 0.85), xycoords='axes fraction')
+    plot.annotate(slow_str, xy=(0.03, 0.8), xycoords='axes fraction')
+    plot.annotate(total, xy=(0.03, 0.75), xycoords='axes fraction')
+    plot.annotate("Ratio cut = {0:.2f}".format(ratio_cut),xy=(0.65,0.1),xycoords='axes fraction')
     return fastslow_ratio
 
 #-------------------------------THIS PLOTS THE ENERGY SPECTRUM------------------

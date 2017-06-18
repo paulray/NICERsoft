@@ -40,10 +40,10 @@ def eng_plots(etable):
     figure1.suptitle('Object: {0} at {1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS']),
         fontsize=18)
 
-    average = "Mean events per detector is {0:.2f}".format(num_events.mean())
-
-    text1 = plot.figtext(.02, .9, average, fontsize = 12.5)
-    text3 = plot.figtext(.02, .8,
+    plot.figtext(0.02, 0.9, etable.meta['FILT_STR'], fontsize=10)
+    #average = "Mean events per detector is {0:.2f}".format(num_events.mean())
+    #ext1 = plot.figtext(.02, .9, average, fontsize = 12.5)
+    plot.figtext(.02, .8,
       "Mean reset rate is {0:.2f}/s".format(reset_rates.mean()),
       fontsize = 12.5)
 
