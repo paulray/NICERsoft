@@ -9,9 +9,7 @@ def sci_plots(etable, lclog, lcbinsize):
     #GRID SET UP
     figure2 = plt.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,7)
-    plt.style.use('grayscale')
-
-
+    #plt.style.use('grayscale')
 
     #Light Curve
     log.info('Building light curve')
