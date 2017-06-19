@@ -18,7 +18,7 @@ def event_counter(etable):
     return IDevents
 
 def hist_use(etable):
-
+    'Creates array of event count per ID and colors to those > 1 sigma from mean red'
     # Make array of event counts by DET_ID
     IDevents = event_counter(etable)
 
@@ -36,6 +36,8 @@ def hist_use(etable):
 
 
 def plot_total_count_hist(etable, ax_rate, ax_counts):
+    'Plots event count per ID as a histogram with event count and countrate on y axes'
+
     num_events, colors = hist_use(etable)
 
     tc = ax_counts.bar(IDS, num_events, color = colors)
@@ -54,6 +56,7 @@ def plot_total_count_hist(etable, ax_rate, ax_counts):
 
 #----------------------THIS MAKES THE GRAYSCALE ID/EVENT COUNT CHART---------------------
 def structure(etable, num_events):
+    'Creates a grid where the xy pair corresponds to RAWX,RAWY and value at each entry is event count'
     rawx = np.zeros_like(IDS)
     rawy = np.zeros_like(IDS)
 
@@ -79,6 +82,7 @@ def structure(etable, num_events):
     return structure
 
 def plot_detector_chart(etable, num_events,  ax_map):
+    'Plots the structure created in structure() above as a grayscale grid'
     #WANT TO GET THE ORIGIN IN THE TOP RIGHT HAND CORNER
     struct = structure(etable, num_events)
     plot.style.use('grayscale')
@@ -95,6 +99,7 @@ def plot_detector_chart(etable, num_events,  ax_map):
 
 #----------------------THIS MAKES THE LIGHT CURVE---------------------------
 def light_curve(etable,binsize):
+    'Bins events as a histogram to be plotted as the light curve. returns bins and the histogram'
     met0 = etable['MET'].min()
     t = etable['MET']-met0
 
@@ -105,10 +110,10 @@ def light_curve(etable,binsize):
     # Chop off last bin edge, which is only for computing histogram, not plotting
     return bins[:-1], sums
 
-def plot_light_curve(etable,binsize=1.0):
-    'Compute binned light curve of events and return mean rate'
+def plot_light_curve(etable, ax_rate, ax_count, binsize=1.0):
+    'Compute binned light curve of events and return mean rate,plots light curve'
     bins, sums = light_curve(etable, binsize=binsize)
-    light_curve_plot = plot.plot(bins, sums, linewidth = .6)
+    ax_count.plot(bins, sums, linewidth = .6)
 
 
     # Compute mean rate
@@ -118,18 +123,20 @@ def plot_light_curve(etable,binsize=1.0):
     label = 'Mean Rate: {0:.3f} c/s'.format(rate.mean())
     # Plot line at mean counts per bin
     mean_counts = sums.mean()
-    plot.plot([bins[0],bins[-1]], [mean_counts,mean_counts], 'r--', label = label)
+    ax_count.plot([bins[0],bins[-1]], [mean_counts,mean_counts], 'r--', label = label)
 
-    plot.legend(loc = 4)
-    plot.title('Light Curve')
-    plot.xlabel('Time Elapsed (s)')
-    plot.ylabel('Counts')
-
+    ax_count.legend(loc = 4)
+    ax_count.set_title('Light Curve')
+    ax_count.set_xlabel('Time Elapsed (s)')
+    ax_count.set_ylabel('Counts')
+    ax_count.set_yscale('log')
+    #Plot the counts / second on the other y axis
+    ax_rate.set_ylabel('c/s')
+    ax_rate.set_ylim([np.min(rate),np.max(rate)])
     # Compute the mean rate
     return mean_rate
 
 #-------------------------------THIS PLOTS THE FAST TO SLOW AND SLOW TO FAST------------------
-
 def plot_slowfast(etable):
     'Scatter plot of slow and fast PHA, highlighting points above ratio cut'
 
@@ -144,7 +151,7 @@ def plot_slowfast(etable):
     fastslow_ratio = plot.scatter(etable['PHA'], etable['PHA_FAST'], s=.4, c = colors)
 
     phax = np.arange(0,etable['PHA'].max())
-    plot.plot(phax, phax/ratio_cut, 'g--', linewidth = 0.3)
+    plot.plot(phax, phax/ratio_cut, 'g--', linewidth = 0.5)
 
     plot.title('PHA Fast vs. PHA Slow')
     plot.xlabel('PHA')
@@ -183,6 +190,7 @@ def calc_pi(etable, calfile):
     return pi
 
 def plot_energy_spec(etable):
+    'plots the energy spectrum of PI'
     plot.hist(etable['PI']*PI_TO_KEV, bins=200, range=(0.0,15.0),
         histtype='step')
     plot.yscale('log')
@@ -236,7 +244,7 @@ def choose_N(orig_N):
     else: return new_N
 
 def plot_fft_of_power(etable):
-
+    'plots the power spectrum'
     METmin = etable['MET'].min()
     T = etable['MET'].max() - etable['MET'].min()
     dt = 0.0005
@@ -271,6 +279,7 @@ def plot_deadtime(etable):
     return
 
 #-------------------------PULSE PROFILE----------------------------------
+'''
 def pulse_profile(etable, orbfile, parfile):
 
     import astropy.io.fits as pyfits
@@ -320,6 +329,7 @@ def pulse_profile(etable, orbfile, parfile):
     # Histogram phases to make pulse profile
 
     return
+'''
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-----------
 def reset_rate(etable, IDS):
     'Count resets (detector undershoots) for each detector'
@@ -335,6 +345,7 @@ def reset_rate(etable, IDS):
     return nresets
 
 def plot_resetrate(IDS, reset_rates):
+    'Plots reset rates'
     reset = plot.bar(IDS, reset_rates, width = .85)
     plot.title('Reset Rate by Detector')
     plot.ylabel('Reset Rate [Hz]')

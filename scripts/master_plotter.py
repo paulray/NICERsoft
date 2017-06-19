@@ -7,6 +7,7 @@ from astropy.table import Table, vstack
 import astropy.io.fits as pyfits
 import astropy.units as u
 from astropy.time import Time
+#CHANGE THIS BEFORE COMMITTING
 from nicer.values import *
 
 from functionality import *
@@ -27,6 +28,7 @@ parser.add_argument("--emax", help="Minimum energy (keV) to keep", default=-1.0,
 parser.add_argument("--tskip", help="Seconds to skip at beginning of data", default=0.0, type=float)
 parser.add_argument("--pi", help="Force use of internal PHA to PI conversion", action='store_true')
 parser.add_argument("--basename", help="Basename for output plots", default=None)
+parser.add_argument("--lclog", help = "make light curve log axis", action = "store_true")
 args = parser.parse_args()
 
 if args.filtall:

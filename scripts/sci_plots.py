@@ -11,12 +11,13 @@ def sci_plots(etable):
     sci_grid = gridspec.GridSpec(5,7)
     plt.style.use('grayscale')
 
-    #IDS, num_events, stdev, colors = hist_use(etable)
+
 
     #Light Curve
     log.info('Building light curve')
-    plt.subplot(sci_grid[1:5,:2])
-    meanrate = plot_light_curve(etable,binsize=1.0)
+    ax_count = plt.subplot(sci_grid[3:5,:5])
+    ax_rate = ax_count.twinx()
+    meanrate = plot_light_curve(etable,ax_rate, ax_count, binsize=1.0)
 
     #Fast / Slow (Slow x, Fast y)
     log.info('Building fast/slow')
@@ -25,10 +26,10 @@ def sci_plots(etable):
 
     #Energy Spectrum
     log.info('Building energy spectrum')
-    plt.subplot(sci_grid[3:5,2:5])
+    plt.subplot(sci_grid[1:3,:2])
     plot_energy_spec(etable)
 
-    #Power SPpectrum
+    #Power Spectrum
     log.info('Building power spectrum')
     fourier = plt.subplot(sci_grid[3:5,5:7])
     #plot_fft_of_power(etable)
@@ -39,7 +40,7 @@ def sci_plots(etable):
 ##    pulse = pulse_profile(data1, pulse, event_flags)
 
     #Making the plot all nice and stuff
-    plt.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .7, hspace = .8)
+    plt.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .8, hspace = .8)
 
     figure2.suptitle('ObsID {0}: {1} at {2}'.format(etable.meta['OBS_ID'],
             etable.meta['OBJECT'],etable.meta['DATE-OBS']),
