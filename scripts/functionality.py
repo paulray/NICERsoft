@@ -271,50 +271,53 @@ def plot_deadtime(etable):
     return
 
 #-------------------------PULSE PROFILE----------------------------------
-def pulse_profile(etable):
+def pulse_profile(etable, orbfile, parfile):
 
-##    from astropy import log
-##    import astropy.io.fits as pyfits
-##    import pint
-##
-##    ### Make arguments for parfile and orbfile and only do this if both are present
-##
-##    hdr = pyfits.getheader(args.eventname,ext=1)
-##
-##    log.info('Event file TELESCOPE = {0}, INSTRUMENT = {1}'.format(hdr['TELESCOP'],
-##        hdr['INSTRUME']))
-##    if hdr['TELESCOP'] == 'NICER':
-##        # Instantiate NICERObs once so it gets added to the observatory registry
-##        if args.orbfile is not None:
-##            log.info('Setting up NICER observatory')
-##            NICERObs(name='NICER',FPorbname=args.orbfile,tt2tdb_mode='none')
-##        # Read event file and return list of TOA objects
-##        tl  = load_NICER_TOAs(args.eventname)
-##
-##    elif hdr['TELESCOP'] == 'XTE':
-##        # Instantiate RXTEObs once so it gets added to the observatory registry
-##        if args.orbfile is not None:
-##            # Determine what observatory type is.
-##            log.info('Setting up RXTE observatory')
-##            RXTEObs(name='RXTE',FPorbname=args.orbfile,tt2tdb_mode='none')
-##        # Read event file and return list of TOA objects
-##        tl  = load_RXTE_TOAs(args.eventname)
-##
-##    ts = pint.toa.TOAs(toalist=tl)
-##    ts.filename = args.eventname
-##    ts.compute_TDBs()
-##    ts.compute_posvels(ephem=args.ephem,planets=args.planets)
-##
-##
-##    # Load PINT model objects
-##    modelin = pint.models.get_model(args.parname)
-##    log.info(str(modelin))
-##
-##    phss = modelin.phase(ts.table)[1]
-##    # ensure all postive
-##    phases = np.where(phss < 0.0, phss + 1.0, phss)
-##
-##    mjds = ts.get_mjds()
+    import astropy.io.fits as pyfits
+    import pint.toa, pint.models
+    from pint.event_toas import load_NICER_TOAs
+    from pint.event_toas import load_RXTE_TOAs
+    from pint.plot_utils import phaseogram_binned
+    from pint.observatory.nicer_obs import NICERObs
+    from pint.observatory.rxte_obs import RXTEObs
+
+   ### Make arguments for parfile and orbfile and only do this if both are present
+
+    log.info('Event file TELESCOPE = {0}, INSTRUMENT = {1}'.format(etable.meta['TELESCOP'],
+       etable.meta['INSTRUME']))
+    if etable.meta['TELESCOP'] == 'NICER':
+        # Instantiate NICERObs once so it gets added to the observatory registry
+       if orbfile is not None:
+           log.info('Setting up NICER observatory')
+           NICERObs(name='NICER',FPorbname=orbfile,tt2tdb_mode='none')
+       # Read event file and return list of TOA objects
+       tl  = load_NICER_TOAs(eventname)
+
+   elif hdr['TELESCOP'] == 'XTE':
+       # Instantiate RXTEObs once so it gets added to the observatory registry
+       if orbfile is not None:
+           # Determine what observatory type is.
+           log.info('Setting up RXTE observatory')
+           RXTEObs(name='RXTE',FPorbname=orbfile,tt2tdb_mode='none')
+       # Read event file and return list of TOA objects
+       tl  = load_RXTE_TOAs(args.eventname)
+
+   ts = pint.toa.TOAs(toalist=tl)
+   ts.compute_TDBs()
+   ts.compute_posvels(ephem='DE421',planets=False)
+
+
+   # Load PINT model objects
+   modelin = pint.models.get_model(parfile)
+   log.info(str(modelin))
+
+   phss = modelin.phase(ts.table)[1]
+   # ensure all postive
+   phases = np.where(phss < 0.0, phss + 1.0, phss)
+
+    mjds = ts.get_mjds()
+
+    # Histogram phases to make pulse profile
 
     return
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-----------
