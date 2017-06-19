@@ -85,7 +85,7 @@ def plot_detector_chart(etable, num_events,  ax_map):
     'Plots the structure created in structure() above as a grayscale grid'
     #WANT TO GET THE ORIGIN IN THE TOP RIGHT HAND CORNER
     struct = structure(etable, num_events)
-    plot.style.use('grayscale')
+    #plot.style.use('grayscale')
     ax_img = plot.imshow(struct, origin = 'lower')
     plot.gca().invert_yaxis()
     plot.gca().invert_xaxis()
@@ -129,7 +129,7 @@ def plot_light_curve(etable, ax_rate, ax_count, binsize=1.0):
     ax_count.set_title('Light Curve')
     ax_count.set_xlabel('Time Elapsed (s)')
     ax_count.set_ylabel('Counts')
-    ax_count.set_yscale('log')
+    #ax_count.set_yscale('log')
     #Plot the counts / second on the other y axis
     ax_rate.set_ylabel('c/s')
     ax_rate.set_ylim([np.min(rate),np.max(rate)])
