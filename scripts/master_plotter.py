@@ -26,6 +26,7 @@ parser.add_argument("--filtall", help = "Filter SWTRIG, UNDERSHOOT and OVERSHOOT
 parser.add_argument("--emin", help="Minimum energy (keV) to keep", default=-1.0, type=float)
 parser.add_argument("--emax", help="Minimum energy (keV) to keep", default=-1.0, type=float)
 parser.add_argument("--tskip", help="Seconds to skip at beginning of data", default=0.0, type=float)
+parser.add_argument("--lcbinsize", help="Light curve bin size (s)", default=0.5, type=float)
 parser.add_argument("--pi", help="Force use of internal PHA to PI conversion", action='store_true')
 parser.add_argument("--basename", help="Basename for output plots", default=None)
 parser.add_argument("--lclog", help = "make light curve log axis", action = "store_true")
@@ -129,21 +130,11 @@ if args.eng:
         plt.show()
 
 if args.sci:
-    if args.lclog:
-    # Make science plots using filtered events with logy on light curve
-	    figure2 = sci_plots(filttable, True)
-	    figure2.set_size_inches(11,8.5)
-	    if args.save:
-		log.info('Writing sci plot {0}'.format(basename))
-		figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
-	    else:
-		plt.show()
-    else:
     # Make science plots using filtered events
-	    figure2 = sci_plots(filttable)
-	    figure2.set_size_inches(11,8.5)
-	    if args.save:
-		log.info('Writing sci plot {0}'.format(basename))
-		figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
-	    else:
-		plt.show()
+    figure2 = sci_plots(filttable, args.lclog, args.lcbinsize)
+    figure2.set_size_inches(11,8.5)
+    if args.save:
+    	log.info('Writing sci plot {0}'.format(basename))
+    	figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
+    else:
+    	plt.show()
