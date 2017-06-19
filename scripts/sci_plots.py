@@ -5,7 +5,7 @@ from astropy import log
 
 from functionality import *
 
-def sci_plots(etable):
+def sci_plots(etable, lclog):
     #GRID SET UP
     figure2 = plt.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,7)
@@ -17,7 +17,7 @@ def sci_plots(etable):
     log.info('Building light curve')
     ax_count = plt.subplot(sci_grid[3:5,:5])
     ax_rate = ax_count.twinx()
-    meanrate = plot_light_curve(etable,ax_rate, ax_count, binsize=1.0)
+    meanrate = plot_light_curve(etable,ax_rate, ax_count, lclog, binsize=1.0)
 
     #Fast / Slow (Slow x, Fast y)
     log.info('Building fast/slow')

@@ -110,7 +110,7 @@ def light_curve(etable,binsize):
     # Chop off last bin edge, which is only for computing histogram, not plotting
     return bins[:-1], sums
 
-def plot_light_curve(etable, ax_rate, ax_count, binsize=1.0):
+def plot_light_curve(etable, ax_rate, ax_count, lclog, binsize=1.0):
     'Compute binned light curve of events and return mean rate,plots light curve'
     bins, sums = light_curve(etable, binsize=binsize)
     ax_count.plot(bins, sums, linewidth = .6)
@@ -123,16 +123,19 @@ def plot_light_curve(etable, ax_rate, ax_count, binsize=1.0):
     label = 'Mean Rate: {0:.3f} c/s'.format(rate.mean())
     # Plot line at mean counts per bin
     mean_counts = sums.mean()
-    ax_count.plot([bins[0],bins[-1]], [mean_counts,mean_counts], 'r--', label = label)
+    ax_rate.plot([bins[0],bins[-1]], [mean_counts,mean_counts], 'r--', label = label)
 
-    ax_count.legend(loc = 4)
+    ax_rate.legend(loc = 4)
     ax_count.set_title('Light Curve')
     ax_count.set_xlabel('Time Elapsed (s)')
     ax_count.set_ylabel('Counts')
-    #ax_count.set_yscale('log')
+    if lclog:
+    	ax_count.set_yscale('log')
+        ax_rate.set_yscale('log')
     #Plot the counts / second on the other y axis
+
     ax_rate.set_ylabel('c/s')
-    ax_rate.set_ylim([np.min(rate),np.max(rate)])
+    #ax_rate.set_ylim([np.min(rate),np.max(rate)])
     # Compute the mean rate
     return mean_rate
 
