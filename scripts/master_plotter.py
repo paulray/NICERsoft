@@ -129,11 +129,21 @@ if args.eng:
         plt.show()
 
 if args.sci:
-    # Make science plots using filtered events
-    figure2 = sci_plots(filttable)
-    figure2.set_size_inches(11,8.5)
-    if args.save:
-        log.info('Writing sci plot {0}'.format(basename))
-        figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
+    if args.lclog:
+    # Make science plots using filtered events with logy on light curve
+	    figure2 = sci_plots(filttable, True)
+	    figure2.set_size_inches(11,8.5)
+	    if args.save:
+		log.info('Writing sci plot {0}'.format(basename))
+		figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
+	    else:
+		plt.show()
     else:
-        plt.show()
+    # Make science plots using filtered events
+	    figure2 = sci_plots(filttable)
+	    figure2.set_size_inches(11,8.5)
+	    if args.save:
+		log.info('Writing sci plot {0}'.format(basename))
+		figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
+	    else:
+		plt.show()
