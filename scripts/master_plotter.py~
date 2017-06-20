@@ -33,7 +33,7 @@ parser.add_argument("--pi", help="Force use of internal PHA to PI conversion", a
 parser.add_argument("--basename", help="Basename for output plots", default=None)
 parser.add_argument("--lclog", help = "make light curve log axis", action = "store_true")
 args = parser.parse_args()
-
+print "this is" + str(args.infiles[0])
 if args.filtall:
     args.filtswtrig=True
     args.filtovershoot=True
@@ -117,7 +117,7 @@ log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
     len(filttable), 100*len(filttable)/len(etable)))
 
 if args.basename is None:
-    basename = '{0}'.format(args.infiles[0][34:39])
+    basename = '{0}'.format(args.infiles[34:39])
 else:
     basename = args.basename
 

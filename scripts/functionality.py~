@@ -8,19 +8,22 @@ from astropy import log
 from values import *
 
 #------------------------THIS MAKES THE TOTAL COUNT HISTOGRAM---------------------------
-def event_counter(etable):
+def event_counter(etable, IDstomask):
     'Count events by DET_ID'
     IDevents = np.zeros_like(IDS)
 
     for i, id in enumerate(IDS):
         IDevents[i] = np.count_nonzero(etable['DET_ID'] == id)
     
+    if IDstomask != None:
+    	for id in IDstomask:
+	     IDevents[np.where(IDS == int(id))[0][0]] = 0
     return IDevents
 
-def hist_use(etable):
+def hist_use(etable, IDstomask):
     'Creates array of event count per ID and colors to those > 1 sigma from mean red'
     # Make array of event counts by DET_ID
-    IDevents = event_counter(etable)
+    IDevents = event_counter(etable, IDstomask)
 
     # Remove any that have 0 counts and compute std dev
     temp = np.delete(IDevents, np.where(IDevents == 0))
@@ -35,10 +38,10 @@ def hist_use(etable):
     return IDevents, colors
 
 
-def plot_total_count_hist(etable, ax_rate, ax_counts):
+def plot_total_count_hist(etable, ax_rate, ax_counts, IDstomask):
     'Plots event count per ID as a histogram with event count and countrate on y axes'
 
-    num_events, colors = hist_use(etable)
+    num_events, colors = hist_use(etable, IDstomask)
 
     tc = ax_counts.bar(IDS, num_events, color = colors)
     rate = np.array(num_events,dtype=np.float) / etable.meta['EXPOSURE']

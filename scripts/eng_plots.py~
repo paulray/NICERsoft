@@ -8,7 +8,7 @@ from values import *
 
 def eng_plots(etable):
     #GRID SET UP
-    figure1 = plot.figure(figsize = (11, 8.5), facecolor = 'white')
+    figure1 = plt.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,6)
     exposure = etable.meta['EXPOSURE']
 
