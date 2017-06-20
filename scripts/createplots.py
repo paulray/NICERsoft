@@ -19,6 +19,6 @@ for obsid in args.obsids:
 	log.info('didnt find anything i guess so bye bye')        
 	continue
     log.info('found some stuff, now gonna go call THE MASTER plotter')
-    subprocess.call(['python', '/home/fhuynh/Documents/Practice_scripts/NICER_Plots_Creation/NICERsoft/scripts/master_plotter.py','--eng','--sci', '-s'] + fnames)
     #subprocess.call(['python', '/home/fhuynh/Documents/Practice_scripts/NICER_Plots_Creation/NICERsoft/scripts/master_plotter.py','--eng','--sci', '-s'] + fnames)
+    subprocess.call(['python', '/home/fhuynh/Documents/Practice_scripts/NICER_Plots_Creation/NICERsoft/scripts/master_plotter.py','--eng','--sci', '--filtall', '--emin', '0.3', '--emax', '10.0','-s'] + fnames)
 
