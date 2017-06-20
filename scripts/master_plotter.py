@@ -21,6 +21,7 @@ from eng_plots import eng_plots
 
 parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
 parser.add_argument("infiles", help="Input files", nargs='+')
+parser.add_argument("--object", help="Override object name", default=None)
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int)
 parser.add_argument("-s", "--save", help = "Save plots to file", action = "store_true")
 parser.add_argument("--sci", help = "Makes some nice science plots", action = "store_true")
@@ -36,9 +37,12 @@ parser.add_argument("--lcbinsize", help="Light curve bin size (s)", default=0.5,
 parser.add_argument("--pi", help="Force use of internal PHA to PI conversion", action='store_true')
 parser.add_argument("--basename", help="Basename for output plots", default=None)
 parser.add_argument("--lclog", help = "make light curve log axis", action = "store_true")
-parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed freq (Hz)", 
+parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed freq (Hz)",
     default=0.0,type=float)
+parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
+    default=100.0,type=float)
 args = parser.parse_args()
+
 
 if args.filtall:
     args.filtswtrig=True
@@ -61,12 +65,16 @@ etable.columns['TIME'].name = 'MET'
 etable.sort('MET')
 log.info("MET Range : {0} to {1}".format(etable['MET'].min(), etable['MET'].max()))
 
+if args.object is not None:
+    etable.meta['OBJECT'] = args.object
+
 # Hack to trim first chunk of data
 if args.tskip > 0.0:
-    t0 = etable['MET'].min()
+    t0 = etable['TSTART']
     etable = etable[etable['MET']>t0+args.tskip]
     # Correct exposure (approximately)
     etable.meta['EXPOSURE'] -= args.tskip
+    etable.meta['TSTART'] += args.tskip
 
 # Add Time column with astropy Time for ease of use
 log.info('Adding time column')
@@ -123,7 +131,7 @@ log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
     len(filttable), 100*len(filttable)/len(etable)))
 
 if args.basename is None:
-    basename = '{0}'.format(args.infiles[0][34:39])
+    basename = '{0}-{1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS'])
 else:
     basename = args.basename
 
@@ -142,26 +150,23 @@ if args.eng:
     figure1 = eng_plots(filttable)
     figure1.set_size_inches(16,12)
     if args.save:
-	if args.filtall:
-        	log.info('Writing eng plot {0}'.format(basename))
-        	figure1.savefig('/data/NICER/PLOTS/{0}_eng_FILT.png'.format(basename), dpi = 100)
-	else:
-		log.info('Writing eng plot {0}'.format(basename))
-        	figure1.savefig('/data/NICER/PLOTS/{0}_eng.png'.format(basename), dpi = 100)
+    	log.info('Writing eng plot {0}'.format(basename))
+    	if args.filtall:
+        	figure1.savefig('{0}_eng_FILT.png'.format(basename), dpi = 100)
+    	else:
+        	figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
     else:
         plt.show()
 
 if args.sci:
     # Make science plots using filtered events
-    figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq)
+    figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq, args.nyquist)
     figure2.set_size_inches(11,8.5)
     if args.save:
-	if args.filtall:
-        	log.info('Writing sci plot {0}'.format(basename))
-        	figure2.savefig('/data/NICER/PLOTS/{0}_sci_FILT.png'.format(basename), dpi = 100)
-	else:
-		log.info('Writing sci plot {0}'.format(basename))
-        	figure2.savefig('/data/NICER/PLOTS/{0}_sci_FILT.png'.format(basename), dpi = 100)
-
+    	log.info('Writing sci plot {0}'.format(basename))
+    	if args.filtall:
+        	figure2.savefig('{0}_sci_FILT.png'.format(basename), dpi = 100)
+    	else:
+        	figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
     else:
     	plt.show()

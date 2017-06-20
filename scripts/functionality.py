@@ -14,7 +14,7 @@ def event_counter(etable):
 
     for i, id in enumerate(IDS):
         IDevents[i] = np.count_nonzero(etable['DET_ID'] == id)
-    
+
     return IDevents
 
 def hist_use(etable):
@@ -100,7 +100,7 @@ def plot_detector_chart(etable, num_events,  ax_map):
 #----------------------THIS MAKES THE LIGHT CURVE---------------------------
 def light_curve(etable,binsize):
     'Bins events as a histogram to be plotted as the light curve. returns bins and the histogram'
-    met0 = etable['MET'].min()
+    met0 = etable.meta['TSTART']
     t = etable['MET']-met0
 
     # Add 1 bin to make sure last bin covers last events
@@ -110,38 +110,44 @@ def light_curve(etable,binsize):
     # Chop off last bin edge, which is only for computing histogram, not plotting
     return bins[:-1], sums
 
-def plot_light_curve(etable, ax_rate, ax_count, lclog, binsize=1.0):
+def plot_light_curve(etable, lclog, binsize=1.0):
     'Compute binned light curve of events and return mean rate,plots light curve'
     bins, sums = light_curve(etable, binsize=binsize)
-    ax_count.plot(bins, sums, linewidth = .6)
 
 
     # Compute mean rate
     rate = sums/binsize
     mean_rate = rate.mean()
 
-    label = 'Mean Rate: {0:.3f} c/s'.format(rate.mean())
-    # Plot line at mean counts per bin
-    mean_counts = sums.mean()
-    ax_rate.plot([bins[0],bins[-1]], [mean_rate,mean_rate], 'r--', label = label)
+    plot.plot(bins, rate, linewidth = .6)
 
-    #ax_rate.legend(loc = 4)
-    ax_count.set_title('Light Curve')
-    ax_count.set_xlabel('Time Elapsed (s)')
-    ax_count.set_ylabel('Counts')
+    label = 'Mean Rate: {0:.3f} c/s'.format(mean_rate)
+    # Plot line at mean counts per bin
+    plot.plot([bins[0],bins[-1]], [mean_rate,mean_rate], 'r--', label = label)
+    #plot.legend(loc = 4)
+    plot.title('Light Curve')
+    plot.xlabel('Time Elapsed (s)')
+    plot.ylabel('c/s')
     if lclog:
-    	ax_count.set_yscale('log')
-        ax_rate.set_yscale('log')
+    	plot.yscale('log')
     #Plot the counts / second on the other y axis
 
-    ax_rate.set_ylabel('c/s')
-    #ax_rate.set_ylim([np.min(rate),np.max(rate)])
-    # Compute the mean rate
     return mean_rate
 
 #-------------------------------THIS PLOTS THE FAST TO SLOW AND SLOW TO FAST------------------
 def plot_slowfast(etable):
     'Scatter plot of slow and fast PHA, highlighting points above ratio cut'
+
+    # First do some counts
+    nfastonly = np.count_nonzero(np.logical_and(etable['EVENT_FLAGS'][:,FLAG_FAST],
+                                            np.logical_not(etable['EVENT_FLAGS'][:,FLAG_SLOW])))
+    nslowonly = np.count_nonzero(np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],
+                                            np.logical_not(etable['EVENT_FLAGS'][:,FLAG_FAST])))
+    nboth = np.count_nonzero(np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],
+                                            etable['EVENT_FLAGS'][:,FLAG_FAST]))
+
+    # Only compute ratio for events with both triggers
+    etable = etable[np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],etable['EVENT_FLAGS'][:,FLAG_FAST])]
 
     # Ratio is SLOW to FAST. Edge events should have ratio bigger than cut
     ratio = np.array(etable['PHA'],dtype=np.float)/np.array(etable['PHA_FAST'],dtype=np.float)
@@ -160,12 +166,6 @@ def plot_slowfast(etable):
     plot.xlabel('PHA')
     plot.ylabel('PHA_FAST')
 
-    nfastonly = np.count_nonzero(np.logical_and(etable['EVENT_FLAGS'][:,FLAG_FAST],
-                                            np.logical_not(etable['EVENT_FLAGS'][:,FLAG_SLOW])))
-    nslowonly = np.count_nonzero(np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],
-                                            np.logical_not(etable['EVENT_FLAGS'][:,FLAG_FAST])))
-    nboth = np.count_nonzero(np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],
-                                            etable['EVENT_FLAGS'][:,FLAG_FAST]))
     fast_str = "# of fast only  : " + str(nfastonly)
     slow_str = "# of slow only : " + str(nslowonly)
     total =    "# of both        : " + str(nboth)
@@ -173,7 +173,7 @@ def plot_slowfast(etable):
     plot.annotate(slow_str, xy=(0.03, 0.8), xycoords='axes fraction')
     plot.annotate(total, xy=(0.03, 0.75), xycoords='axes fraction')
     plot.annotate("Ratio cut = {0:.2f}".format(ratio_cut),xy=(0.65,0.1),xycoords='axes fraction')
-    return fastslow_ratio
+    return
 
 #-------------------------------THIS PLOTS THE ENERGY SPECTRUM------------------
 def calc_pi(etable, calfile):
@@ -195,9 +195,10 @@ def calc_pi(etable, calfile):
 def plot_energy_spec(etable):
     'plots the energy spectrum of PI'
     plot.hist(etable['PI']*PI_TO_KEV, bins=200, range=(0.0,15.0),
-        histtype='step',log=True)
+        histtype='step',log=False)
     plot.yscale('log')
     plot.xscale('log')
+    plot.xlim((0.1,20.0))
     plot.title('PI Spectrum')
     plot.xlabel('Energy (keV)')
     plot.ylabel('Counts')
@@ -227,8 +228,8 @@ def choose_N(orig_N):
                    7392, 7680, 7744, 7776, 7840, 7920, 8000, 8064, 8192,
                    8400, 8448, 8624, 8640, 8800, 8960, 9072, 9216, 9408,
                    9504, 9600, 9680, 9856]
-    if orig_N < 10000:
-        return 0
+    if orig_N < 1024:
+        return 1024
     # Get the number represented by the first 4 digits of orig_N
     first4 = int(str(orig_N)[:4])
     # Now get the number that is just bigger than orig_N
@@ -246,15 +247,18 @@ def choose_N(orig_N):
     if two_N < new_N: return two_N
     else: return new_N
 
-def plot_fft_of_power(etable):
+def plot_fft_of_power(etable,nyquist):
     'plots the power spectrum'
+
+    dt = 2.0/nyquist
     METmin = etable['MET'].min()
     T = etable['MET'].max() - etable['MET'].min()
-    dt = 0.01
 
     # Choose good number of bins for efficient FFT
-    n = choose_N(T/dt)
+    n = choose_N(T/float(dt))
     bins = np.arange(n)*dt
+    log.info('{0} {1}'.format(T/dt,n))
+    log.info('Computing FFT with {0} bins of {1} s, covering {2} total time'.format(n,dt,T))
     ts, edges = np.histogram(etable['MET']-METmin,bins)
 
     ft = np.fft.rfft(ts)
@@ -262,7 +266,8 @@ def plot_fft_of_power(etable):
     power /= len(etable['MET'])
     power[0:100] = 0.0
     x = np.fft.rfftfreq(len(ts), dt)
-    idx = np.where(power>20)
+    #idx = np.where(power>20)
+    idx = np.argmax(power)
     print(x[idx], power[idx])
     plot.plot(x,power)
     plot.title('Power Spectrum')

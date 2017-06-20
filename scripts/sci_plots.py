@@ -5,7 +5,7 @@ from astropy import log
 
 from functionality import *
 
-def sci_plots(etable, lclog, lcbinsize,foldfreq):
+def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist):
     #GRID SET UP
     figure2 = plt.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,7)
@@ -13,9 +13,8 @@ def sci_plots(etable, lclog, lcbinsize,foldfreq):
 
     #Light Curve
     log.info('Building light curve')
-    ax_count = plt.subplot(sci_grid[3:5,:5])
-    ax_rate = ax_count.twinx()
-    meanrate = plot_light_curve(etable,ax_rate, ax_count, lclog, binsize=lcbinsize)
+    plt.subplot(sci_grid[3:5,:5])
+    meanrate = plot_light_curve(etable, lclog, binsize=lcbinsize)
 
     #Fast / Slow (Slow x, Fast y)
     log.info('Building fast/slow')
@@ -30,7 +29,7 @@ def sci_plots(etable, lclog, lcbinsize,foldfreq):
     #Power Spectrum
     log.info('Building power spectrum')
     fourier = plt.subplot(sci_grid[3:5,5:7])
-    plot_fft_of_power(etable)
+    plot_fft_of_power(etable,nyquist)
 
     #PULSE PROFILE
     log.info('Building pulse profile')
