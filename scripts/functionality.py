@@ -123,9 +123,9 @@ def plot_light_curve(etable, ax_rate, ax_count, lclog, binsize=1.0):
     label = 'Mean Rate: {0:.3f} c/s'.format(rate.mean())
     # Plot line at mean counts per bin
     mean_counts = sums.mean()
-    ax_rate.plot([bins[0],bins[-1]], [mean_counts,mean_counts], 'r--', label = label)
+    ax_rate.plot([bins[0],bins[-1]], [mean_rate,mean_rate], 'r--', label = label)
 
-    ax_rate.legend(loc = 4)
+    #ax_rate.legend(loc = 4)
     ax_count.set_title('Light Curve')
     ax_count.set_xlabel('Time Elapsed (s)')
     ax_count.set_ylabel('Counts')
@@ -195,9 +195,9 @@ def calc_pi(etable, calfile):
 def plot_energy_spec(etable):
     'plots the energy spectrum of PI'
     plot.hist(etable['PI']*PI_TO_KEV, bins=200, range=(0.0,15.0),
-        histtype='step')
+        histtype='step',log=True)
     plot.yscale('log')
-    #plot.xscale('log')
+    plot.xscale('log')
     plot.title('PI Spectrum')
     plot.xlabel('Energy (keV)')
     plot.ylabel('Counts')
@@ -250,7 +250,7 @@ def plot_fft_of_power(etable):
     'plots the power spectrum'
     METmin = etable['MET'].min()
     T = etable['MET'].max() - etable['MET'].min()
-    dt = 0.0005
+    dt = 0.01
 
     # Choose good number of bins for efficient FFT
     n = choose_N(T/dt)
@@ -262,7 +262,9 @@ def plot_fft_of_power(etable):
     power /= len(etable['MET'])
     power[0:100] = 0.0
     x = np.fft.rfftfreq(len(ts), dt)
-    plot.semilogy(x,power)
+    idx = np.where(power>20)
+    print(x[idx], power[idx])
+    plot.plot(x,power)
     plot.title('Power Spectrum')
     plot.xlabel('Frequency')
     plot.ylabel('Power')
@@ -282,6 +284,13 @@ def plot_deadtime(etable):
     return
 
 #-------------------------PULSE PROFILE----------------------------------
+def pulse_profile_fixed(etable, F0):
+    phase = np.fmod((etable['MET']-etable['MET'][0])*F0,1.0)
+    plot.hist(phase,bins=32)
+    plot.ylabel('Counts')
+    plot.xlabel('Pulse Phase')
+    plot.title('Pulse Profile (F0={0:.6f})'.format(F0))
+
 '''
 def pulse_profile(etable, orbfile, parfile):
 

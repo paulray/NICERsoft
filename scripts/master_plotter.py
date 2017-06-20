@@ -1,7 +1,10 @@
+#!/usr/bin/env python
+import sys
+# Hack to add this to pythonpath
+sys.path.append('/Users/paulr/src/NICERsoft')
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse
-import sys
 from astropy import log
 from astropy.table import Table, vstack
 import astropy.io.fits as pyfits
@@ -13,6 +16,7 @@ from nicer.values import *
 from functionality import *
 from sci_plots import sci_plots
 from eng_plots import eng_plots
+
 
 parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
 parser.add_argument("infiles", help="Input files", nargs='+')
@@ -30,6 +34,8 @@ parser.add_argument("--lcbinsize", help="Light curve bin size (s)", default=0.5,
 parser.add_argument("--pi", help="Force use of internal PHA to PI conversion", action='store_true')
 parser.add_argument("--basename", help="Basename for output plots", default=None)
 parser.add_argument("--lclog", help = "make light curve log axis", action = "store_true")
+parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed freq (Hz)", 
+    default=0.0,type=float)
 args = parser.parse_args()
 
 if args.filtall:
@@ -131,7 +137,7 @@ if args.eng:
 
 if args.sci:
     # Make science plots using filtered events
-    figure2 = sci_plots(filttable, args.lclog, args.lcbinsize)
+    figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq)
     figure2.set_size_inches(11,8.5)
     if args.save:
     	log.info('Writing sci plot {0}'.format(basename))
