@@ -1,10 +1,7 @@
-#!/usr/bin/env python
-import sys
-# Hack to add this to pythonpath
-sys.path.append('/Users/paulr/src/NICERsoft')
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse
+import sys
 from astropy import log
 from astropy.table import Table, vstack
 import astropy.io.fits as pyfits
@@ -17,7 +14,6 @@ from values import *
 from functionality import *
 from sci_plots import sci_plots
 from eng_plots import eng_plots
-
 
 parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
 parser.add_argument("infiles", help="Input files", nargs='+')
@@ -36,10 +32,8 @@ parser.add_argument("--lcbinsize", help="Light curve bin size (s)", default=0.5,
 parser.add_argument("--pi", help="Force use of internal PHA to PI conversion", action='store_true')
 parser.add_argument("--basename", help="Basename for output plots", default=None)
 parser.add_argument("--lclog", help = "make light curve log axis", action = "store_true")
-parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed freq (Hz)", 
-    default=0.0,type=float)
 args = parser.parse_args()
-
+print "this is" + str(args.infiles[0])
 if args.filtall:
     args.filtswtrig=True
     args.filtovershoot=True
@@ -123,7 +117,7 @@ log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
     len(filttable), 100*len(filttable)/len(etable)))
 
 if args.basename is None:
-    basename = '{0}'.format(args.infiles[0][34:39])
+    basename = '{0}'.format(args.infiles[34:39])
 else:
     basename = args.basename
 
@@ -153,7 +147,7 @@ if args.eng:
 
 if args.sci:
     # Make science plots using filtered events
-    figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq)
+    figure2 = sci_plots(filttable, args.lclog, args.lcbinsize)
     figure2.set_size_inches(11,8.5)
     if args.save:
 	if args.filtall:
@@ -161,7 +155,7 @@ if args.sci:
         	figure2.savefig('/data/NICER/PLOTS/{0}_sci_FILT.png'.format(basename), dpi = 100)
 	else:
 		log.info('Writing sci plot {0}'.format(basename))
-        	figure2.savefig('/data/NICER/PLOTS/{0}_sci_FILT.png'.format(basename), dpi = 100)
+        	figure2.savefig('/data/NICER/PLOTS/{0}_eng.png'.format(basename), dpi = 100)
 
     else:
     	plt.show()
