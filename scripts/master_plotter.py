@@ -155,7 +155,7 @@ if args.sci:
         	figure2.savefig('/data/NICER/PLOTS/{0}_sci_FILT.png'.format(basename), dpi = 100)
 	else:
 		log.info('Writing sci plot {0}'.format(basename))
-        	figure2.savefig('/data/NICER/PLOTS/{0}_eng.png'.format(basename), dpi = 100)
+        	figure2.savefig('/data/NICER/PLOTS/{0}_sci_FILT.png'.format(basename), dpi = 100)
 
     else:
     	plt.show()
