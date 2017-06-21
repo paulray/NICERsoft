@@ -57,9 +57,8 @@ def plot_total_count_hist(etable, ax_rate, ax_counts):
 #----------------------THIS MAKES THE GRAYSCALE ID/EVENT COUNT CHART---------------------
 def structure(etable, num_events):
     'Creates a grid where the xy pair corresponds to RAWX,RAWY and value at each entry is event count'
-    rawx = np.zeros_like(IDS)
-    rawy = np.zeros_like(IDS)
-
+    rawx = np.zeros_like(IDS,dtype=np.int)
+    rawy = np.zeros_like(IDS,dtype=np.int)
 
     #getting RAWX and RAWY vals for each ID
     for count, detid in enumerate(IDS):
@@ -67,17 +66,18 @@ def structure(etable, num_events):
         if len(idx) > 0:
             rawx[count] = etable['RAWX'][idx][0]
             rawy[count] = etable['RAWY'][idx][0]
-
         else:
-            rawx[count] = 0
-            rawy[count] = 0
+            print "No counts for det ",detid
+            rawx[count] = -1
+            rawy[count] = -1
 
     #In STRUCTURE, each element corresponds to the geometric position
     # of each detector, while the value is the # of counts
     structure = np.zeros(shape = (7,8))
 
     for i in xrange(len(rawx)):
-        structure[int(rawy[i])][int(rawx[i])] = num_events[i]
+        if rawx[i] >= 0 and rawy[i] >= 0:
+            structure[rawy[i]][rawx[i]] = num_events[i]
 
     return structure
 
