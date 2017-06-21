@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 # Hack to add this to pythonpath
-sys.path.append('/Users/paulr/src/NICERsoft')
+#sys.path.append('/Users/paulr/src/NICERsoft')
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse
@@ -11,8 +11,7 @@ import astropy.io.fits as pyfits
 import astropy.units as u
 from astropy.time import Time
 import copy
-#CHANGE THIS BEFORE COMMITTING
-from values import *
+from nicer.values import *
 
 from functionality import *
 from sci_plots import sci_plots
