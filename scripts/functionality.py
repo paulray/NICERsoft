@@ -136,8 +136,8 @@ def plot_light_curve(etable, lclog, binsize=1.0):
 
 #-------------------------------THIS PLOTS THE FAST TO SLOW AND SLOW TO FAST------------------
 def plot_slowfast(etable):
-    'Scatter plot of slow and fast PHA, highlighting points above ratio cut'
-
+    'Scatter plot of PI and fast PHA, highlighting points above ratio cut'
+    
     # First do some counts
     nfastonly = np.count_nonzero(np.logical_and(etable['EVENT_FLAGS'][:,FLAG_FAST],
                                             np.logical_not(etable['EVENT_FLAGS'][:,FLAG_SLOW])))
@@ -157,21 +157,25 @@ def plot_slowfast(etable):
     idx = np.where(ratio>ratio_cut)[0]
     colors[idx] = 'r'
 
-    fastslow_ratio = plot.scatter(etable['PHA'], etable['PHA_FAST'], s=.4, c = colors)
+    plot.scatter(etable['PI'],ratio, s=.4, c = colors)
 
-    phax = np.arange(0,etable['PHA'].max())
-    plot.plot(phax, phax/ratio_cut, 'g--', linewidth = 0.5)
+    x = np.arange(min(etable['PI']), max(etable['PI']))
+    phax = np.ones_like(x)*ratio_cut
+    
+    plot.plot(x, phax , 'g--', linewidth = 0.5)
 
-    plot.title('PHA Fast vs. PHA Slow')
-    plot.xlabel('PHA')
-    plot.ylabel('PHA_FAST')
+    plot.title('PHA Slow / Fast vs PI')
+    plot.xlabel('PI')
+    plot.ylabel('PHA Ratio')
 
     fast_str = "# of fast only  : " + str(nfastonly)
-    slow_str = "# of slow only : " + str(nslowonly)
+    slow_str = "# of PHA only : " + str(nslowonly)
     total =    "# of both        : " + str(nboth)
+    bad = "# of bad points: " + str(len(idx))
     plot.annotate(fast_str, xy=(0.03, 0.85), xycoords='axes fraction')
     plot.annotate(slow_str, xy=(0.03, 0.8), xycoords='axes fraction')
     plot.annotate(total, xy=(0.03, 0.75), xycoords='axes fraction')
+    plot.annotate(bad, xy = (.03, .7), xycoords='axes fraction')
     plot.annotate("Ratio cut = {0:.2f}".format(ratio_cut),xy=(0.65,0.1),xycoords='axes fraction')
     return
 
