@@ -130,7 +130,7 @@ log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
     len(filttable), 100*len(filttable)/len(etable)))
 
 if args.basename is None:
-    basename = '{0}-{1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS'])
+    basename = '{0}-{1}'.format(args.infiles[0][34:39],etable.meta['DATE-OBS'])
 else:
     basename = args.basename
 
