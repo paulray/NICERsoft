@@ -21,7 +21,7 @@ from eng_plots import eng_plots
 parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
 parser.add_argument("infiles", help="Input files", nargs='+')
 parser.add_argument("--object", help="Override object name", default=None)
-parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int)
+parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("-s", "--save", help = "Save plots to file", action = "store_true")
 parser.add_argument("--sci", help = "Makes some nice science plots", action = "store_true")
 parser.add_argument("--eng", help = "Makes some nice engineering plots", action = "store_true")
@@ -89,6 +89,12 @@ if args.pi or not ('PI' in etable.colnames):
     pi = calc_pi(etable,calfile)
     etable['PI'] = pi
 
+#filtering out chosen IDS
+if args.mask != None:
+    log.info('Masking IDS')
+    for id in args.mask:
+            etable = etable[np.where(etable['DET_ID'] != id)]
+
 # Note: To access event flags, use etable['EVENT_FLAGS'][:,B], where B is
 # the bit number for the flag (e.g. FLAG_UNDERSHOOT)
 
@@ -113,7 +119,7 @@ else:
 if args.filtundershoot:
     b2 = etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == False
     filt_str += ", not UNDERSHOOT"
-else:
+else: 
     b2 = np.ones_like(etable['PI'],dtype=np.bool)
 if args.filtovershoot:
     b3 = etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == False
@@ -134,16 +140,6 @@ if args.basename is None:
 else:
     basename = args.basename
 
-'''
-#filtering out chosen IDS
-head = etable.colnames
-if args.mask != None:
-    log.info('Masking IDS')
-    for id in args.mask:
-            a1 = np.where(etable['DET_ID'] == id)
-            for names in head:
-		etable[names] = np.delete(etable[names],a1)
-'''
 #Making the plots
 if args.eng:
     figure1 = eng_plots(filttable)
@@ -155,6 +151,7 @@ if args.eng:
     	else:
         	figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
     else:
+        log.info('Tryingto show the eng plot')
         plt.show()
 
 if args.sci:
@@ -168,4 +165,5 @@ if args.sci:
     	else:
         	figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
     else:
+        log.info('Trying to show the sci plot')
     	plt.show()

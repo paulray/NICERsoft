@@ -17,8 +17,9 @@ def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist):
     meanrate = plot_light_curve(etable, lclog, binsize=lcbinsize)
 
     #Fast / Slow (Slow x, Fast y)
-    log.info('Building fast/slow')
+    log.info('Building fast/slow subplot')
     plt.subplot(sci_grid[1:3,2:5])
+    log.info('Building actual slow fast data')
     plot_slowfast(etable)
 
     #Energy Spectrum
