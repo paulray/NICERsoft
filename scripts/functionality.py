@@ -62,8 +62,8 @@ def structure(etable, num_events):
 
 
     #getting RAWX and RAWY vals for each ID
-    for count, id in enumerate(IDS):
-        idx = np.where(etable['DET_ID']==(id))[0]
+    for count, detid in enumerate(IDS):
+        idx = np.where(etable['DET_ID']==detid)[0]
         if len(idx) > 0:
             rawx[count] = etable['RAWX'][idx][0]
             rawy[count] = etable['RAWY'][idx][0]
