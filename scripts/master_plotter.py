@@ -43,7 +43,8 @@ parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
 parser.add_argument("--map", help = "Creates a map with some stuff on it", action = 'store_true')
 args = parser.parse_args()
 
-if not np.logical_or(args.sci, args.eng):
+#Checking to make sure something was specified
+if not np.logical_or(args.sci, np.logical_or(args.eng, args.map)):
     log.warning("You did not specify which plots you wanted to make.")
     log.info("Please include --sci, --eng, or --map in the future. Will now display all plots.")
 
@@ -114,6 +115,12 @@ else:
 if args.emax >= 0:
     b4 = np.logical_and(b4, etable['PI']< args.emax/PI_TO_KEV)
 
+#finding overshoot rate
+
+a = etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True
+ovs = etable['MET'][a]
+del a
+
 # Apply filters for good events
 if args.filtswtrig:
     b1 = etable['EVENT_FLAGS'][:,FLAG_SWTRIG] == False
@@ -144,7 +151,7 @@ if args.basename is None:
 else:
     basename = args.basename
 
-#Making the plots
+#Making all the specified or unspecified plots below
 if args.eng:
     figure1 = eng_plots(filttable)
     figure1.set_size_inches(16,12)
@@ -174,7 +181,7 @@ elif args.sci:
 
 elif args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
-    figure3 = cartography(etable)
+    figure3 = cartography(etable, ovs)
     figure3.set_size_inches(16,12)
     
     if args.save:
