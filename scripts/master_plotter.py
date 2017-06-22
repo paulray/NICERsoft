@@ -12,7 +12,7 @@ import astropy.units as u
 from astropy.time import Time
 import copy
 from nicer.values import *
-
+from cartographer import *
 from functionality import *
 from sci_plots import sci_plots
 from eng_plots import eng_plots
@@ -40,8 +40,12 @@ parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed
     default=0.0,type=float)
 parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
     default=100.0,type=float)
+parser.add_argument("--map", help = "Creates a map with some stuff on it", action = 'store_true')
 args = parser.parse_args()
 
+if not np.logical_or(args.sci, args.eng):
+    log.warning("You did not specify which plots you wanted to make.")
+    log.info("Please include --sci, --eng, or --map in the future. Will now display all plots.")
 
 if args.filtall:
     args.filtswtrig=True
@@ -154,10 +158,10 @@ if args.eng:
         log.info('Tryingto show the eng plot')
         plt.show()
 
-if args.sci:
+elif args.sci:
     # Make science plots using filtered events
     figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq, args.nyquist)
-    figure2.set_size_inches(11,8.5)
+    figure2.set_size_inches(16,12)
     if args.save:
     	log.info('Writing sci plot {0}'.format(basename))
     	if args.filtall:
@@ -167,3 +171,36 @@ if args.sci:
     else:
         log.info('Trying to show the sci plot')
     	plt.show()
+
+elif args.map:
+    log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
+    figure3 = cartography(etable)
+    figure3.set_size_inches(16,12)
+    
+    if args.save:
+        log.info('Writing MAP {0}'.format(basename))
+        if args.filtall:
+            figure3.savefig('{0}_map_FILT.png'.format(basename), dpi = 100)
+    	else:
+            figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
+else:
+    log.info('Making all 3 plots and displaying')
+    figure1 = eng_plots(filttable)
+    figure1.set_size_inches(16,12)
+    figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq, args.nyquist)
+    figure2.set_size_inches(16,12)
+    #figure3 = cartography(etable)
+    #figure3.set_size_inches(16,12)
+    if args.save:
+    	log.info('Writing plots')
+    	if args.filtall:
+        	figure1.savefig('{0}_eng_FILT.png'.format(basename), dpi = 100)
+		figure2.savefig('{0}_sci_FILT.png'.format(basename), dpi = 100)
+                #figure3.savefig('{0}_map_FILT.png'.format(basename), dpi = 100)
+    	else:
+        	figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
+		figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
+		#figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
+    else:
+        log.info('Drawing the plots')
+        plt.show()
