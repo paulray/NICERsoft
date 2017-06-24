@@ -36,6 +36,8 @@ parser.add_argument("--lcbinsize", help="Light curve bin size (s)", default=0.5,
 parser.add_argument("--pi", help="Force use of internal PHA to PI conversion", action='store_true')
 parser.add_argument("--basename", help="Basename for output plots", default=None)
 parser.add_argument("--lclog", help = "make light curve log axis", action = "store_true")
+parser.add_argument("--pslog", help = "make power spectrum log axis", action = "store_true")
+parser.add_argument("--writeps", help = "write out power spectrum", action = "store_true")
 parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed freq (Hz)",
     default=0.0,type=float)
 parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
@@ -130,7 +132,7 @@ else:
 if args.filtundershoot:
     b2 = etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == False
     filt_str += ", not UNDERSHOOT"
-else: 
+else:
     b2 = np.ones_like(etable['PI'],dtype=np.bool)
 if args.filtovershoot:
     b3 = etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == False
@@ -151,6 +153,10 @@ if args.basename is None:
 else:
     basename = args.basename
 
+if not args.sci and not args.eng and not args.map:
+    log.warning("No plot requested, making sci and eng")
+    args.sci = True
+    args.eng = True
 #Making all the specified or unspecified plots below
 if args.eng:
     figure1 = eng_plots(filttable)
@@ -167,7 +173,8 @@ if args.eng:
 
 elif args.sci:
     # Make science plots using filtered events
-    figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq, args.nyquist)
+    figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq, args.nyquist,
+        args.pslog, args.writeps)
     figure2.set_size_inches(16,12)
     if args.save:
     	log.info('Writing sci plot {0}'.format(basename))
@@ -183,31 +190,12 @@ elif args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
     figure3 = cartography(etable, ovs)
     figure3.set_size_inches(16,12)
-    
+
     if args.save:
         log.info('Writing MAP {0}'.format(basename))
         if args.filtall:
             figure3.savefig('{0}_map_FILT.png'.format(basename), dpi = 100)
     	else:
             figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
-else:
-    log.info('Making all 3 plots and displaying')
-    figure1 = eng_plots(filttable)
-    figure1.set_size_inches(16,12)
-    figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq, args.nyquist)
-    figure2.set_size_inches(16,12)
-    #figure3 = cartography(etable)
-    #figure3.set_size_inches(16,12)
-    if args.save:
-    	log.info('Writing plots')
-    	if args.filtall:
-        	figure1.savefig('{0}_eng_FILT.png'.format(basename), dpi = 100)
-		figure2.savefig('{0}_sci_FILT.png'.format(basename), dpi = 100)
-                #figure3.savefig('{0}_map_FILT.png'.format(basename), dpi = 100)
-    	else:
-        	figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
-		figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
-		#figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
     else:
-        log.info('Drawing the plots')
         plt.show()

@@ -136,7 +136,7 @@ def plot_light_curve(etable, lclog, binsize=1.0):
 #-------------------------------THIS PLOTS THE FAST TO SLOW AND SLOW TO FAST------------------
 def plot_slowfast(etable):
     'Scatter plot of PI and fast PHA, highlighting points above ratio cut'
-    
+
    # First do some counts
     nfastonly = np.count_nonzero(np.logical_and(etable['EVENT_FLAGS'][:,FLAG_FAST],
                                             np.logical_not(etable['EVENT_FLAGS'][:,FLAG_SLOW])))
@@ -160,7 +160,7 @@ def plot_slowfast(etable):
 
     x = np.arange(min(etable['PI']), max(etable['PI']))
     phax = np.ones_like(x)*ratio_cut
-    
+
     plot.plot(x, phax , 'g--', linewidth = 0.5)
 
     plot.title('PHA Slow / Fast vs PI')
@@ -176,7 +176,7 @@ def plot_slowfast(etable):
     plot.annotate(total, xy=(0.03, 0.75), xycoords='axes fraction')
     plot.annotate(bad, xy = (.03, .7), xycoords='axes fraction')
     plot.annotate("Ratio cut = {0:.2f}".format(ratio_cut),xy=(0.65,0.85),xycoords='axes fraction')
-    
+
     return
 
 #-------------------------------THIS PLOTS THE ENERGY SPECTRUM------------------
@@ -251,7 +251,7 @@ def choose_N(orig_N):
     if two_N < new_N: return two_N
     else: return new_N
 
-def plot_fft_of_power(etable,nyquist):
+def plot_fft_of_power(etable,nyquist, pslog, writeps):
     'plots the power spectrum'
 
     dt = 2.0/nyquist
@@ -273,7 +273,15 @@ def plot_fft_of_power(etable,nyquist):
     #idx = np.where(power>20)
     idx = np.argmax(power)
     print(x[idx], power[idx])
-    plot.plot(x,power)
+    if pslog:
+        plot.semilogy(x,power)
+    else:
+        plot.plot(x,power)
+    if writeps:
+        data = np.array([x,power])
+        data = data.T
+        np.savetxt(file('powspec.txt','w'), data, fmt=['%f','%f'])
+
     plot.title('Power Spectrum')
     plot.xlabel('Frequency')
     plot.ylabel('Power')
