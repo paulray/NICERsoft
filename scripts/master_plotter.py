@@ -69,7 +69,7 @@ if args.object is not None:
 
 # Hack to trim first chunk of data
 if args.tskip > 0.0:
-    t0 = etable['TSTART']
+    t0 = etable.meta['TSTART']
     etable = etable[etable['MET']>t0+args.tskip]
     # Correct exposure (approximately)
     etable.meta['EXPOSURE'] -= args.tskip

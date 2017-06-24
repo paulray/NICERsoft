@@ -254,7 +254,7 @@ def choose_N(orig_N):
 def plot_fft_of_power(etable,nyquist):
     'plots the power spectrum'
 
-    dt = 2.0/nyquist
+    dt = 0.5/nyquist
     METmin = etable['MET'].min()
     T = etable['MET'].max() - etable['MET'].min()
 
@@ -262,13 +262,13 @@ def plot_fft_of_power(etable,nyquist):
     n = choose_N(T/float(dt))
     bins = np.arange(n)*dt
     log.info('{0} {1}'.format(T/dt,n))
-    log.info('Computing FFT with {0} bins of {1} s, covering {2} total time'.format(n,dt,T))
+    log.info('Computing FFT with {0} bins of {1} s, covering {2} total time (Nyquist = {3})'.format(n,dt,T, nyquist))
     ts, edges = np.histogram(etable['MET']-METmin,bins)
 
     ft = np.fft.rfft(ts)
     power = (ft * ft.conj()).real
     power /= len(etable['MET'])
-    power[0:100] = 0.0
+    power[0:50] = 0.0
     x = np.fft.rfftfreq(len(ts), dt)
     #idx = np.where(power>20)
     idx = np.argmax(power)
