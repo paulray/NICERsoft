@@ -12,7 +12,7 @@ import astropy.units as u
 from astropy.time import Time
 import copy
 from nicer.values import *
-
+from cartographer import *
 from functionality import *
 from sci_plots import sci_plots
 from eng_plots import eng_plots
@@ -21,7 +21,7 @@ from eng_plots import eng_plots
 parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
 parser.add_argument("infiles", help="Input files", nargs='+')
 parser.add_argument("--object", help="Override object name", default=None)
-parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int)
+parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("-s", "--save", help = "Save plots to file", action = "store_true")
 parser.add_argument("--sci", help = "Makes some nice science plots", action = "store_true")
 parser.add_argument("--eng", help = "Makes some nice engineering plots", action = "store_true")
@@ -36,12 +36,19 @@ parser.add_argument("--lcbinsize", help="Light curve bin size (s)", default=0.5,
 parser.add_argument("--pi", help="Force use of internal PHA to PI conversion", action='store_true')
 parser.add_argument("--basename", help="Basename for output plots", default=None)
 parser.add_argument("--lclog", help = "make light curve log axis", action = "store_true")
+parser.add_argument("--pslog", help = "make power spectrum log axis", action = "store_true")
+parser.add_argument("--writeps", help = "write out power spectrum", action = "store_true")
 parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed freq (Hz)",
     default=0.0,type=float)
 parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
     default=100.0,type=float)
+parser.add_argument("--map", help = "Creates a map with some stuff on it", action = 'store_true')
 args = parser.parse_args()
 
+#Checking to make sure something was specified
+if not np.logical_or(args.sci, np.logical_or(args.eng, args.map)):
+    log.warning("You did not specify which plots you wanted to make.")
+    log.info("Please include --sci, --eng, or --map in the future. Will now display all plots.")
 
 if args.filtall:
     args.filtswtrig=True
@@ -89,6 +96,12 @@ if args.pi or not ('PI' in etable.colnames):
     pi = calc_pi(etable,calfile)
     etable['PI'] = pi
 
+#filtering out chosen IDS
+if args.mask != None:
+    log.info('Masking IDS')
+    for id in args.mask:
+            etable = etable[np.where(etable['DET_ID'] != id)]
+
 # Note: To access event flags, use etable['EVENT_FLAGS'][:,B], where B is
 # the bit number for the flag (e.g. FLAG_UNDERSHOOT)
 
@@ -103,6 +116,12 @@ else:
     b4 = np.ones_like(etable['PI'],dtype=np.bool)
 if args.emax >= 0:
     b4 = np.logical_and(b4, etable['PI']< args.emax/PI_TO_KEV)
+
+#finding overshoot rate
+
+a = etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True
+ovs = etable['MET'][a]
+del a
 
 # Apply filters for good events
 if args.filtswtrig:
@@ -134,17 +153,11 @@ if args.basename is None:
 else:
     basename = args.basename
 
-'''
-#filtering out chosen IDS
-head = etable.colnames
-if args.mask != None:
-    log.info('Masking IDS')
-    for id in args.mask:
-            a1 = np.where(etable['DET_ID'] == id)
-            for names in head:
-		etable[names] = np.delete(etable[names],a1)
-'''
-#Making the plots
+if not args.sci and not args.eng and not args.map:
+    log.warning("No plot requested, making sci and eng")
+    args.sci = True
+    args.eng = True
+#Making all the specified or unspecified plots below
 if args.eng:
     figure1 = eng_plots(filttable)
     figure1.set_size_inches(16,12)
@@ -155,12 +168,14 @@ if args.eng:
     	else:
         	figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
     else:
+        log.info('Tryingto show the eng plot')
         plt.show()
 
-if args.sci:
+elif args.sci:
     # Make science plots using filtered events
-    figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq, args.nyquist)
-    figure2.set_size_inches(11,8.5)
+    figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq, args.nyquist,
+        args.pslog, args.writeps)
+    figure2.set_size_inches(16,12)
     if args.save:
     	log.info('Writing sci plot {0}'.format(basename))
     	if args.filtall:
@@ -168,4 +183,19 @@ if args.sci:
     	else:
         	figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
     else:
+        log.info('Trying to show the sci plot')
     	plt.show()
+
+elif args.map:
+    log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
+    figure3 = cartography(etable, ovs)
+    figure3.set_size_inches(16,12)
+
+    if args.save:
+        log.info('Writing MAP {0}'.format(basename))
+        if args.filtall:
+            figure3.savefig('{0}_map_FILT.png'.format(basename), dpi = 100)
+    	else:
+            figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
+    else:
+        plt.show()
