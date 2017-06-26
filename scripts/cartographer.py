@@ -6,11 +6,11 @@ from astropy import log
 import astropy.units as u
 from astropy.time import Time
 import copy
-from mpl_toolkits.basemap import Basemap
 
 from nicer.mcc import MCC
 
 def cartography(etable, ovs):
+        from mpl_toolkits.basemap import Basemap
 	log.info('Getting SAA data')
 	saa_lon, saa_lat = np.loadtxt('saa_lonlat.txt',unpack=True)
 
