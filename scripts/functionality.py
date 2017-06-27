@@ -310,7 +310,7 @@ def pulse_profile_fixed(etable, F0):
     plot.title('Pulse Profile (F0={0:.6f})'.format(F0))
 
 '''
-def pulse_profile(etable, orbfile = None, parfile = None):
+def pulse_profile(etable, pulsefilename, orbfile = None, parfile = None):
     if np.logical_or(orbfile is None, parfile is None):
 	log.warning('You did not specify orbfile or parfile')
 	log.info('Please input files for orb and par with --orb and --par')
@@ -325,7 +325,7 @@ def pulse_profile(etable, orbfile = None, parfile = None):
 
    ### Make arguments for parfile and orbfile and only do this if both are present
     if np.logical_and(orbfile is not None, parfile is not None):
-	    log.setLevel('ERROR')
+	    log.setLevel('INFO')
 	    log.info('Event file TELESCOPE = {0}, INSTRUMENT = {1}'.format(etable.meta['TELESCOP'],
 	       etable.meta['INSTRUME']))
 	    if etable.meta['TELESCOP'] == 'NICER':
@@ -336,7 +336,7 @@ def pulse_profile(etable, orbfile = None, parfile = None):
 		   NICERObs(name='NICER',FPorbname=orbfile[0],tt2tdb_mode='none')
 	       # Read event file and return list of TOA objects
 	       log.info('doing the load_toas thing')
-	       tl  = load_NICER_TOAs('/data/NICER/preliminary/DOY170PSR/GS1826.evt')
+	       tl  = load_NICER_TOAs(pulsefilename[0])
 
 	    elif hdr['TELESCOP'] == 'XTE':
 	       # Instantiate RXTEObs once so it gets added to the observatory registry
@@ -353,17 +353,18 @@ def pulse_profile(etable, orbfile = None, parfile = None):
 
 	    log.setLevel('INFO')
 	    log.info('Did all the stuff, now to PARFILE')
+	    if parfile is not None
 	   # Load PINT model objects
-	    modelin = pint.models.get_model(parfile[0])
-	    log.info(str(modelin))
+	    	modelin = pint.models.get_model(parfile[0])
+	    	log.info(str(modelin))
 
-	    phss = modelin.phase(ts.table)[1]
+	    	phss = modelin.phase(ts.table)[1]
 	   # ensure all postive
-	    phases = np.where(phss < 0.0, phss + 1.0, phss)
+	    	phases = np.where(phss < 0.0, phss + 1.0, phss)
 
-	    mjds = ts.get_mjds()
+	    	mjds = ts.get_mjds()
 
-	    plot.hist(phases, bins = 32)
+	    	plot.hist(phases, bins = 32)
 
     return
 
