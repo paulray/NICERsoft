@@ -324,7 +324,7 @@ def pulse_profile(etable, orbfile = None, parfile = None):
     from pint.observatory.rxte_obs import RXTEObs
 
    ### Make arguments for parfile and orbfile and only do this if both are present
-    if np.logical_and(orbfile is not None, parfile is None):
+    if np.logical_and(orbfile is not None, parfile is not None):
 	    log.setLevel('ERROR')
 	    log.info('Event file TELESCOPE = {0}, INSTRUMENT = {1}'.format(etable.meta['TELESCOP'],
 	       etable.meta['INSTRUME']))
@@ -354,9 +354,8 @@ def pulse_profile(etable, orbfile = None, parfile = None):
 	    log.setLevel('INFO')
 	    log.info('Did all the stuff, now to PARFILE')
 	   # Load PINT model objects
-	    if parfile is not None:
-	    	modelin = pint.models.get_model(parfile[0])
-	    	log.info(str(modelin))
+	    modelin = pint.models.get_model(parfile[0])
+	    log.info(str(modelin))
 
 	    phss = modelin.phase(ts.table)[1]
 	   # ensure all postive
