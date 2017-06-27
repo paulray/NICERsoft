@@ -301,6 +301,7 @@ def plot_deadtime(etable):
     return
 
 #-------------------------PULSE PROFILE----------------------------------
+'''
 def pulse_profile_fixed(etable, F0):
     phase = np.fmod((etable['MET']-etable['MET'][0])*F0,1.0)
     plot.hist(phase,bins=32)
@@ -309,8 +310,11 @@ def pulse_profile_fixed(etable, F0):
     plot.title('Pulse Profile (F0={0:.6f})'.format(F0))
 
 '''
-def pulse_profile(etable, orbfile, parfile):
-
+def pulse_profile(etable, orbfile = None, parfile = None):
+    if np.logical_or(orbfile is None, parfile is None):
+	log.warning('You did not specify orbfile or parfile')
+	log.info('Please input files for orb and par with --orb and --par')
+    import pint
     import astropy.io.fits as pyfits
     import pint.toa, pint.models
     from pint.event_toas import load_NICER_TOAs
@@ -320,45 +324,50 @@ def pulse_profile(etable, orbfile, parfile):
     from pint.observatory.rxte_obs import RXTEObs
 
    ### Make arguments for parfile and orbfile and only do this if both are present
+    if np.logical_and(orbfile is not None, parfile is None):
+	    log.setLevel('ERROR')
+	    log.info('Event file TELESCOPE = {0}, INSTRUMENT = {1}'.format(etable.meta['TELESCOP'],
+	       etable.meta['INSTRUME']))
+	    if etable.meta['TELESCOP'] == 'NICER':
+		# Instantiate NICERObs once so it gets added to the observatory registry
+	       if orbfile is not None:
+		   log.info('Setting up NICER observatory')
 
-    log.info('Event file TELESCOPE = {0}, INSTRUMENT = {1}'.format(etable.meta['TELESCOP'],
-       etable.meta['INSTRUME']))
-    if etable.meta['TELESCOP'] == 'NICER':
-        # Instantiate NICERObs once so it gets added to the observatory registry
-       if orbfile is not None:
-           log.info('Setting up NICER observatory')
-           NICERObs(name='NICER',FPorbname=orbfile,tt2tdb_mode='none')
-       # Read event file and return list of TOA objects
-       tl  = load_NICER_TOAs(eventname)
+		   NICERObs(name='NICER',FPorbname=orbfile[0],tt2tdb_mode='none')
+	       # Read event file and return list of TOA objects
+	       log.info('doing the load_toas thing')
+	       tl  = load_NICER_TOAs('/data/NICER/preliminary/DOY170PSR/GS1826.evt')
 
-   elif hdr['TELESCOP'] == 'XTE':
-       # Instantiate RXTEObs once so it gets added to the observatory registry
-       if orbfile is not None:
-           # Determine what observatory type is.
-           log.info('Setting up RXTE observatory')
-           RXTEObs(name='RXTE',FPorbname=orbfile,tt2tdb_mode='none')
-       # Read event file and return list of TOA objects
-       tl  = load_RXTE_TOAs(args.eventname)
+	    elif hdr['TELESCOP'] == 'XTE':
+	       # Instantiate RXTEObs once so it gets added to the observatory registry
+	       if orbfile is not None:
+		   # Determine what observatory type is.
+		   log.info('Setting up RXTE observatory')
+		   RXTEObs(name='RXTE',FPorbname=orbfile,tt2tdb_mode='none')
+	       # Read event file and return list of TOA objects
+	       tl  = load_RXTE_TOAs(args.eventname)
 
-   ts = pint.toa.TOAs(toalist=tl)
-   ts.compute_TDBs()
-   ts.compute_posvels(ephem='DE421',planets=False)
+	    ts = pint.toa.TOAs(toalist=tl)
+	    ts.compute_TDBs()
+	    ts.compute_posvels(ephem='DE421',planets=False)
 
+	    log.setLevel('INFO')
+	    log.info('Did all the stuff, now to PARFILE')
+	   # Load PINT model objects
+	    if parfile is not None:
+	    	modelin = pint.models.get_model(parfile[0])
+	    	log.info(str(modelin))
 
-   # Load PINT model objects
-   modelin = pint.models.get_model(parfile)
-   log.info(str(modelin))
+	    phss = modelin.phase(ts.table)[1]
+	   # ensure all postive
+	    phases = np.where(phss < 0.0, phss + 1.0, phss)
 
-   phss = modelin.phase(ts.table)[1]
-   # ensure all postive
-   phases = np.where(phss < 0.0, phss + 1.0, phss)
+	    mjds = ts.get_mjds()
 
-    mjds = ts.get_mjds()
-
-    # Histogram phases to make pulse profile
+	    plot.hist(phases, bins = 32)
 
     return
-'''
+
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-----------
 def reset_rate(etable, IDS):
     'Count resets (detector undershoots) for each detector'

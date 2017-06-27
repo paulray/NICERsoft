@@ -43,6 +43,8 @@ parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed
 parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
     default=100.0,type=float)
 parser.add_argument("--map", help = "Creates a map with some stuff on it", action = 'store_true')
+parser.add_argument("--orb", help = "Put in where the ORBFILE is located", nargs='*', default = None)
+parser.add_argument("--par", help = "Put in where the PARFILE is located pls", nargs = '*', default = None)
 args = parser.parse_args()
 
 #Checking to make sure something was specified
@@ -171,10 +173,10 @@ if args.eng:
         log.info('Tryingto show the eng plot')
         plt.show()
 
-elif args.sci:
+if args.sci:
     # Make science plots using filtered events
     figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq, args.nyquist,
-        args.pslog, args.writeps)
+        args.pslog, args.writeps, args.orb, args.par)
     figure2.set_size_inches(16,12)
     if args.save:
     	log.info('Writing sci plot {0}'.format(basename))
@@ -186,7 +188,7 @@ elif args.sci:
         log.info('Trying to show the sci plot')
     	plt.show()
 
-elif args.map:
+if args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
     figure3 = cartography(etable, ovs)
     figure3.set_size_inches(16,12)

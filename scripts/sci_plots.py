@@ -5,7 +5,7 @@ from astropy import log
 
 from functionality import *
 
-def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps):
+def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, orbfile, parfile):
     #GRID SET UP
     figure2 = plt.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,7)
@@ -35,6 +35,7 @@ def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps):
     #PULSE PROFILE
     log.info('Building pulse profile')
     plt.subplot(sci_grid[1:3,5:7])
+    pulse_profile(etable, orbfile, parfile)
     if foldfreq > 0.0:
         pulse_profile_fixed(etable, foldfreq)
     else:
