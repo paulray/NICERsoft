@@ -34,13 +34,15 @@ def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, orbfile
 
     #PULSE PROFILE
     log.info('Building pulse profile')
-    plt.subplot(sci_grid[1:3,5:7])
-    pulse_profile(etable, orbfile, parfile)
-    if foldfreq > 0.0:
+    axprofile = plt.subplot(sci_grid[1:3,5:7])
+    if (orbfile is not None) and (parfile is not None):
+        log.info('Calling pulse profile')
+        pulse_profile(axprofile, etable, orbfile, parfile)
+    elif foldfreq > 0.0:
+        log.info('Calling pulse profile with fixed frequency')
         pulse_profile_fixed(etable, foldfreq)
     else:
         pass
-        #pulse_profile(etable, orbfile, parfile)
 
     #Making the plot all nice and stuff
     plt.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .8, hspace = .8)

@@ -42,15 +42,11 @@ parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed
     default=0.0,type=float)
 parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
     default=100.0,type=float)
-parser.add_argument("--map", help = "Creates a map with some stuff on it", action = 'store_true')
-parser.add_argument("--orb", help = "Put in where the ORBFILE is located", nargs='*', default = None)
-parser.add_argument("--par", help = "Put in where the PARFILE is located pls", nargs = '*', default = None)
+parser.add_argument("--map", help= "Creates a map with some stuff on it", action = 'store_true')
+parser.add_argument("--orb", help="Path to orbit FITS filed", nargs='?', default = None)
+parser.add_argument("--par", help="Path to par file", nargs='?', default = None)
 args = parser.parse_args()
 
-#Checking to make sure something was specified
-if not np.logical_or(args.sci, np.logical_or(args.eng, args.map)):
-    log.warning("You did not specify which plots you wanted to make.")
-    log.info("Please include --sci, --eng, or --map in the future. Will now display all plots.")
 
 if args.filtall:
     args.filtswtrig=True
@@ -159,6 +155,7 @@ if not args.sci and not args.eng and not args.map:
     log.warning("No plot requested, making sci and eng")
     args.sci = True
     args.eng = True
+
 #Making all the specified or unspecified plots below
 if args.eng:
     figure1 = eng_plots(filttable)
