@@ -353,7 +353,7 @@ def pulse_profile(etable, pulsefilename, orbfile = None, parfile = None):
 
 	    log.setLevel('INFO')
 	    log.info('Did all the stuff, now to PARFILE')
-	    if parfile is not None
+	    if parfile is not None:
 	   # Load PINT model objects
 	    	modelin = pint.models.get_model(parfile[0])
 	    	log.info(str(modelin))
