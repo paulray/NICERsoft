@@ -44,8 +44,8 @@ parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed
 parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
     default=100.0,type=float)
 parser.add_argument("--map", help= "Creates a map with some stuff on it", action = 'store_true')
-parser.add_argument("--orb", help="Path to orbit FITS filed", nargs='?', default = None)
-parser.add_argument("--par", help="Path to par file", nargs='?', default = None)
+parser.add_argument("--orb", help="Path to orbit FITS filed", default = None)
+parser.add_argument("--par", help="Path to par file", default = None)
 args = parser.parse_args()
 
 if args.filtall:
