@@ -28,6 +28,7 @@ parser.add_argument("--eng", help = "Makes some nice engineering plots", action 
 parser.add_argument("--filtswtrig", help = "Filter SW TRIG events", action = "store_true")
 parser.add_argument("--filtovershoot", help = "Filter OVERSHOOT events", action = "store_true")
 parser.add_argument("--filtundershoot", help = "Filter UNDERSHOOT events", action = "store_true")
+parser.add_argument("--filtratio", help="Filter PHA/PHA_FAST ratio (argument is ratio to cut at)", type=float, default=0.0)
 parser.add_argument("--filtall", help = "Filter SWTRIG, UNDERSHOOT and OVERSHOOT events", action = "store_true")
 parser.add_argument("--emin", help="Minimum energy (keV) to keep", default=-1.0, type=float)
 parser.add_argument("--emax", help="Minimum energy (keV) to keep", default=-1.0, type=float)
@@ -47,11 +48,11 @@ parser.add_argument("--orb", help="Path to orbit FITS filed", nargs='?', default
 parser.add_argument("--par", help="Path to par file", nargs='?', default = None)
 args = parser.parse_args()
 
-
 if args.filtall:
     args.filtswtrig=True
     args.filtovershoot=True
     args.filtundershoot=True
+    args.filtratio=1.4
 # Load files and build events table
 log.info('Reading files')
 tlist = []
@@ -138,8 +139,18 @@ if args.filtovershoot:
 else:
     b3 = np.ones_like(etable['PI'],dtype=np.bool)
 
-idx = np.where(b1 & b2 & b3 & b4)[0]
-del b1, b2, b3, b4
+if args.filtratio > 0.0:
+    ratio = np.zeros_like(etable['PI'],dtype=np.float)
+    idx = np.where(np.logical_and(etable['PHA']>0, etable['PHA_FAST']>0))[0]
+    ratio[idx] = np.asarray(etable['PHA'][idx],dtype=np.float)/np.asarray(etable['PHA_FAST'][idx],dtype=np.float)
+    b5 = np.ones_like(etable['PI'],dtype=np.bool)
+    b5[ratio>args.filtratio] = False
+    filt_str += ", ratio < {0:.2f}".format(args.filtratio)
+else:
+    b5 = np.ones_like(etable['PI'],dtype=np.bool)
+
+idx = np.where(b1 & b2 & b3 & b4 & b5)[0]
+del b1, b2, b3, b4, b5
 filttable = etable[idx]
 filttable.meta['FILT_STR'] = filt_str
 
