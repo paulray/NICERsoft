@@ -55,6 +55,7 @@ elif args.sps is not None:
     spslon = np.rad2deg(spshdu[1].data['GPS_SPS_LON'])
     log.info('SPS Range {0} to {1}'.format(spsmet.min(),spsmet.max()))
     latinterp = InterpolatedUnivariateSpline(spsmet,spslat,ext='extrapolate')
+    # WARNING: Interpolating longitude is a bad idea since it has discontinuities!
     loninterp = InterpolatedUnivariateSpline(spsmet,spslon,ext='extrapolate')
     # Check that we aren't trying to extrapolate too far
     if (met.min() < spsmet.min()-10.0) or (met.max() > spsmet.max()+10):
