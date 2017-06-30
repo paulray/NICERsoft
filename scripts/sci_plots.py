@@ -5,7 +5,7 @@ from astropy import log
 
 from functionality import *
 
-def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, orbfile, parfile):
+def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, overshootrate, orbfile, parfile):
     #GRID SET UP
     figure2 = plt.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,7)
@@ -14,7 +14,7 @@ def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, orbfile
     #Light Curve
     log.info('Building light curve')
     plt.subplot(sci_grid[3:5,:5])
-    meanrate = plot_light_curve(etable, lclog, binsize=lcbinsize)
+    meanrate = plot_light_curve(etable, lclog,overshootrate, binsize=lcbinsize)
 
     #Fast / Slow (Slow x, Fast y)
     log.info('Building fast/slow subplot')
@@ -50,6 +50,7 @@ def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, orbfile
     figure2.suptitle('ObsID {0}: {1} at {2}'.format(etable.meta['OBS_ID'],
             etable.meta['OBJECT'],etable.meta['DATE-OBS']),
             fontsize=18)
+
     #tstart, tstop, exposure
     exposure = etable.meta['EXPOSURE']
     tstart = etable['T'][0]

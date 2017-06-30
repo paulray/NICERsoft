@@ -50,9 +50,12 @@ parser.add_argument("--obsdir",help = "Find alllllllll the files!", nargs = '*')
 args = parser.parse_args()
 
 if args.obsdir:
+    log.info('Finding the event files')
     args.infiles = glob('/data/NICER/preliminary/fits1/{0}/xti/event_cl/ni*.evt'.format(args.obsdir[0]))
+    log.info('Finding the orbit file')
     args.orb = glob('/data/NICER/preliminary/fits1/{0}/auxil/ni*.orb'.format(args.obsdir[0]))
     #getting the overshoot stuff
+    log.info('Finding the MPU housekeeping files')
     hkfiles = glob('/data/NICER/preliminary/fits1/{0}//xti/hk/ni*.hk'.format(args.obsdir[0]))
     hdulist = pyfits.open(hkfiles[0])
     td = hdulist[1].data
@@ -72,6 +75,9 @@ if args.obsdir:
         	log.error('TIME axes are not compatible')
         	sys.exit(1)
     	overshootrate += myovershootrate
+    log.info('Overshoot rate is: {0}'.format(np.mean(overshootrate)))
+else:
+    overshootrate = 0
 
 if args.filtall:
     args.filtswtrig=True
@@ -186,6 +192,9 @@ if not args.sci and not args.eng and not args.map:
     args.sci = True
     args.eng = True
 
+if len(overshootrate) > 1:
+    overshootrate = np.zeros(len(etable['MET']))
+
 #Making all the specified or unspecified plots below
 if args.eng:
     figure1 = eng_plots(filttable)
@@ -203,7 +212,7 @@ if args.eng:
 if args.sci:
     # Make science plots using filtered events
     figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq, args.nyquist,
-        args.pslog, args.writeps, args.orb, args.par)
+        args.pslog, args.writeps, overshootrate, args.orb, args.par)
     figure2.set_size_inches(16,12)
     if args.save:
     	log.info('Writing sci plot {0}'.format(basename))
