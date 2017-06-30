@@ -105,11 +105,11 @@ def light_curve(etable,binsize):
     # Add 1 bin to make sure last bin covers last events
     bins = np.arange(0.0,t.max()+binsize,binsize)
     sums, edges = np.histogram(t, bins=bins)
-
+    
     # Chop off last bin edge, which is only for computing histogram, not plotting
     return bins[:-1], sums
 
-def plot_light_curve(etable, lclog, binsize=1.0):
+def plot_light_curve(etable, lclog, overshootrate, binsize=1.0):
     'Compute binned light curve of events and return mean rate,plots light curve'
     bins, sums = light_curve(etable, binsize=binsize)
 
@@ -119,7 +119,8 @@ def plot_light_curve(etable, lclog, binsize=1.0):
     mean_rate = rate.mean()
 
     plot.plot(bins, rate, linewidth = .6)
-
+    #plot.hist(overshootrate)
+ 
     label = 'Mean Rate: {0:.3f} c/s'.format(mean_rate)
     # Plot line at mean counts per bin
     plot.plot([bins[0],bins[-1]], [mean_rate,mean_rate], 'r--', label = label)
@@ -129,6 +130,7 @@ def plot_light_curve(etable, lclog, binsize=1.0):
     plot.ylabel('c/s')
     if lclog:
     	plot.yscale('log')
+    
     #Plot the counts / second on the other y axis
 
     return mean_rate
