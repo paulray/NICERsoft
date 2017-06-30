@@ -16,10 +16,10 @@ from cartographer import *
 from functionality import *
 from sci_plots import sci_plots
 from eng_plots import eng_plots
-
+from glob import glob
 
 parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
-parser.add_argument("infiles", help="Input files", nargs='+')
+parser.add_argument("--infiles", help="Input files", nargs='*')
 parser.add_argument("--object", help="Override object name", default=None)
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("-s", "--save", help = "Save plots to file", action = "store_true")
@@ -46,7 +46,32 @@ parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
 parser.add_argument("--map", help= "Creates a map with some stuff on it", action = 'store_true')
 parser.add_argument("--orb", help="Path to orbit FITS filed", default = None)
 parser.add_argument("--par", help="Path to par file", default = None)
+parser.add_argument("--obsdir",help = "Find alllllllll the files!", nargs = '*')
 args = parser.parse_args()
+
+if args.obsdir:
+    args.infiles = glob('/data/NICER/preliminary/fits1/{0}/xti/event_cl/ni*.evt'.format(args.obsdir[0]))
+    args.orb = glob('/data/NICER/preliminary/fits1/{0}/auxil/ni*.orb'.format(args.obsdir[0]))
+    #getting the overshoot stuff
+    hkfiles = glob('/data/NICER/preliminary/fits1/{0}//xti/hk/ni*.hk'.format(args.obsdir[0]))
+    hdulist = pyfits.open(hkfiles[0])
+    td = hdulist[1].data
+    met = td['TIME']
+    log.info("MET Range {0} to {1}".format(met.min(),met.max()))
+    t = MET0+met*u.s
+    overshootrate = td['MPU_OVER_COUNT'].sum(axis=1)
+
+    for fn in hkfiles[1:]:
+    	log.info('Reading '+fn)
+    	hdulist = pyfits.open(fn)
+    	mytd = hdulist[1].data
+    	mymet = td['TIME']
+    	myt = MET0+met*u.s
+    	myovershootrate = td['MPU_OVER_COUNT'].sum(axis=1)
+    	if not np.all(mymet == met):
+        	log.error('TIME axes are not compatible')
+        	sys.exit(1)
+    	overshootrate += myovershootrate
 
 if args.filtall:
     args.filtswtrig=True
@@ -115,12 +140,6 @@ else:
     b4 = np.ones_like(etable['PI'],dtype=np.bool)
 if args.emax >= 0:
     b4 = np.logical_and(b4, etable['PI']< args.emax/PI_TO_KEV)
-
-#finding overshoot rate
-
-a = etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True
-ovs = etable['MET'][a]
-del a
 
 # Apply filters for good events
 if args.filtswtrig:
@@ -198,7 +217,7 @@ if args.sci:
 
 if args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
-    figure3 = cartography(etable, ovs)
+    figure3 = cartography(etable, overshootrate)
     figure3.set_size_inches(16,12)
 
     if args.save:
