@@ -4,10 +4,13 @@ import numpy as np
 import astropy.units as u
 from astropy.time import Time
 import matplotlib.pyplot as plt
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, get_sun, get_moon
 from astropy.coordinates.name_resolve import get_icrs_coordinates
 from pyorbital import tlefile
 import argparse
+
+SunAvoidance = 45.0*u.deg
+MoonAvoidance = 15.0*u.deg
 
 tle160lines = ['1 25544U 98067A   17160.91338884 +.00001442 +00000-0 +29152-4 0  9993',
         '2 25544 051.6425 074.5823 0004493 253.3640 193.9362 15.54003243060621']
@@ -82,9 +85,17 @@ print("Separation from Port Pole = {0:.3f}".format(SourcePos.separation(PortPole
 # Plot separation from orbit pole for all of 2017
 doy2017 = np.arange(365.0)
 times = doy2017*u.d + Time("2017-01-01T00:00:00",format='isot',scale='utc')
+SunPos = get_sun(times)
+MoonPos = get_moon(times)
 fig, ax = plt.subplots()
 seps = SourcePos.separation(StarboardPoleCoord(times))
 ax.plot(doy2017, seps.to(u.deg))
+sunseps = SunPos.separation(SourcePos).to(u.deg)
+idx = np.where(sunseps<SunAvoidance)[0]
+ax.plot(doy2017[idx], SunPos.separation(SourcePos).to(u.deg)[idx],'o',c='y')
+moonseps = MoonPos.separation(SourcePos).to(u.deg)
+idx = np.where(moonseps<MoonAvoidance)[0]
+ax.plot(doy2017[idx], MoonPos.separation(SourcePos).to(u.deg)[idx],'o',c='k')
 ax.plot(doy_now,SourcePos.separation(StarboardPoleCoord(now)),'o')
 ax.set_title(args.sourcename)
 ax.set_xlabel('DOY 2017')
