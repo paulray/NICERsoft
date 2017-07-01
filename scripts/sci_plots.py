@@ -5,7 +5,7 @@ from astropy import log
 
 from functionality import *
 
-def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, overshootrate, orbfile, parfile):
+def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, nops, overshootrate, orbfile, parfile):
     #GRID SET UP
     figure2 = plt.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,7)
@@ -29,8 +29,9 @@ def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, oversho
 
     #Power Spectrum
     log.info('Building power spectrum')
-    fourier = plt.subplot(sci_grid[3:5,5:7])
-    plot_fft_of_power(etable,nyquist, pslog, writeps)
+    if not nops:
+        fourier = plt.subplot(sci_grid[3:5,5:7])
+        plot_fft_of_power(etable,nyquist, pslog, writeps)
 
     #PULSE PROFILE
     log.info('Building pulse profile')
