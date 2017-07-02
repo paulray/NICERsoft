@@ -69,7 +69,8 @@ if args.obsdir:
         hdulist = pyfits.open(hkfiles[0])
         td = hdulist[1].data
         met = td['TIME']
-        log.info("MET Range {0} to {1}".format(met.min(),met.max()))
+        log.info("HK MET Range {0} to {1} (Span = {2:.1f} seconds)".format(met.min(),
+            met.max(),met.max()-met.min()))
         t = MET0+met*u.s
         overshootrate = td['MPU_OVER_COUNT'].sum(axis=1)
 
@@ -108,8 +109,10 @@ etable.columns['TIME'].name = 'MET'
 
 # Sort table by MET
 etable.sort('MET')
-log.info("MET Range : {0} to {1}".format(etable['MET'].min(), etable['MET'].max()))
-
+log.info("Event MET Range : {0} to {1}".format(etable['MET'].min(),
+    etable['MET'].max(), etable['MET'].max()-etable['MET'].min()))
+log.info("TSTART {0}".format(etable.meta['TSTART']))
+log.info("TSTOP {0}".format(etable.meta['TSTOP']))
 if args.object is not None:
     etable.meta['OBJECT'] = args.object
 
