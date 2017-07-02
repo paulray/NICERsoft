@@ -111,7 +111,8 @@ etable.columns['TIME'].name = 'MET'
 etable.sort('MET')
 log.info("Event MET Range : {0} to {1}".format(etable['MET'].min(),
     etable['MET'].max(), etable['MET'].max()-etable['MET'].min()))
-log.info("TSTART {0}  TSTOP {1}".format(etable.meta['TSTART'],etable.meta['TSTOP']))
+log.info("TSTART {0}  TSTOP {1} (Span {2} seconds)".format(etable.meta['TSTART'],
+    etable.meta['TSTOP'], etable.meta['TSTOP']-etable.meta['TSTART'] ))
 log.info("DATE Range {0} to {1}".format(etable.meta['DATE-OBS'],
     etable.meta['DATE-END']))
 if args.object is not None:
