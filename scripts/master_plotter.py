@@ -55,7 +55,7 @@ if args.obsdir:
     if len(args.infiles) == 0:
         args.infiles = glob(path.join(args.obsdir,'xti/event_cl/ni*.evt'))
         args.infiles.sort()
-    log.info('Found event files: {0}'.format(args.infiles))
+    log.info('Found event files: {0}'.format("\n" + "    \n".join(args.infiles)))
 
     args.orb = glob(path.join(args.obsdir,'auxil/ni*.orb'))[0]
     log.info('Found the orbit file: {0}'.format(args.orb))
@@ -63,7 +63,7 @@ if args.obsdir:
     #getting the overshoot stuff
     hkfiles = glob(path.join(args.obsdir,'xti/hk/ni*.hk'))
     hkfiles.sort()
-    log.info('Found the MPU housekeeping files: {0}'.format(hkfiles))
+    log.info('Found the MPU housekeeping files: {0}'.format("\n"+"\t\n".join(hkfiles)))
     if len(hkfiles) > 1:
         log.info('Reading '+hkfiles[0])
         hdulist = pyfits.open(hkfiles[0])
@@ -111,8 +111,9 @@ etable.columns['TIME'].name = 'MET'
 etable.sort('MET')
 log.info("Event MET Range : {0} to {1}".format(etable['MET'].min(),
     etable['MET'].max(), etable['MET'].max()-etable['MET'].min()))
-log.info("TSTART {0}".format(etable.meta['TSTART']))
-log.info("TSTOP {0}".format(etable.meta['TSTOP']))
+log.info("TSTART {0}  TSTOP {1}".format(etable.meta['TSTART'],etable.meta['TSTOP']))
+log.info("DATE Range {0} to {1}".format(etable.meta['DATE-OBS'],
+    etable.meta['DATE-END']))
 if args.object is not None:
     etable.meta['OBJECT'] = args.object
 
