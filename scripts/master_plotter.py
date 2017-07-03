@@ -36,7 +36,7 @@ parser.add_argument("--filtall", help = "Filter SWTRIG, UNDERSHOOT and OVERSHOOT
 parser.add_argument("--emin", help="Minimum energy (keV) to keep", default=-1.0, type=float)
 parser.add_argument("--emax", help="Minimum energy (keV) to keep", default=-1.0, type=float)
 parser.add_argument("--tskip", help="Seconds to skip at beginning of data", default=0.0, type=float)
-parser.add_argument("--lcbinsize", help="Light curve bin size (s)", default=0.5, type=float)
+parser.add_argument("--lcbinsize", help="Light curve bin size (s)", default=1.0, type=float)
 parser.add_argument("--pi", help="Force use of internal PHA to PI conversion", action='store_true')
 parser.add_argument("--basename", help="Basename for output plots", default=None)
 parser.add_argument("--lclog", help = "make light curve log axis", action = "store_true")

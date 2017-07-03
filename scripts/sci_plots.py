@@ -20,7 +20,7 @@ def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, oversho
     log.info('Building fast/slow subplot')
     plt.subplot(sci_grid[1:3,2:5])
     log.info('Building actual slow fast data')
-    #plot_slowfast(etable)
+    plot_slowfast(etable)
 
     #Energy Spectrum
     log.info('Building energy spectrum')
@@ -34,8 +34,10 @@ def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, oversho
         log.info('Building coherent power spec')
         plot_fft_of_power(etable,nyquist, pslog, writeps)
     elif psqpo:
-	log.info('Building QPO characterization')
-	#NEED SOMETHING HERE TO BUILD THE QPO CHAR THINGY
+        log.info('Building QPO characterization')
+    else:
+        pass
+
     #PULSE PROFILE
     log.info('Building pulse profile')
 
@@ -52,19 +54,20 @@ def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, oversho
     #Making the plot all nice and stuff
     plt.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .8, hspace = .8)
 
-    figure2.suptitle('ObsID {0}: {1} at {2}'.format(etable.meta['OBS_ID'],
-            etable.meta['OBJECT'],etable.meta['DATE-OBS']),
+    figure2.suptitle('ObsID {0}: {1} on {2}'.format(etable.meta['OBS_ID'],
+            etable.meta['OBJECT'],etable.meta['DATE-OBS'].replace('T',' at ')),
             fontsize=18)
 
     #tstart, tstop, exposure
-    exposure = etable.meta['EXPOSURE']
-    tstart = etable['T'][0]
-    tend = etable['T'][-1]
+    exposure = float(etable.meta['EXPOSURE'])
+    tstart = etable.meta['DATE-OBS'].replace('T',' at ')
+    tend = etable.meta['DATE-END'].replace('T', ' at ')
+    fraction = exposure/(float(etable.meta['TSTOP'])-float(etable.meta['TSTART']))
     # Add text info here:
-    plt.figtext(.07, .9, 'Mean count rate {0:.3f} c/s'.format(meanrate), fontsize = 10)
-    plt.figtext(.07, .87, 'Exposure is {0}'.format(exposure), fontsize = 10)
-    plt.figtext(.07, .84, 'Start time is {0}'.format(tstart), fontsize = 10)
-    plt.figtext(.07, .81, 'End time is {0}'.format(tend), fontsize = 10)
-    plt.figtext(0.07, 0.78, etable.meta['FILT_STR'], fontsize=10)
+    plt.figtext(.07, .90, 'Start time is {0}, End time is {1}'.format(tstart,tend), fontsize = 10)
+    plt.figtext(.07, .87, 'Exposure is {0:.1f} s, Good time fraction is {1:.3f}'.format(exposure, fraction),
+        fontsize = 10)
+    plt.figtext(.07, .84, 'Mean count rate {0:.3f} c/s'.format(meanrate), fontsize = 10)
+    plt.figtext(.07, .81, etable.meta['FILT_STR'], fontsize=10)
 
     return figure2

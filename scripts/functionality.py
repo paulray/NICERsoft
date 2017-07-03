@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plot
+import matplotlib as mpl
 import copy
 import scipy
 from scipy import ndimage
@@ -97,53 +98,50 @@ def plot_detector_chart(etable, num_events,  ax_map):
     return
 
 #----------------------THIS MAKES THE LIGHT CURVE---------------------------
-def light_curve(etable, start, stop, goodstart, binsize):
+def light_curve(etable, startmet, stopmet, binsize):
     'Bins events as a histogram to be plotted as the light curve. returns bins and the histogram'
-    if np.logical_and(start != None, stop!= None):
-        met0 = goodstart
-        t = etable['MET'][np.where(np.logical_and(etable['MET'] < stop, etable['MET'] > start))] - met0
+    if startmet is None and stopmet is None:
+        startmet = etable['MET'][0]
+        t = etable['MET'] - startmet
+        stopmet = etable['MET'][-1]
     else:
-        met0 = etable['MET'][0]
-        t = etable['MET'] - met0
+        t = etable['MET'][np.where(np.logical_and(etable['MET'] < stopmet, etable['MET'] > startmet))] - startmet
+
+    duration = stopmet-startmet
     # Add 1 bin to make sure last bin covers last events
-    bins = np.arange(0.0,t.max()+binsize,binsize)
-    sums, edges = np.histogram(t, bins=bins)
-    
+    bins = np.arange(0.0,duration+binsize,binsize)
+    sums, edges = np.histogram(t, bins=bins, range=(0.0,duration))
+
     # Chop off last bin edge, which is only for computing histogram, not plotting
     return bins[:-1], sums
 
 def plot_light_curve(etable, lclog, overshootrate, gtitable, binsize=1.0):
     'Compute binned light curve of events and return mean rate,plots light curve'
-    goodstart = gtitable['START'][0]
     #EDGE CASE FOR FIRST INSTANCE
-    bins, sums = light_curve(etable, gtitable['START'][0], gtitable['STOP'][0], goodstart, binsize=binsize)
-    rate = sums/binsize
-    mean_rate = rate.mean()
-    plot.plot(bins, rate, linewidth = .6, color = 'k')
+    bins, sums = light_curve(etable, gtitable['START'][0], gtitable['STOP'][0], binsize=binsize)
+    cc = np.zeros_like(bins,dtype=np.float)
+    cumtime = bins[-1]+binsize
 	#THE REST OF THE GOOD INTERVALS
-    for i in xrange(1,len(gtitable['START']-1)):
-        mybins, mysums = light_curve(etable, gtitable['START'][i], gtitable['STOP'][i], goodstart, binsize=binsize)
-	last = bins[-1]	
-	bins = np.append(bins, (mybins))
+    for i in xrange(1,len(gtitable['START'])):
+        mybins, mysums = light_curve(etable, gtitable['START'][i], gtitable['STOP'][i], binsize=binsize)
+        bins = np.append(bins, mybins+cumtime)
+        cumtime += mybins[-1]+binsize
         sums = np.append(sums, mysums)
-	if i%2 == 0:
-	    color = 'k'
-	else:
-	    color = 'g'
-	rate = mysums/binsize
-	mean_rate = rate.mean()
-	plot.plot(mybins, rate, linewidth = .6, color = color)
-	del mybins, mysums
+        mycolors = np.zeros_like(mybins,dtype=np.float)+np.float(i)
+        cc = np.append(cc,mycolors)
 
     #Compute mean rate
     rate = sums/binsize
     mean_rate = rate.mean()
-    #plot.plot(bins, rate, linewidth = .6, color = color)
+    colornames = ['black','green','red','blue','magenta']
+    colorlevels = np.arange(len(colornames))
+    cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+    plot.scatter(bins, rate, c=np.fmod(cc,len(colornames)), cmap=cmap,norm=norm,marker='+')
     label = 'Mean Rate: {0:.3f} c/s'.format(mean_rate)
     # Plot line at mean counts per bin
     print(bins[0],bins[-1])
-    plot.plot([bins[0],bins[-1]], [mean_rate,mean_rate], 'r--', label = label)
-    plot.legend(loc = 4)
+    plot.axhline(y=mean_rate, xmin=bins[0], xmax=bins[-1], linestyle='dashed', label = label)
+    #plot.legend(loc = 4)
     plot.title('Light Curve')
     plot.xlabel('Time Elapsed (s)')
     plot.ylabel('c/s')
@@ -175,21 +173,21 @@ def plot_slowfast(etable):
     idx = np.where(ratio>ratio_cut)[0]
     colors[idx] = 'r'
 
-    plot.scatter(etable['PI'],ratio, s=.4, c = colors)
+    plot.scatter(etable['PI']*PI_TO_KEV,ratio, s=.4, c = colors)
 
     x = np.arange(min(etable['PI']), max(etable['PI']))
     phax = np.ones_like(x)*ratio_cut
 
-    plot.plot(x, phax , 'g--', linewidth = 0.5)
+    plot.plot(x*PI_TO_KEV, phax , 'g--', linewidth = 0.5)
 
-    plot.title('PHA Slow / Fast vs PI')
-    plot.xlabel('PI')
+    plot.title('PHA Slow to Fast Ratio vs Energy')
+    plot.xlabel('Energy')
     plot.ylabel('PHA Ratio')
     plot.ylim([min(ratio)-.5,ratio_cut + 1.5])
     fast_str = "# of fast only  : " + str(nfastonly)
-    slow_str = "# of PHA only : " + str(nslowonly)
-    total =    "# of both        : " + str(nboth)
-    bad = "# of bad points: " + str(len(idx))
+    slow_str = "# of slow only  : " + str(nslowonly)
+    total =    "# of both       : " + str(nboth)
+    bad =      "# of bad points : " + str(len(idx))
     plot.annotate(fast_str, xy=(0.03, 0.85), xycoords='axes fraction')
     plot.annotate(slow_str, xy=(0.03, 0.8), xycoords='axes fraction')
     plot.annotate(total, xy=(0.03, 0.75), xycoords='axes fraction')
@@ -346,7 +344,7 @@ def pulse_profile(ax, etable, orbfile, parfile):
     # Instantiate NICERObs once so it gets added to the observatory registry
     log.info('Setting up NICER observatory')
     NICERObs(name='NICER',FPorbname=orbfile,tt2tdb_mode='none')
-    
+
     # Read event file and return list of TOA objects
     log.info('doing the load_toas thing')
     #tl  = load_NICER_TOAs(pulsefilename[0])
