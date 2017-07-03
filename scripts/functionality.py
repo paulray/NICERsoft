@@ -139,7 +139,6 @@ def plot_light_curve(etable, lclog, overshootrate, gtitable, binsize=1.0):
     plot.scatter(bins, rate, c=np.fmod(cc,len(colornames)), cmap=cmap,norm=norm,marker='+')
     label = 'Mean Rate: {0:.3f} c/s'.format(mean_rate)
     # Plot line at mean counts per bin
-    print(bins[0],bins[-1])
     plot.axhline(y=mean_rate, xmin=bins[0], xmax=bins[-1], linestyle='dashed', label = label)
     #plot.legend(loc = 4)
     plot.title('Light Curve')
@@ -147,6 +146,7 @@ def plot_light_curve(etable, lclog, overshootrate, gtitable, binsize=1.0):
     plot.ylabel('c/s')
     if lclog:
     	plot.yscale('log')
+        plot.ylim(ymin=0.1)
 
     return mean_rate
 
