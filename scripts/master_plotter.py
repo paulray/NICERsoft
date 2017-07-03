@@ -23,6 +23,7 @@ parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
 parser.add_argument("infiles", help="Input files", nargs='*')
 parser.add_argument("--obsdir",help = "Find alllllllll the files!")
 parser.add_argument("--object", help="Override object name", default=None)
+parser.add_argument("--guessobj", help="Try to guess object from directory name", action="store_true")
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("-s", "--save", help = "Save plots to file", action = "store_true")
 parser.add_argument("--sci", help = "Makes some nice science plots", action = "store_true")
@@ -202,14 +203,21 @@ filttable.meta['FILT_STR'] = filt_str
 log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
     len(filttable), 100*len(filttable)/len(etable)))
 
+bn = path.basename(args.infiles[0]).split('_')[0]
+log.info('OBS_ID {0}'.format(etable.meta['OBS_ID']))
+if etable.meta['OBS_ID'].startswith('000000'):
+    log.info('Overwriting OBS_ID with {0}'.format(bn))
+    etable.meta['OBS_ID'] = bn
+    filttable.meta['OBS_ID'] = bn
+
+if args.guessobj and args.obsdir:
+    objname = path.basename(args.obsdir)[11:]
+    log.info('Guessing Object name {0}'.format(objname))
+    etable.meta['OBJECT'] = objname
+    filttable.meta['OBJECT'] = objname
+
 if args.basename is None:
-    bn = path.basename(args.infiles[0]).split('_')[0]
     basename = 'ql-{0}'.format(bn)
-    log.info('OBS_ID {0}'.format(etable.meta['OBS_ID']))
-    if etable.meta['OBS_ID'].startswith('000000'):
-        log.info('Overwriting OBS_ID')
-        etable.meta['OBS_ID'] = bn
-        filttable.meta['OBS_ID'] = bn
 else:
     basename = args.basename
 
