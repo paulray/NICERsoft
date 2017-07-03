@@ -119,7 +119,6 @@ def plot_light_curve(etable, lclog, overshootrate, binsize=1.0):
     mean_rate = rate.mean()
 
     plot.plot(bins, rate, linewidth = .6)
-    #plot.hist(overshootrate)
  
     label = 'Mean Rate: {0:.3f} c/s'.format(mean_rate)
     # Plot line at mean counts per bin

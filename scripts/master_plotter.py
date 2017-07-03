@@ -41,7 +41,6 @@ parser.add_argument("--basename", help="Basename for output plots", default=None
 parser.add_argument("--lclog", help = "make light curve log axis", action = "store_true")
 parser.add_argument("--pslog", help = "make power spectrum log axis", action = "store_true")
 parser.add_argument("--writeps", help = "write out power spectrum", action = "store_true")
-parser.add_argument("--nops", help="Disable power spectrum", action ="store_true")
 parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed freq (Hz)",
     default=0.0,type=float)
 parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
@@ -49,6 +48,8 @@ parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
 parser.add_argument("--map", help= "Creates a map with some stuff on it", action = 'store_true')
 parser.add_argument("--orb", help="Path to orbit FITS filed", default = None)
 parser.add_argument("--par", help="Path to par file", default = None)
+parser.add_argument("--pscoherent",help = "Display the coherent pulsations power spectrum", action = 'store_true')
+parser.add_argument("--psqpo",help = "Display the noise/qpo characterization", action = 'store_true')
 args = parser.parse_args()
 
 if args.obsdir:
@@ -237,7 +238,7 @@ if args.eng:
 if args.sci:
     # Make science plots using filtered events
     figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq, args.nyquist,
-        args.pslog, args.writeps, args.nops, overshootrate, args.orb, args.par)
+        args.pslog, args.writeps, overshootrate, args.orb, args.par, args.pscoherent, args.psqpo)
     figure2.set_size_inches(16,12)
     if args.save:
     	log.info('Writing sci plot {0}'.format(basename))
