@@ -97,11 +97,14 @@ def plot_detector_chart(etable, num_events,  ax_map):
     return
 
 #----------------------THIS MAKES THE LIGHT CURVE---------------------------
-def light_curve(etable,binsize):
+def light_curve(etable, start, stop, goodstart, binsize):
     'Bins events as a histogram to be plotted as the light curve. returns bins and the histogram'
-    met0 = etable.meta['TSTART']
-    t = etable['MET']-met0
-
+    if np.logical_and(start != None, stop!= None):
+        met0 = goodstart
+        t = etable['MET'][np.where(np.logical_and(etable['MET'] < stop, etable['MET'] > start))] - met0
+    else:
+        met0 = etable['MET'][0]
+        t = etable['MET'] - met0
     # Add 1 bin to make sure last bin covers last events
     bins = np.arange(0.0,t.max()+binsize,binsize)
     sums, edges = np.histogram(t, bins=bins)
@@ -109,28 +112,47 @@ def light_curve(etable,binsize):
     # Chop off last bin edge, which is only for computing histogram, not plotting
     return bins[:-1], sums
 
-def plot_light_curve(etable, lclog, overshootrate, binsize=1.0):
+def plot_light_curve(etable, lclog, overshootrate, gtitable, binsize=1.0):
     'Compute binned light curve of events and return mean rate,plots light curve'
-    bins, sums = light_curve(etable, binsize=binsize)
+    if len(gtitable['START']) < 30:
+	    goodstart = gtitable['START'][0]
+	#EDGE CASE FOR FIRST INSTANCE
+	    bins, sums = light_curve(etable, gtitable['START'][0], gtitable['STOP'][0], goodstart, binsize=binsize)
+	    rate = sums/binsize
+    	    mean_rate = rate.mean()
+    	    plot.plot(bins, rate, linewidth = .6, color = 'k')
+	#THE REST OF THE GOOD INTERVALS
+	    for i in xrange(1,len(gtitable['START']-1)):
+	    	mybins, mysums = light_curve(etable, gtitable['START'][i], gtitable['STOP'][i], goodstart, binsize=binsize)
+		last = bins[-1]	
+		bins = np.append(bins, (mybins) + last)
+		sums = np.append(sums, mysums)
+		if i%2 == 0:
+			color = 'k'
+		else:
+			color = 'g'
+	        rate = mysums/binsize
+    		mean_rate = rate.mean()
+    		plot.plot(mybins + last, rate, linewidth = .6, color = color)
+		del mybins, mysums
 
-
-    # Compute mean rate
+    else:
+	bins, sums = light_curve(etable, None, None, 0, binsize)
+   
+    #Compute mean rate
     rate = sums/binsize
     mean_rate = rate.mean()
 
-    plot.plot(bins, rate, linewidth = .6)
- 
+    #plot.plot(bins, rate, linewidth = .6, color = color)
     label = 'Mean Rate: {0:.3f} c/s'.format(mean_rate)
     # Plot line at mean counts per bin
     plot.plot([bins[0],bins[-1]], [mean_rate,mean_rate], 'r--', label = label)
-    #plot.legend(loc = 4)
+    plot.legend(loc = 4)
     plot.title('Light Curve')
     plot.xlabel('Time Elapsed (s)')
     plot.ylabel('c/s')
     if lclog:
     	plot.yscale('log')
-    
-    #Plot the counts / second on the other y axis
 
     return mean_rate
 

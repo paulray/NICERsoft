@@ -107,6 +107,12 @@ tlist = []
 for fn in args.infiles:
     log.info('Reading file {0}'.format(fn))
     tlist.append(Table.read(fn,hdu=1))
+if len(tlist[0]) > (13000000 * 7):
+    log.error('There is too much data to handle. Please put in a smaller data set')
+    sys.exit("Quitting now")
+
+gtitable = Table.read(fn,hdu=2)
+log.info('Got the good times from GTI')
 
 log.info('Concatenating files')
 etable = vstack(tlist,metadata_conflicts='silent')
@@ -246,7 +252,7 @@ if args.eng:
 if args.sci:
     # Make science plots using filtered events
     figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq, args.nyquist,
-        args.pslog, args.writeps, overshootrate, args.orb, args.par, args.pscoherent, args.psqpo)
+        args.pslog, args.writeps, overshootrate, args.orb, args.par, args.pscoherent, args.psqpo, gtitable)
     figure2.set_size_inches(16,12)
     if args.save:
     	log.info('Writing sci plot {0}'.format(basename))
