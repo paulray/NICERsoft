@@ -113,6 +113,10 @@ if len(tlist[0]) > (13000000 * 7):
 
 gtitable = Table.read(fn,hdu=2)
 log.info('Got the good times from GTI')
+gtitable['DURATION'] = gtitable['STOP']-gtitable['START']
+idx = np.where(gtitable['DURATION']>16.0)[0]
+gtitable = gtitable[idx]
+print(gtitable)
 
 log.info('Concatenating files')
 etable = vstack(tlist,metadata_conflicts='silent')
