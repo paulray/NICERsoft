@@ -209,17 +209,18 @@ filttable.meta['FILT_STR'] = filt_str
 log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
     len(filttable), 100*len(filttable)/len(etable)))
 
+#DELETING ETABLE HERE. USE FILTTABLE FROM NOW ON
+del etable
+
 bn = path.basename(args.infiles[0]).split('_')[0]
-log.info('OBS_ID {0}'.format(etable.meta['OBS_ID']))
-if etable.meta['OBS_ID'].startswith('000000'):
+log.info('OBS_ID {0}'.format(filttable.meta['OBS_ID']))
+if filttable.meta['OBS_ID'].startswith('000000'):
     log.info('Overwriting OBS_ID with {0}'.format(bn))
-    etable.meta['OBS_ID'] = bn
     filttable.meta['OBS_ID'] = bn
 
 if args.guessobj and args.obsdir:
     objname = path.basename(args.obsdir)[11:]
     log.info('Guessing Object name {0}'.format(objname))
-    etable.meta['OBJECT'] = objname
     filttable.meta['OBJECT'] = objname
 
 if args.basename is None:
@@ -233,7 +234,7 @@ if not args.sci and not args.eng and not args.map:
     args.eng = True
 
 if overshootrate is None:
-    overshootrate = np.zeros(len(etable['MET']))
+    overshootrate = np.zeros(len(filttable['MET']))
 
 #Making all the specified or unspecified plots below
 if args.eng:
@@ -266,7 +267,7 @@ if args.sci:
 
 if args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
-    figure3 = cartography(etable, overshootrate)
+    figure3 = cartography(filttable, overshootrate)
     figure3.set_size_inches(16,12)
 
     if args.save:
