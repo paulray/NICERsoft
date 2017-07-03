@@ -55,9 +55,14 @@ if args.obsdir:
     if len(args.infiles) == 0:
         args.infiles = glob(path.join(args.obsdir,'xti/event_cl/ni*.evt'))
         args.infiles.sort()
+    if len(args.infiles) == 0:
+        log.error("No event files found!")
     log.info('Found event files: {0}'.format("\n" + "    \n".join(args.infiles)))
 
-    args.orb = glob(path.join(args.obsdir,'auxil/ni*.orb'))[0]
+    try:
+        args.orb = glob(path.join(args.obsdir,'auxil/ni*.orb'))[0]
+    except:
+        log.error("Orbit file not found!")
     log.info('Found the orbit file: {0}'.format(args.orb))
 
     #getting the overshoot stuff
@@ -197,7 +202,13 @@ log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
     len(filttable), 100*len(filttable)/len(etable)))
 
 if args.basename is None:
-    basename = '{0}-{1}'.format(args.infiles[0][34:39],etable.meta['DATE-OBS'])
+    bn = path.basename(args.infiles[0]).split('_')[0]
+    basename = 'ql-{0}'.format(bn)
+    log.info('OBS_ID {0}'.format(etable.meta['OBS_ID']))
+    if etable.meta['OBS_ID'].startswith('000000'):
+        log.info('Overwriting OBS_ID')
+        etable.meta['OBS_ID'] = bn
+        filttable.meta['OBS_ID'] = bn
 else:
     basename = args.basename
 
