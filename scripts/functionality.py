@@ -114,38 +114,34 @@ def light_curve(etable, start, stop, goodstart, binsize):
 
 def plot_light_curve(etable, lclog, overshootrate, gtitable, binsize=1.0):
     'Compute binned light curve of events and return mean rate,plots light curve'
-    if len(gtitable['START']) < 30:
-	    goodstart = gtitable['START'][0]
-	#EDGE CASE FOR FIRST INSTANCE
-	    bins, sums = light_curve(etable, gtitable['START'][0], gtitable['STOP'][0], goodstart, binsize=binsize)
-	    rate = sums/binsize
-    	    mean_rate = rate.mean()
-    	    plot.plot(bins, rate, linewidth = .6, color = 'k')
+    goodstart = gtitable['START'][0]
+    #EDGE CASE FOR FIRST INSTANCE
+    bins, sums = light_curve(etable, gtitable['START'][0], gtitable['STOP'][0], goodstart, binsize=binsize)
+    rate = sums/binsize
+    mean_rate = rate.mean()
+    plot.plot(bins, rate, linewidth = .6, color = 'k')
 	#THE REST OF THE GOOD INTERVALS
-	    for i in xrange(1,len(gtitable['START']-1)):
-	    	mybins, mysums = light_curve(etable, gtitable['START'][i], gtitable['STOP'][i], goodstart, binsize=binsize)
-		last = bins[-1]	
-		bins = np.append(bins, (mybins) + last)
-		sums = np.append(sums, mysums)
-		if i%2 == 0:
-			color = 'k'
-		else:
-			color = 'g'
-	        rate = mysums/binsize
-    		mean_rate = rate.mean()
-    		plot.plot(mybins + last, rate, linewidth = .6, color = color)
-		del mybins, mysums
+    for i in xrange(1,len(gtitable['START']-1)):
+        mybins, mysums = light_curve(etable, gtitable['START'][i], gtitable['STOP'][i], goodstart, binsize=binsize)
+	last = bins[-1]	
+	bins = np.append(bins, (mybins))
+        sums = np.append(sums, mysums)
+	if i%2 == 0:
+	    color = 'k'
+	else:
+	    color = 'g'
+	rate = mysums/binsize
+	mean_rate = rate.mean()
+	plot.plot(mybins, rate, linewidth = .6, color = color)
+	del mybins, mysums
 
-    else:
-	bins, sums = light_curve(etable, None, None, 0, binsize)
-   
     #Compute mean rate
     rate = sums/binsize
     mean_rate = rate.mean()
-
     #plot.plot(bins, rate, linewidth = .6, color = color)
     label = 'Mean Rate: {0:.3f} c/s'.format(mean_rate)
     # Plot line at mean counts per bin
+    print(bins[0],bins[-1])
     plot.plot([bins[0],bins[-1]], [mean_rate,mean_rate], 'r--', label = label)
     plot.legend(loc = 4)
     plot.title('Light Curve')
