@@ -5,7 +5,7 @@ from astropy import log
 
 from functionality import *
 
-def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, overshootrate, orbfile, parfile, pscoherent, psqpo, gtitable):
+def sci_plots(etable, gtitable, args):
     #GRID SET UP
     figure2 = plt.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,7)
@@ -14,7 +14,7 @@ def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, oversho
     #Light Curve
     log.info('Building light curve')
     plt.subplot(sci_grid[3:5,:5])
-    meanrate = plot_light_curve(etable, lclog, overshootrate, gtitable, binsize=lcbinsize)
+    meanrate = plot_light_curve(etable, args.lclog, gtitable, binsize=args.lcbinsize)
 
     #Fast / Slow (Slow x, Fast y)
     log.info('Building fast/slow subplot')
@@ -30,10 +30,10 @@ def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, oversho
     #Power Spectrum
     log.info('Looking at power spectrum')
     fourier = plt.subplot(sci_grid[3:5,5:7])
-    if pscoherent:
+    if args.pscoherent:
         log.info('Building coherent power spec')
-        plot_fft_of_power(etable,nyquist, pslog, writeps)
-    elif psqpo:
+        plot_fft_of_power(etable, args.nyquist, args.pslog, args.writeps)
+    elif args.psqpo:
         log.info('Building QPO characterization')
     else:
         pass
@@ -42,12 +42,12 @@ def sci_plots(etable, lclog, lcbinsize,foldfreq,nyquist, pslog, writeps, oversho
     log.info('Building pulse profile')
 
     axprofile = plt.subplot(sci_grid[1:3,5:7])
-    if (orbfile is not None) and (parfile is not None):
+    if (args.orb is not None) and (args.par is not None):
         log.info('Calling pulse profile')
-        pulse_profile(axprofile, etable, orbfile, parfile)
-    elif foldfreq > 0.0:
+        pulse_profile(axprofile, etable, args.orb, args.par)
+    elif args.foldfreq > 0.0:
         log.info('Calling pulse profile with fixed frequency')
-        pulse_profile_fixed(etable, foldfreq)
+        pulse_profile_fixed(etable, args.foldfreq)
     else:
         pass
 

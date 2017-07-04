@@ -10,7 +10,6 @@ from astropy.table import Table, vstack
 import astropy.io.fits as pyfits
 import astropy.units as u
 from astropy.time import Time
-import copy
 from os import path
 from nicer.values import *
 from cartographer import *
@@ -54,66 +53,49 @@ parser.add_argument("--psqpo",help = "Display the noise/qpo characterization", a
 args = parser.parse_args()
 
 if args.obsdir:
+    # Get names of event files from obsdir
     if len(args.infiles) == 0:
         args.infiles = glob(path.join(args.obsdir,'xti/event_cl/ni*.evt'))
         args.infiles.sort()
     if len(args.infiles) == 0:
         log.error("No event files found!")
+        sys.exit(1)
     log.info('Found event files: {0}'.format("\n" + "    \n".join(args.infiles)))
 
+    # Get name of orbit file from obsdir
     try:
         args.orb = glob(path.join(args.obsdir,'auxil/ni*.orb'))[0]
     except:
         log.error("Orbit file not found!")
     log.info('Found the orbit file: {0}'.format(args.orb))
 
-    #getting the overshoot stuff
+    # Get name of MPU housekeeping files
     hkfiles = glob(path.join(args.obsdir,'xti/hk/ni*.hk'))
     hkfiles.sort()
     log.info('Found the MPU housekeeping files: {0}'.format("\n"+"\t\n".join(hkfiles)))
-    if len(hkfiles) > 1:
-        log.info('Reading '+hkfiles[0])
-        hdulist = pyfits.open(hkfiles[0])
-        td = hdulist[1].data
-        met = td['TIME']
-        log.info("HK MET Range {0} to {1} (Span = {2:.1f} seconds)".format(met.min(),
-            met.max(),met.max()-met.min()))
-        t = MET0+met*u.s
-        overshootrate = td['MPU_OVER_COUNT'].sum(axis=1)
-
-        for fn in hkfiles[1:]:
-            log.info('Reading '+fn)
-            hdulist = pyfits.open(fn)
-            mytd = hdulist[1].data
-            mymet = td['TIME']
-            myt = MET0+met*u.s
-            myovershootrate = td['MPU_OVER_COUNT'].sum(axis=1)
-            if not np.all(mymet == met):
-                log.error('TIME axes are not compatible')
-                sys.exit(1)
-                overshootrate += myovershootrate
-                log.info('Overshoot rate is: {0}'.format(np.mean(overshootrate)))
-else:
-    overshootrate = None
+    args.hkfiles = hkfiles
 
 if args.filtall:
     args.filtswtrig=True
     args.filtovershoot=True
     args.filtundershoot=True
     args.filtratio=1.4
+
 # Load files and build events table
 log.info('Reading files')
 tlist = []
 for fn in args.infiles:
     log.info('Reading file {0}'.format(fn))
     tlist.append(Table.read(fn,hdu=1))
-if len(tlist[0]) > (13000000 * 7):
-    log.error('There is too much data to handle. Please put in a smaller data set')
-    sys.exit("Quitting now")
+    if len(tlist[0]) > (13000000 * 7):
+        log.error('There is too much data to handle. Not processing...')
+        sys.exit(3)
 
-gtitable = Table.read(fn,hdu=2)
+# Read the GTIs from the first event FITS file
+gtitable = Table.read(args.infiles[0],hdu=2)
 log.info('Got the good times from GTI')
 gtitable['DURATION'] = gtitable['STOP']-gtitable['START']
+# Only keep GTIs longer than 16 seconds
 idx = np.where(gtitable['DURATION']>16.0)[0]
 gtitable = gtitable[idx]
 print(gtitable)
@@ -153,7 +135,7 @@ etable['T'] = etime
 # If there are no PI columns, add them with approximate calibration
 if args.pi or not ('PI' in etable.colnames):
     log.info('Adding PI')
-    calfile = 'data/gaincal_linear.txt'
+    calfile = path.join(datadir,'gaincal_linear.txt')
     pi = calc_pi(etable,calfile)
     etable['PI'] = pi
 
@@ -161,15 +143,16 @@ if args.pi or not ('PI' in etable.colnames):
 if args.mask != None:
     log.info('Masking IDS')
     for id in args.mask:
-            etable = etable[np.where(etable['DET_ID'] != id)]
+        etable = etable[np.where(etable['DET_ID'] != id)]
 
 # Note: To access event flags, use etable['EVENT_FLAGS'][:,B], where B is
 # the bit number for the flag (e.g. FLAG_UNDERSHOOT)
 
 exposure = etable.meta['EXPOSURE']
 log.info('Exposure : {0:.2f}'.format(exposure))
-log.info('Filtering...')
 
+# Apply filters for good events
+log.info('Filtering...')
 filt_str = 'Filter: {0:.2f} < E < {1:.2f} keV'.format(args.emin,args.emax)
 if args.emin >= 0:
     b4 = etable['PI'] > args.emin/PI_TO_KEV
@@ -178,7 +161,6 @@ else:
 if args.emax >= 0:
     b4 = np.logical_and(b4, etable['PI']< args.emax/PI_TO_KEV)
 
-# Apply filters for good events
 if args.filtswtrig:
     b1 = etable['EVENT_FLAGS'][:,FLAG_SWTRIG] == False
     filt_str += ", not SWTRIG"
@@ -213,6 +195,47 @@ filttable.meta['FILT_STR'] = filt_str
 log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
     len(filttable), 100*len(filttable)/len(etable)))
 
+# Set up the light curve bins, so we can have them for building
+# light curves of various quantities, like overshoot rate and ratio filtered events
+startmet = gtitable['START'][0]
+stopmet = gtitable['STOP'][0]
+duration = stopmet-startmet
+# Add 1 bin to make sure last bin covers last events
+lc_elapsed_bins = np.arange(0.0,duration+args.lcbinsize,args.lcbinsize)
+lc_met_bins = np.arange(startmet,stopmet+args.lcbinsize,args.lcbinsize)
+cumtime = lc_elapsed_bins[-1]+args.lcbinsize
+for i in range(1,len(gtitable['START'])):
+    startmet = gtitable['START'][i]
+    stopmet = gtitable['STOP'][i]
+    duration = stopmet-startmet
+    lc_elapsed_bins = np.append(lc_elapsed_bins,
+        cumtime+np.arange(0.0,duration+args.lcbinsize,args.lcbinsize))
+    lc_met_bins = np.append(lc_met_bins,np.arange(startmet,stopmet+args.lcbinsize,args.lcbinsize))
+    cumtime += lc_elapsed_bins[-1]+args.lcbinsize
+
+# getting the overshoot rate from HK files.  Times are hkmet
+if len(hkfiles) > 0:
+    log.info('Reading '+hkfiles[0])
+    hdulist = pyfits.open(hkfiles[0])
+    td = hdulist[1].data
+    hkmet = td['TIME']
+    log.info("HK MET Range {0} to {1} (Span = {2:.1f} seconds)".format(hkmet.min(),
+        hkmet.max(),hkmet.max()-hkmet.min()))
+    overshootrate = td['MPU_OVER_COUNT'].sum(axis=1)
+
+    for fn in hkfiles[1:]:
+        log.info('Reading '+fn)
+        hdulist = pyfits.open(fn)
+        mytd = hdulist[1].data
+        mymet = td['TIME']
+        myovershootrate = td['MPU_OVER_COUNT'].sum(axis=1)
+        if not np.all(mymet == hkmet):
+            log.error('TIME axes are not compatible')
+            sys.exit(1)
+        overshootrate += myovershootrate
+    log.info('Overshoot rate is: {0}'.format(np.mean(overshootrate)))
+    del hdulist
+
 #DELETING ETABLE HERE. USE FILTTABLE FROM NOW ON
 del etable
 
@@ -237,9 +260,6 @@ if not args.sci and not args.eng and not args.map:
     args.sci = True
     args.eng = True
 
-if overshootrate is None:
-    overshootrate = np.zeros(len(filttable['MET']))
-
 #Making all the specified or unspecified plots below
 if args.eng:
     figure1 = eng_plots(filttable)
@@ -256,8 +276,7 @@ if args.eng:
 
 if args.sci:
     # Make science plots using filtered events
-    figure2 = sci_plots(filttable, args.lclog, args.lcbinsize, args.foldfreq, args.nyquist,
-        args.pslog, args.writeps, overshootrate, args.orb, args.par, args.pscoherent, args.psqpo, gtitable)
+    figure2 = sci_plots(filttable, gtitable, args)
     figure2.set_size_inches(16,12)
     if args.save:
     	log.info('Writing sci plot {0}'.format(basename))
@@ -271,14 +290,11 @@ if args.sci:
 
 if args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
-    figure3 = cartography(filttable, overshootrate)
-    figure3.set_size_inches(16,12)
+    figure3 = cartography(hkmet, overshootrate)
 
     if args.save:
         log.info('Writing MAP {0}'.format(basename))
-        if args.filtall:
-            figure3.savefig('{0}_map_FILT.png'.format(basename), dpi = 100)
-    	else:
-            figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
+        figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
     else:
+        log.info("Showing map")
         plt.show()

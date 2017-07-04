@@ -5,8 +5,7 @@ from astropy.time import Time
 from scipy.interpolate import InterpolatedUnivariateSpline
 from astropy.coordinates import GCRS, ITRS, EarthLocation, CartesianRepresentation, get_body_barycentric_posvel
 
-MET0 = Time("2014-01-01T00:00:00.0",scale='utc')
-GPS0 = Time("1980-01-06T00:00:00",scale='utc')
+from nicer.values import *
 
 # Enable imperial units for MCC!
 u.imperial.enable()

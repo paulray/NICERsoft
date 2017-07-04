@@ -1,5 +1,6 @@
 import numpy as np
 from astropy.time import Time
+from os import path
 
 # Base values for NICER MET and GPS time
 # Both are counted as seconds since these epochs
@@ -24,3 +25,5 @@ IDS = np.array([0, 1, 2, 3, 4, 5,6, 7,
                 40, 41, 42, 43, 44, 45, 46, 47,
                 50, 51, 52, 53, 54, 55, 56, 57,
                 60, 61, 62, 63, 64, 65, 66, 67])
+
+datadir = path.join(path.split(__file__)[0], '../data')

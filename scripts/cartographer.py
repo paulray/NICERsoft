@@ -5,40 +5,27 @@ import matplotlib.pyplot as plot
 from astropy import log
 import astropy.units as u
 from astropy.time import Time
-import copy
+from os import path
 
 from nicer.mcc import MCC
+from nicer.values import *
 
-def cartography(etable, ovs):
-        from mpl_toolkits.basemap import Basemap
-	log.info('Getting SAA data')
-	saa_lon, saa_lat = np.loadtxt('saa_lonlat.txt',unpack=True)
+def cartography(hkmet, overshootrate):
+    from mpl_toolkits.basemap import Basemap
 
-	MET0 = Time("2014-01-01T00:00:00.0",scale='utc')
-	GPS0 = Time("1980-01-06T00:00:00",scale='utc')
-        
-        log.info('getting gpssec')
-	gpssec = copy.deepcopy(etable['MET'])
+    log.info('Getting SAA data')
+    saa_lon, saa_lat = np.loadtxt(path.join(datadir,'saa_lonlat.txt'),unpack=True)
 
-	overshoot = ovs
-	print(ovs)
-	#gpssec, overshootrate = np.loadtxt('20170614_turnon_all_particles.lc',unpack=True,dtype=np.float)
+    eph = MCC(path.join(datadir,'MCC1_On_Console_20171631440_V01.txt'))
+    log.info('got eph')
 
-	eph = MCC('MCC1_On_Console_20171631440_V01.txt')
-        log.info('got eph')
+    lat, lon = eph.latlon(hkmet)
 
-	t = gpssec*u.s + GPS0
-	met = (t-MET0).to(u.s).value
-	
-	log.info('got met')
-	lat, lon = eph.latlon(met)
+    log.info('plotting map')
+    fig, ax = plot.subplots(figsize=(16,9))
+    map = Basemap(projection='cyl', resolution = 'l', lat_0=0, lon_0=0)
+    map.drawcoastlines()
+    map.scatter(lon, lat,c=overshootrate,cmap='jet')
+    map.plot(saa_lon,saa_lat,'g',lw=2)
 
-        log.info('plotting map')
-	map = Basemap(projection='cyl', resolution = 'l',
-		      lat_0=0, lon_0=0)
-	map.drawcoastlines()
-	map.scatter(lon, lat,c=overshootrate,cmap='jet')
-	map.plot(saa_lon,saa_lat,'g',lw=2)
-	plot.show()
-
-	return map
+    return fig
