@@ -13,15 +13,15 @@ def sci_plots(etable, gtitable, args):
 
     #Light Curve
     log.info('Building light curve')
-    plt.subplot(sci_grid[3:5,:5])
+    plt.subplot(sci_grid[3:5,:7])
     meanrate = plot_light_curve(etable, args.lclog, gtitable, binsize=args.lcbinsize)
-
+    '''
     #Fast / Slow (Slow x, Fast y)
     log.info('Building fast/slow subplot')
     plt.subplot(sci_grid[1:3,2:5])
     log.info('Building actual slow fast data')
     plot_slowfast(etable)
-
+    '''
     #Energy Spectrum
     log.info('Building energy spectrum')
     plt.subplot(sci_grid[1:3,:2])
@@ -29,7 +29,7 @@ def sci_plots(etable, gtitable, args):
 
     #Power Spectrum
     log.info('Looking at power spectrum')
-    fourier = plt.subplot(sci_grid[3:5,5:7])
+    fourier = plt.subplot(sci_grid[1:3,2:5])
     if args.pscoherent:
         log.info('Building coherent power spec')
         plot_fft_of_power(etable, args.nyquist, args.pslog, args.writeps)

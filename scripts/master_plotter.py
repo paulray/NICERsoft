@@ -17,6 +17,7 @@ from functionality import *
 from sci_plots import sci_plots
 from eng_plots import eng_plots
 from glob import glob
+from ratio_plots import *
 
 parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
 parser.add_argument("infiles", help="Input files", nargs='*')
@@ -50,6 +51,7 @@ parser.add_argument("--orb", help="Path to orbit FITS filed", default = None)
 parser.add_argument("--par", help="Path to par file", default = None)
 parser.add_argument("--pscoherent",help = "Display the coherent pulsations power spectrum", action = 'store_true')
 parser.add_argument("--psqpo",help = "Display the noise/qpo characterization", action = 'store_true')
+parser.add_argument("--ratio", help = "Display extra figure with diagnostic data", action = 'store_true')
 args = parser.parse_args()
 
 if args.obsdir:
@@ -236,6 +238,20 @@ if len(hkfiles) > 0:
     log.info('Overshoot rate is: {0}'.format(np.mean(overshootrate)))
     del hdulist
 
+#Creating the ratio plot
+if args.ratio:
+    figure4 = ratio_plots(filttable)
+    figure4.set_size_inches(16,12)
+    if args.save:
+    	log.info('Writing ratio plot {0}'.format(basename))
+    	if args.filtall:
+        	figure1.savefig('{0}_eng_FILT.png'.format(basename), dpi = 100)
+    	else:
+        	figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
+    else:
+        log.info('Tryingto show the ratio plot')
+        plt.show()
+
 #DELETING ETABLE HERE. USE FILTTABLE FROM NOW ON
 del etable
 
@@ -255,7 +271,7 @@ if args.basename is None:
 else:
     basename = args.basename
 
-if not args.sci and not args.eng and not args.map:
+if not args.sci and not args.eng and not args.map and not args.ratio:
     log.warning("No plot requested, making sci and eng")
     args.sci = True
     args.eng = True

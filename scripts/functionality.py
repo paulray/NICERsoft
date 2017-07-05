@@ -116,8 +116,7 @@ def light_curve(etable, startmet, stopmet, binsize):
     return bins[:-1], sums
 
 def plot_light_curve(etable, lclog, gtitable, binsize=1.0):
-    'Compute binned light curve of events and return mean rate,plots light curve'
-    #EDGE CASE FOR FIRST INSTANCE
+#EDGE CASE FOR FIRST INSTANCE
     bins, sums = light_curve(etable, gtitable['START'][0], gtitable['STOP'][0], binsize=binsize)
     cc = np.zeros_like(bins,dtype=np.float)
     cumtime = bins[-1]+binsize
