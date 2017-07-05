@@ -371,6 +371,10 @@ def pulse_profile(ax, etable, orbfile, parfile):
     h = hm(phases)
     ax.hist(phases, bins = 32)
     ax.text(0.1, 0.1, 'H = {0:.2f}'.format(h), transform=ax.transAxes)
+
+    plot.ylabel('Counts')
+    plot.xlabel('Pulse Phase')
+    plot.title('Pulse Profile')
     return
 
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-----------
