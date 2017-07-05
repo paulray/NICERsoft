@@ -12,12 +12,12 @@ import astropy.io.fits as pyfits
 from astropy import log
 import sys
 from scipy.interpolate import InterpolatedUnivariateSpline
-
+from matplotlib.colors import Normalize, LogNorm
 from mpl_toolkits.basemap import Basemap
 
 from nicer.mcc import MCC
+from nicer.sps import SPS
 from nicer.values import *
-
 
 parser = argparse.ArgumentParser(description = "Plot HKP data on map")
 parser.add_argument("mpuhkfiles", help="Input file names (should end in mpu?.hk)", nargs='+')
@@ -49,29 +49,24 @@ if args.mcc is not None:
     eph = MCC(args.mcc)
     lat, lon = eph.latlon(met)
 elif args.sps is not None:
-    spshdu = pyfits.open(args.sps)
-    spsmet = spshdu[1].data['TIME']
-    spslat = np.rad2deg(spshdu[1].data['GPS_SPS_LAT'])
-    spslon = np.rad2deg(spshdu[1].data['GPS_SPS_LON'])
-    log.info('SPS Range {0} to {1}'.format(spsmet.min(),spsmet.max()))
-    latinterp = InterpolatedUnivariateSpline(spsmet,spslat,ext='extrapolate')
-    # WARNING: Interpolating longitude is a bad idea since it has discontinuities!
-    loninterp = InterpolatedUnivariateSpline(spsmet,spslon,ext='extrapolate')
-    # Check that we aren't trying to extrapolate too far
-    if (met.min() < spsmet.min()-10.0) or (met.max() > spsmet.max()+10):
-        log.error('Trying to extrapolate too far!')
-    lat = latinterp(met)
-    lon = loninterp(met)
+    eph = SPS(args.sps)
+    lat, lon = eph.latlon(met)
 else:
     log.error('Must specify --sps or --mcc')
     sys.exit(2)
 
 saa_lon, saa_lat = np.loadtxt(path.join(datadir,'saa_lonlat.txt'),unpack=True)
+nph_lon, nph_lat = np.loadtxt(path.join(datadir,'nph_lonlat.txt'),unpack=True)
+sph_lon, sph_lat = np.loadtxt(path.join(datadir,'sph_lonlat.txt'),unpack=True)
 
 fig, ax = plt.subplots(figsize=(16,9))
 map = Basemap(projection='cyl', resolution = 'l',
               lat_0=0, lon_0=0)
 map.drawcoastlines()
-map.scatter(lon, lat,c=overshootrate,cmap='jet')
-map.plot(saa_lon,saa_lat,'g',lw=2)
+sc = map.scatter(lon, lat,c=overshootrate,norm=LogNorm(vmin=10.0,vmax=1000.0),cmap='jet')
+map.plot(saa_lon,saa_lat,'r',lw=2)
+map.plot(nph_lon,nph_lat,color='orange',marker='o',markersize=10.0,linestyle='-')
+map.plot(sph_lon,sph_lat,'orange',marker='o',markersize=10.0,linestyle='-')
+cbar = map.colorbar(sc, location='bottom',pad='5%')
+cbar.set_label('Overshoot Rate')
 plt.show()
