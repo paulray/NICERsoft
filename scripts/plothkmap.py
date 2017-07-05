@@ -66,7 +66,7 @@ else:
     log.error('Must specify --sps or --mcc')
     sys.exit(2)
 
-saa_lon, saa_lat = np.loadtxt('/Users/psray/src/NICERsoft/data/saa_lonlat.txt',unpack=True)
+saa_lon, saa_lat = np.loadtxt(path.join(datadir,'saa_lonlat.txt'),unpack=True)
 
 fig, ax = plt.subplots(figsize=(16,9))
 map = Basemap(projection='cyl', resolution = 'l',
