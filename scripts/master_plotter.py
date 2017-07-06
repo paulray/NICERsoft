@@ -253,9 +253,6 @@ if args.ratio:
         	figure1.savefig('{0}_eng_FILT.png'.format(basename), dpi = 100)
     	else:
         	figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
-    else:
-        log.info('Tryingto show the ratio plot')
-        plt.show()
 
 #DELETING ETABLE HERE. USE FILTTABLE FROM NOW ON
 del etable
@@ -291,9 +288,6 @@ if args.eng:
         	figure1.savefig('{0}_eng_FILT.png'.format(basename), dpi = 100)
     	else:
         	figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
-    else:
-        log.info('Tryingto show the eng plot')
-        plt.show()
 
 if args.sci:
     # Make science plots using filtered events
@@ -305,9 +299,6 @@ if args.sci:
         	figure2.savefig('{0}_sci_FILT.png'.format(basename), dpi = 100)
     	else:
         	figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
-    else:
-        log.info('Trying to show the sci plot')
-    	plt.show()
 
 if args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
@@ -316,6 +307,7 @@ if args.map:
     if args.save:
         log.info('Writing MAP {0}'.format(basename))
         figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
-    else:
-        log.info("Showing map")
-        plt.show()
+
+# Show all plots at the end, if not saving
+if not args.save:
+    plt.show()
