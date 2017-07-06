@@ -28,6 +28,7 @@ parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, defau
 parser.add_argument("-s", "--save", help = "Save plots to file", action = "store_true")
 parser.add_argument("--sci", help = "Makes some nice science plots", action = "store_true")
 parser.add_argument("--eng", help = "Makes some nice engineering plots", action = "store_true")
+parser.add_argument("--ratio", help = "Display extra figure with diagnostic data", action = 'store_true')
 parser.add_argument("--filtswtrig", help = "Filter SW TRIG events", action = "store_true")
 parser.add_argument("--filtovershoot", help = "Filter OVERSHOOT events", action = "store_true")
 parser.add_argument("--filtundershoot", help = "Filter UNDERSHOOT events", action = "store_true")
@@ -49,9 +50,9 @@ parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
 parser.add_argument("--map", help= "Creates a map with some stuff on it", action = 'store_true')
 parser.add_argument("--orb", help="Path to orbit FITS filed", default = None)
 parser.add_argument("--par", help="Path to par file", default = None)
+parser.add_argument("--sps", help="Path to SPS HK file (_apid0260.hk)",default=None)
 parser.add_argument("--pscoherent",help = "Display the coherent pulsations power spectrum", action = 'store_true')
 parser.add_argument("--psqpo",help = "Display the noise/qpo characterization", action = 'store_true')
-parser.add_argument("--ratio", help = "Display extra figure with diagnostic data", action = 'store_true')
 args = parser.parse_args()
 
 if args.obsdir:
@@ -70,6 +71,10 @@ if args.obsdir:
     except:
         log.error("Orbit file not found!")
     log.info('Found the orbit file: {0}'.format(args.orb))
+
+    # Get name of SPS HK file (apid0260)
+    if args.sps is None:
+        args.sps = glob(path.join(args.obsdir,'auxil/ni*_apid0260.hk'))[0]
 
     # Get name of MPU housekeeping files
     hkfiles = glob(path.join(args.obsdir,'xti/hk/ni*.hk'))
@@ -306,7 +311,7 @@ if args.sci:
 
 if args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
-    figure3 = cartography(hkmet, overshootrate)
+    figure3 = cartography(hkmet, overshootrate, args)
 
     if args.save:
         log.info('Writing MAP {0}'.format(basename))
