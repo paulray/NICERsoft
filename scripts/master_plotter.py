@@ -210,6 +210,7 @@ duration = stopmet-startmet
 # Add 1 bin to make sure last bin covers last events
 lc_elapsed_bins = np.arange(0.0,duration+args.lcbinsize,args.lcbinsize)
 lc_met_bins = np.arange(startmet,stopmet+args.lcbinsize,args.lcbinsize)
+cumtimes = [ 0.0 ]
 cumtime = lc_elapsed_bins[-1]+args.lcbinsize
 for i in range(1,len(gtitable['START'])):
     startmet = gtitable['START'][i]
@@ -218,7 +219,9 @@ for i in range(1,len(gtitable['START'])):
     lc_elapsed_bins = np.append(lc_elapsed_bins,
         cumtime+np.arange(0.0,duration+args.lcbinsize,args.lcbinsize))
     lc_met_bins = np.append(lc_met_bins,np.arange(startmet,stopmet+args.lcbinsize,args.lcbinsize))
+    cumtimes.append(cumtime)
     cumtime += lc_elapsed_bins[-1]+args.lcbinsize
+gtitable['CUMTIME'] = np.array(cumtimes)
 
 # getting the overshoot rate from HK files.  Times are hkmet
 if len(hkfiles) > 0:
