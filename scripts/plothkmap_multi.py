@@ -37,6 +37,9 @@ map.plot(sph_lon,sph_lat,'orange',marker='o',markersize=10.0,linestyle='-')
 for obsdir in args.obsdirs:
     log.info('Processing '+obsdir)
     mpuhkfiles = glob(path.join(obsdir,'xti/hk/*mpu*.hk'))
+    if len(mpuhkfiles) == 0:
+        log.info('No files found')
+        continue
     hdulist = pyfits.open(mpuhkfiles[0])
     td = hdulist[1].data
     met = td['TIME']
