@@ -15,7 +15,7 @@ def ratio_plots(etable, overshootrate, gtitable, elapsedbins, metbins, args, hkm
 	log.info('Building actual slow fast data')
 	#plot_slowfast(etable)
 
-	#Overshoot rate plot
+	#Overshoot rate plot -- use --lclog to make it a log y axis
 	plt.subplot(ratio_grid[2:3,:2])
 	plot_overshoot(etable, overshootrate, gtitable, elapsedbins, args, hkmet)
 
