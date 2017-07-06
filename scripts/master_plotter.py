@@ -264,6 +264,9 @@ if filttable.meta['OBS_ID'].startswith('000000'):
     filttable.meta['OBS_ID'] = bn
 
 if args.guessobj and args.obsdir:
+    # Trim trailing slash, if needed
+    if args.obsdir[-1] == '/':
+        args.obsdir = args.obsdir[:-1]
     objname = path.basename(args.obsdir)[11:]
     log.info('Guessing Object name {0}'.format(objname))
     filttable.meta['OBJECT'] = objname
