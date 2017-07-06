@@ -225,6 +225,7 @@ for i in range(1,len(gtitable['START'])):
     cumtime += mylcduration
 gtitable['CUMTIME'] = np.array(cumtimes)
 
+
 # getting the overshoot rate from HK files.  Times are hkmet
 if len(hkfiles) > 0:
     log.info('Reading '+hkfiles[0])
@@ -234,7 +235,6 @@ if len(hkfiles) > 0:
     log.info("HK MET Range {0} to {1} (Span = {2:.1f} seconds)".format(hkmet.min(),
         hkmet.max(),hkmet.max()-hkmet.min()))
     overshootrate = td['MPU_OVER_COUNT'].sum(axis=1)
-
     for fn in hkfiles[1:]:
         log.info('Reading '+fn)
         hdulist = pyfits.open(fn)
@@ -248,9 +248,9 @@ if len(hkfiles) > 0:
     log.info('Overshoot rate is: {0}'.format(np.mean(overshootrate)))
     del hdulist
 
-#Creating the ratio plot
+#Creating the ratio plots
 if args.ratio:
-    figure4 = ratio_plots(filttable)
+    figure4 = ratio_plots(etable, overshootrate, gtitable, lc_elapsed_bins,lc_met_bins, args, hkmet)
     figure4.set_size_inches(16,12)
     if args.save:
     	log.info('Writing ratio plot {0}'.format(basename))

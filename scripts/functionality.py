@@ -376,8 +376,29 @@ def pulse_profile(ax, etable, orbfile, parfile):
     plot.xlabel('Pulse Phase')
     plot.title('Pulse Profile')
     return
+#-------------------------OVERSHOOT RATE FOR RATIO------------------------------
+def plot_overshoot(etable, overshootrate, gtitable, elapsedbins, args, hkmet):
+    overshoot = overshootrate[np.where(np.logical_and(hkmet>gtitable['START'][0],hkmet<gtitable['STOP'][0]))]
+    etime = hkmet[np.where(np.logical_and(hkmet>gtitable['START'][0],hkmet<gtitable['STOP'][0]))] - gtitable['START'][0] 
+    cc = np.zeros_like(overshoot,dtype=np.float)
 
-#-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-----------
+    for idx in xrange(1,len(gtitable['START'])):
+	myovershoot = overshootrate[np.where(np.logical_and(hkmet>gtitable['START'][idx],hkmet<gtitable['STOP'][idx]))]
+        overshoot = np.append(overshoot, myovershoot)
+	etime = np.append(etime, (hkmet[np.where(np.logical_and(hkmet>gtitable['START'][idx],hkmet<gtitable['STOP'][idx]))] - gtitable['START'][0]))
+	mycolors = np.zeros_like(myovershoot,dtype=np.float)+np.float(idx)
+        cc = np.append(cc,mycolors)
+    colornames = ['black','green','red','blue','magenta']
+    colorlevels = np.arange(len(colornames))
+    cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+
+    plot.scatter(etime, overshoot, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='+')
+    plot.ylabel('Overshoot rate')
+    plot.xlabel('Elapsed Time (s)')
+    if args.lclog:	
+        plot.yscale('log')
+    return
+#-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-------
 def reset_rate(etable, IDS):
     'Count resets (detector undershoots) for each detector'
 
