@@ -377,7 +377,7 @@ def pulse_profile(ax, etable, orbfile, parfile):
     plot.title('Pulse Profile')
     return
 #-------------------------OVERSHOOT RATE FOR RATIO------------------------------
-def plot_overshoot(etable, overshootrate, gtitable, elapsedbins, args, hkmet):
+def plot_overshoot(etable, overshootrate, gtitable, args, hkmet):
     overshoot = overshootrate[np.where(np.logical_and(hkmet>gtitable['START'][0],hkmet<gtitable['STOP'][0]))]
     etime = hkmet[np.where(np.logical_and(hkmet>gtitable['START'][0],hkmet<gtitable['STOP'][0]))] - gtitable['START'][0] 
     cc = np.zeros_like(overshoot,dtype=np.float)
@@ -394,7 +394,30 @@ def plot_overshoot(etable, overshootrate, gtitable, elapsedbins, args, hkmet):
 
     plot.scatter(etime, overshoot, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='+')
     plot.ylabel('Overshoot rate')
-    plot.xlabel('Elapsed Time (s)')
+    plot.xlabel('Elapsed Time (s)', labelpad = 1)
+    if args.lclog:	
+        plot.yscale('log')
+    return
+
+#-------------------------UNDERSHOOT RATE FOR RATIO------------------------------
+def plot_undershoot(etable, undershootrate, gtitable, args, hkmet):
+    undershoot = undershootrate[np.where(np.logical_and(hkmet>gtitable['START'][0],hkmet<gtitable['STOP'][0]))]
+    etime = hkmet[np.where(np.logical_and(hkmet>gtitable['START'][0],hkmet<gtitable['STOP'][0]))] - gtitable['START'][0] 
+    cc = np.zeros_like(undershoot,dtype=np.float)
+
+    for idx in xrange(1,len(gtitable['START'])):
+	myundershoot = undershootrate[np.where(np.logical_and(hkmet>gtitable['START'][idx],hkmet<gtitable['STOP'][idx]))]
+        undershoot = np.append(undershoot, myundershoot)
+	etime = np.append(etime, (hkmet[np.where(np.logical_and(hkmet>gtitable['START'][idx],hkmet<gtitable['STOP'][idx]))] - gtitable['START'][0]))
+	mycolors = np.zeros_like(myundershoot,dtype=np.float)+np.float(idx)
+        cc = np.append(cc,mycolors)
+    colornames = ['black','green','red','blue','magenta']
+    colorlevels = np.arange(len(colornames))
+    cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+
+    plot.scatter(etime, undershoot, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='+')
+    plot.ylabel('Undershoot rate')
+    plot.xlabel('Elapsed Time (s)', labelpad = 1)
     if args.lclog:	
         plot.yscale('log')
     return

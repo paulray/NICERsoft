@@ -235,16 +235,19 @@ if len(hkfiles) > 0:
     log.info("HK MET Range {0} to {1} (Span = {2:.1f} seconds)".format(hkmet.min(),
         hkmet.max(),hkmet.max()-hkmet.min()))
     overshootrate = td['MPU_OVER_COUNT'].sum(axis=1)
+    undershootrate = td['MPU_UNDER_COUNT'].sum(axis=1)
     for fn in hkfiles[1:]:
         log.info('Reading '+fn)
         hdulist = pyfits.open(fn)
         mytd = hdulist[1].data
         mymet = td['TIME']
         myovershootrate = td['MPU_OVER_COUNT'].sum(axis=1)
+        myundershootrate = td['MPU_UNDER_COUNT'].sum(axis=1)
         if not np.all(mymet == hkmet):
             log.error('TIME axes are not compatible')
             sys.exit(1)
         overshootrate += myovershootrate
+        undershootrate += myundershootrate
     log.info('Overshoot rate is: {0}'.format(np.mean(overshootrate)))
     del hdulist
 
@@ -269,7 +272,7 @@ else:
 
 #Creating the ratio plots
 if args.ratio:
-    figure4 = ratio_plots(etable, overshootrate, gtitable, lc_elapsed_bins,lc_met_bins, args, hkmet)
+    figure4 = ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate)
     figure4.set_size_inches(16,12)
     if args.save:
         log.info('Writing ratio plot {0}'.format(basename))
