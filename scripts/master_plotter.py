@@ -82,6 +82,8 @@ if args.obsdir:
     log.info('Found the MPU housekeeping files: {0}'.format("\n"+"\t\n".join(hkfiles)))
     args.hkfiles = hkfiles
 
+    mkfiles = glob(path.join(args.obsdir,'auxil/ni*.mkf'))[0]
+
 if args.filtall:
     args.filtswtrig=True
     args.filtovershoot=True
@@ -106,6 +108,10 @@ gtitable['DURATION'] = gtitable['STOP']-gtitable['START']
 idx = np.where(gtitable['DURATION']>16.0)[0]
 gtitable = gtitable[idx]
 print(gtitable)
+
+#Making the MK Table
+log.info('Getting MKTable')
+mktable = Table.read(mkfiles,hdu=1)
 
 log.info('Concatenating files')
 etable = vstack(tlist,metadata_conflicts='silent')
@@ -274,7 +280,7 @@ else:
 
 #Creating the ratio plots
 if args.ratio:
-    figure4 = ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate)
+    figure4 = ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable)
     figure4.set_size_inches(16,12)
     if args.save:
         log.info('Writing ratio plot {0}'.format(basename))
