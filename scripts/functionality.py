@@ -385,7 +385,7 @@ def plot_overshoot(etable, overshootrate, gtitable, args, hkmet):
     for idx in xrange(1,len(gtitable['START'])):
 	myovershoot = overshootrate[np.where(np.logical_and(hkmet>gtitable['START'][idx],hkmet<gtitable['STOP'][idx]))]
         overshoot = np.append(overshoot, myovershoot)
-	etime = np.append(etime, (hkmet[np.where(np.logical_and(hkmet>gtitable['START'][idx],hkmet<gtitable['STOP'][idx]))] - gtitable['START'][0]))
+	etime = np.append(etime, (hkmet[np.where(np.logical_and(hkmet>gtitable['START'][idx],hkmet<gtitable['STOP'][idx]))] - gtitable['START'][idx] + gtitable['CUMTIME'][idx]))
 	mycolors = np.zeros_like(myovershoot,dtype=np.float)+np.float(idx)
         cc = np.append(cc,mycolors)
     colornames = ['black','green','red','blue','magenta']
@@ -408,7 +408,7 @@ def plot_undershoot(etable, undershootrate, gtitable, args, hkmet):
     for idx in xrange(1,len(gtitable['START'])):
 	myundershoot = undershootrate[np.where(np.logical_and(hkmet>gtitable['START'][idx],hkmet<gtitable['STOP'][idx]))]
         undershoot = np.append(undershoot, myundershoot)
-	etime = np.append(etime, (hkmet[np.where(np.logical_and(hkmet>gtitable['START'][idx],hkmet<gtitable['STOP'][idx]))] - gtitable['START'][0]))
+	etime = np.append(etime, (hkmet[np.where(np.logical_and(hkmet>gtitable['START'][idx],hkmet<gtitable['STOP'][idx]))] - gtitable['START'][idx] + gtitable['CUMTIME'][idx]))
 	mycolors = np.zeros_like(myundershoot,dtype=np.float)+np.float(idx)
         cc = np.append(cc,mycolors)
     colornames = ['black','green','red','blue','magenta']
