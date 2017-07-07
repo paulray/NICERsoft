@@ -69,12 +69,8 @@ for obsdir in args.obsdirs:
     eph = SPS(spsname)
 
     mpuhkfiles = glob(path.join(obsdir,'xti/hk/*mpu*.hk'))
-<<<<<<< Updated upstream
     if len(mpuhkfiles) == 0:
         log.info('No files found')
-=======
-    if len(mpuhkfiles)<6:
->>>>>>> Stashed changes
         continue
     hdulist = pyfits.open(mpuhkfiles[0])
     td = hdulist[1].data
@@ -119,4 +115,6 @@ ax2.set_title('In Darkness')
 cbar2 = map2.colorbar(sc2, location='bottom',pad='5%')
 cbar2.set_label(desc)
 
+fig2, ax = plt.subplots()
+ax.plot(mkf['SUN_ANGLE'],np.interp(sunmet,met,rate),'o')
 plt.show()

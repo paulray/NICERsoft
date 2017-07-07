@@ -318,4 +318,5 @@ if args.map:
 
 # Show all plots at the end, if not saving
 if not args.save:
+    log.info('Showing plots...')
     plt.show()
