@@ -56,6 +56,7 @@ parser.add_argument("--psqpo",help = "Display the noise/qpo characterization", a
 args = parser.parse_args()
 
 args.hkfiles = []
+mkfiles = []
 
 if args.obsdir:
     # Get names of event files from obsdir
@@ -113,7 +114,8 @@ print(gtitable)
 
 #Making the MK Table
 log.info('Getting MKTable')
-mktable = Table.read(mkfiles,hdu=1)
+if len(mkfiles) > 0:
+    mktable = Table.read(mkfiles,hdu=1)
 
 log.info('Concatenating files')
 etable = vstack(tlist,metadata_conflicts='silent')
