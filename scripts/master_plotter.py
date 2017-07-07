@@ -264,6 +264,7 @@ log.info('OBS_ID {0}'.format(filttable.meta['OBS_ID']))
 if filttable.meta['OBS_ID'].startswith('000000'):
     log.info('Overwriting OBS_ID with {0}'.format(bn))
     filttable.meta['OBS_ID'] = bn
+    etable.meta['OBS_ID'] = bn
 
 if args.guessobj and args.obsdir:
     # Trim trailing slash, if needed
@@ -272,6 +273,7 @@ if args.guessobj and args.obsdir:
     objname = path.basename(args.obsdir)[11:]
     log.info('Guessing Object name {0}'.format(objname))
     filttable.meta['OBJECT'] = objname
+    etable.meta['OBJECT'] = objname
 
 if args.basename is None:
     basename = 'ql-{0}'.format(bn)
