@@ -248,20 +248,6 @@ if len(hkfiles) > 0:
     log.info('Overshoot rate is: {0}'.format(np.mean(overshootrate)))
     del hdulist
 
-#Creating the ratio plots
-if args.ratio:
-    figure4 = ratio_plots(etable, overshootrate, gtitable, lc_elapsed_bins,lc_met_bins, args, hkmet)
-    figure4.set_size_inches(16,12)
-    if args.save:
-    	log.info('Writing ratio plot {0}'.format(basename))
-    	if args.filtall:
-        	figure1.savefig('{0}_eng_FILT.png'.format(basename), dpi = 100)
-    	else:
-        	figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
-
-#DELETING ETABLE HERE. USE FILTTABLE FROM NOW ON
-del etable
-
 bn = path.basename(args.infiles[0]).split('_')[0]
 log.info('OBS_ID {0}'.format(filttable.meta['OBS_ID']))
 if filttable.meta['OBS_ID'].startswith('000000'):
@@ -280,6 +266,18 @@ if args.basename is None:
     basename = 'ql-{0}'.format(bn)
 else:
     basename = args.basename
+
+#Creating the ratio plots
+if args.ratio:
+    figure4 = ratio_plots(etable, overshootrate, gtitable, lc_elapsed_bins,lc_met_bins, args, hkmet)
+    figure4.set_size_inches(16,12)
+    if args.save:
+        log.info('Writing ratio plot {0}'.format(basename))
+        figure4.savefig('{0}_bkg.png'.format(basename), dpi = 100)
+
+#DELETING ETABLE HERE. USE FILTTABLE FROM NOW ON
+del etable
+
 
 if not args.sci and not args.eng and not args.map and not args.ratio:
     log.warning("No plot requested, making sci and eng")
