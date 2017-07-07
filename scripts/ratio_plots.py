@@ -23,8 +23,8 @@ def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate):
 	#Plot of undershoot rate
 	log.info('Building undershoot plot')
 	plt.subplot(ratio_grid[4:6,:4])
-	plot_undershoot(etable, undershootrate, gtitable, args, hkmet)
-
+	undershoot, etime=plot_undershoot(etable, undershootrate, gtitable, args, hkmet)
+	plot_sunshine(args, undershoot, etime, gtitable, hkmet)
         #Plot of Pointing
 	plt.subplot(ratio_grid[6:8,:4])
 

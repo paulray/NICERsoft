@@ -193,11 +193,13 @@ if args.filtratio > 0.0:
     filt_str += ", ratio < {0:.2f}".format(args.filtratio)
 else:
     b5 = np.ones_like(etable['PI'],dtype=np.bool)
-
 idx = np.where(b1 & b2 & b3 & b4 & b5)[0]
 del b1, b2, b3, b4, b5
 filttable = etable[idx]
 filttable.meta['FILT_STR'] = filt_str
+
+#Getting the ones rejected by the filter
+
 
 log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
     len(filttable), 100*len(filttable)/len(etable)))

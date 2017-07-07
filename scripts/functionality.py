@@ -5,9 +5,13 @@ import copy
 import scipy
 from scipy import ndimage
 from astropy import log
-
+from glob import glob
 from values import *
-
+from os import path
+from astropy.table import Table
+from astropy.coordinates import SkyCoord
+import astropy.io.fits as pyfits
+import astropy.units as u
 #------------------------THIS MAKES THE TOTAL COUNT HISTOGRAM---------------------------
 def event_counter(etable):
     'Count events by DET_ID'
@@ -420,6 +424,46 @@ def plot_undershoot(etable, undershootrate, gtitable, args, hkmet):
     plot.xlabel('Elapsed Time (s)', labelpad = 1)
     if args.lclog:	
         plot.yscale('log')
+    
+    return undershoot, etime
+
+def plot_sunshine(args, undershoot, etime, gtitable, hkmet):
+#Getting the correct info
+    obsdir = args.obsdir
+    log.info('Processing '+ obsdir)
+    mkfname = glob(path.join(obsdir,'auxil/*.mkf'))[0]
+    mkf = Table.read(mkfname,hdu=1)
+    mkf.sort('TIME')
+    sunmet = mkf['TIME']
+    earthpos = SkyCoord(mkf['EARTH_RA'],mkf['EARTH_DEC'],frame='icrs')
+    sunpos = SkyCoord(mkf['SUN_RA'],mkf['SUN_DEC'],frame='icrs')
+    sunshine = mkf['SUNSHINE']
+    mpuhkfiles = glob(path.join(obsdir,'xti/hk/*mpu*.hk'))
+    if len(mpuhkfiles) == 0:
+        log.info('No files found')
+    hdulist = pyfits.open(mpuhkfiles[0])
+    td = hdulist[1].data
+    met = td['TIME']
+
+    sep = earthpos.separation(sunpos)
+    ESangle = np.interp(met,sunmet,sep)*sep.unit
+    sunidx  = np.where(ESangle>70.0*u.deg)[0]
+    darkidx = np.where(ESangle<70.0*u.deg)[0]
+    ESangle[sunidx] = max(undershoot)*u.deg + 1000*u.deg
+    ESangle[darkidx] = 0
+#Filtering out the GTI good-times
+    gtimes = met[np.where(np.logical_and(met>gtitable['START'][0],met<gtitable['STOP'][0]))] - gtitable['START'][0]
+    goodangles = ESangle[np.where(np.logical_and(met>gtitable['START'][0],met<gtitable['STOP'][0]))]
+    for idx in xrange(1,len(gtitable['START'])):
+	gtimes = np.append(gtimes, met[np.where(np.logical_and(met>gtitable['START'][idx],met<gtitable['STOP'][idx]))] - gtitable['START'][idx] + gtitable['CUMTIME'][idx])
+        goodangles = np.append(goodangles, ESangle[np.where(np.logical_and(met>gtitable['START'][idx],met<gtitable['STOP'][idx]))])
+    
+    #deleting all the non-sun entries
+    gtimes = np.delete(gtimes, np.where(goodangles == 0))
+    goodangles = np.delete(goodangles, np.where(goodangles == 0))   
+    label = "Sunshine"
+    plot.scatter(gtimes,goodangles, color = 'y', label = label, marker = '_')
+    plot.legend(loc = 4)
     return
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-------
 def reset_rate(etable, IDS):
