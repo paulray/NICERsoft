@@ -465,6 +465,41 @@ def plot_sunshine(args, undershoot, etime, gtitable, hkmet):
     plot.scatter(gtimes,goodangles, color = 'y', label = label, marker = '_')
     plot.legend(loc = 4)
     return
+
+#-------------------------SUN / EARTH / MOON ANGLES-----------------------------
+def plot_angles(mktable, gtitable):
+    sun = mktable['SUN_ANGLE'][0:-1]
+    earth = mktable['BR_EARTH'][0:-1]
+    moon = mktable['MOON_ANGLE'][0:-1]
+    met = mktable['TIME'][0:-1]
+
+    print(sun)
+    #Special first case
+    sunangle= sun[np.where(np.logical_and(met>gtitable['START'][0],met<gtitable['STOP'][0]))]
+    earthangle = earth[np.where(np.logical_and(met>gtitable['START'][0],met<gtitable['STOP'][0]))]
+    moonangle = moon[np.where(np.logical_and(met>gtitable['START'][0],met<gtitable['STOP'][0]))] 
+    goodtime = met[np.where(np.logical_and(met>gtitable['START'][0],met<gtitable['STOP'][0]))] - gtitable['START'][0]
+
+    #The rest of the cases for GTITABLE
+   # for idx in xrange(1,len(gtitable['START'])):
+	#mysangle = sun[np.where(np.logical_and(met>gtitable['START'][idx],met<gtitable['STOP'][idx]))]
+	#myeangle = earth[np.where(np.logical_and(met>gtitable['START'][idx],met<gtitable['STOP'][idx]))]
+       # mymangle = moon[np.where(np.logical_and(met>gtitable['START'][idx],met<gtitable['STOP'][idx]))]
+	#mygtime = met[np.where(np.logical_and(met>gtitable['START'][idx],met<gtitable['STOP'][idx]))] - gtitable['START'][idx] + gtitable['CUMTIME'][idx]
+
+	#sunangle =np.append(sunangle, mysangle)
+ 	#earthangle += myeangle
+	#moonangle += mymangle
+	#goodtime = np.append(goodtime, mygtime)
+
+    plot.scatter(goodtime, sunangle, marker = '+', color = 'r', label = 'Sun Angle')
+    plot.scatter(goodtime, earthangle, marker = '_', color = 'g', label = 'Earth Angle')
+    plot.scatter(goodtime, moonangle, marker = '_', color = 'b', label = 'Moon Angle')
+    plot.legend(loc = 1)
+    plot.xlabel('Elapsed Time (s)')
+    plot.ylabel('Angle')
+    
+    return
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-------
 def reset_rate(etable, IDS):
     'Count resets (detector undershoots) for each detector'
