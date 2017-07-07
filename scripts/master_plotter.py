@@ -55,6 +55,8 @@ parser.add_argument("--pscoherent",help = "Display the coherent pulsations power
 parser.add_argument("--psqpo",help = "Display the noise/qpo characterization", action = 'store_true')
 args = parser.parse_args()
 
+args.hkfiles = []
+
 if args.obsdir:
     # Get names of event files from obsdir
     if len(args.infiles) == 0:
@@ -229,7 +231,7 @@ gtitable['CUMTIME'] = np.array(cumtimes)
 
 
 # getting the overshoot rate from HK files.  Times are hkmet
-if len(hkfiles) > 0:
+if len(args.hkfiles) > 0:
     log.info('Reading '+hkfiles[0])
     hdulist = pyfits.open(hkfiles[0])
     td = hdulist[1].data
