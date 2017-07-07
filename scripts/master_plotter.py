@@ -55,6 +55,8 @@ parser.add_argument("--pscoherent",help = "Display the coherent pulsations power
 parser.add_argument("--psqpo",help = "Display the noise/qpo characterization", action = 'store_true')
 args = parser.parse_args()
 
+args.hkfiles = []
+
 if args.obsdir:
     # Get names of event files from obsdir
     if len(args.infiles) == 0:
@@ -82,6 +84,8 @@ if args.obsdir:
     log.info('Found the MPU housekeeping files: {0}'.format("\n"+"\t\n".join(hkfiles)))
     args.hkfiles = hkfiles
 
+    mkfiles = glob(path.join(args.obsdir,'auxil/ni*.mkf'))[0]
+
 if args.filtall:
     args.filtswtrig=True
     args.filtovershoot=True
@@ -106,6 +110,10 @@ gtitable['DURATION'] = gtitable['STOP']-gtitable['START']
 idx = np.where(gtitable['DURATION']>16.0)[0]
 gtitable = gtitable[idx]
 print(gtitable)
+
+#Making the MK Table
+log.info('Getting MKTable')
+mktable = Table.read(mkfiles,hdu=1)
 
 log.info('Concatenating files')
 etable = vstack(tlist,metadata_conflicts='silent')
@@ -193,11 +201,13 @@ if args.filtratio > 0.0:
     filt_str += ", ratio < {0:.2f}".format(args.filtratio)
 else:
     b5 = np.ones_like(etable['PI'],dtype=np.bool)
-
 idx = np.where(b1 & b2 & b3 & b4 & b5)[0]
 del b1, b2, b3, b4, b5
 filttable = etable[idx]
 filttable.meta['FILT_STR'] = filt_str
+
+#Getting the ones rejected by the filter
+
 
 log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
     len(filttable), 100*len(filttable)/len(etable)))
@@ -227,7 +237,7 @@ gtitable['CUMTIME'] = np.array(cumtimes)
 
 
 # getting the overshoot rate from HK files.  Times are hkmet
-if len(hkfiles) > 0:
+if len(args.hkfiles) > 0:
     log.info('Reading '+hkfiles[0])
     hdulist = pyfits.open(hkfiles[0])
     td = hdulist[1].data
@@ -256,6 +266,7 @@ log.info('OBS_ID {0}'.format(filttable.meta['OBS_ID']))
 if filttable.meta['OBS_ID'].startswith('000000'):
     log.info('Overwriting OBS_ID with {0}'.format(bn))
     filttable.meta['OBS_ID'] = bn
+    etable.meta['OBS_ID'] = bn
 
 if args.guessobj and args.obsdir:
     # Trim trailing slash, if needed
@@ -264,6 +275,7 @@ if args.guessobj and args.obsdir:
     objname = path.basename(args.obsdir)[11:]
     log.info('Guessing Object name {0}'.format(objname))
     filttable.meta['OBJECT'] = objname
+    etable.meta['OBJECT'] = objname
 
 if args.basename is None:
     basename = 'ql-{0}'.format(bn)
@@ -272,7 +284,7 @@ else:
 
 #Creating the ratio plots
 if args.ratio:
-    figure4 = ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate)
+    figure4 = ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable)
     figure4.set_size_inches(16,12)
     if args.save:
         log.info('Writing ratio plot {0}'.format(basename))
