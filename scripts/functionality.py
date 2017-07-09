@@ -381,17 +381,30 @@ def pulse_profile(ax, etable, orbfile, parfile):
     plot.title('Pulse Profile')
     return
 #-------------------------OVERSHOOT RATE FOR RATIO------------------------------
-def plot_overshoot(etable, overshootrate, gtitable, args, hkmet):
-    overshoot = overshootrate[np.where(np.logical_and(hkmet>gtitable['START'][0],hkmet<gtitable['STOP'][0]))]
-    etime = hkmet[np.where(np.logical_and(hkmet>gtitable['START'][0],hkmet<gtitable['STOP'][0]))] - gtitable['START'][0] 
-    cc = np.zeros_like(overshoot,dtype=np.float)
 
-    for idx in xrange(1,len(gtitable['START'])):
-	myovershoot = overshootrate[np.where(np.logical_and(hkmet>gtitable['START'][idx],hkmet<gtitable['STOP'][idx]))]
-        overshoot = np.append(overshoot, myovershoot)
-	etime = np.append(etime, (hkmet[np.where(np.logical_and(hkmet>gtitable['START'][idx],hkmet<gtitable['STOP'][idx]))] - gtitable['START'][idx] + gtitable['CUMTIME'][idx]))
-	mycolors = np.zeros_like(myovershoot,dtype=np.float)+np.float(idx)
-        cc = np.append(cc,mycolors)
+
+
+def convert_to_elapsed_goodtime(mets, vals, gtitable):
+    'Given a set of values at METs, extract the values during the GTIs and return times that are in elapsed good time for plotting'
+    mets = np.asarray(mets)
+    vals = np.asarray(vals)
+    idx = np.where(np.logical_and(mets>gtitable['START'][0],mets<gtitable['STOP'][0]))
+    goodvals = vals[idx]
+    etimes = mets[idx] - gtitable['START'][0]
+    cc = np.zeros_like(goodvals, dtype=np.float)
+    for ii in range(1,len(gtitable['START'])):
+        idx = np.where(np.logical_and(mets>gtitable['START'][ii],mets<gtitable['STOP'][ii]))
+        goodvals = np.append(goodvals, vals[idx])
+        etimes = np.append(etimes, mets[idx]-gtitable['START'][ii] + gtitable['CUMTIME'][ii])
+        cc = np.append(cc, np.zeros_like(vals[idx],dtype=np.float)+np.float(ii))
+
+    # Returns the arrays of elapsed times, values, and an array of what segment it is in, used for setting plot colors by GTI segment
+    print "Lens: ", len(etimes), len(goodvals), len(cc)
+    return etimes, goodvals, cc
+
+def plot_overshoot(etable, overshootrate, gtitable, args, hkmet):
+
+    etime, overshoot, cc = convert_to_elapsed_goodtime(hkmet, overshootrate, gtitable)
     colornames = ['black','green','red','blue','magenta']
     colorlevels = np.arange(len(colornames))
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
@@ -401,70 +414,38 @@ def plot_overshoot(etable, overshootrate, gtitable, args, hkmet):
     plot.xlabel('Elapsed Time (s)', labelpad = 1)
     if args.lclog:	
         plot.yscale('log')
+        plot.ylim(ymin=10.0)
     return
 
 #-------------------------UNDERSHOOT RATE FOR RATIO------------------------------
-def plot_undershoot(etable, undershootrate, gtitable, args, hkmet):
-    undershoot = undershootrate[np.where(np.logical_and(hkmet>gtitable['START'][0],hkmet<gtitable['STOP'][0]))]
-    etime = hkmet[np.where(np.logical_and(hkmet>gtitable['START'][0],hkmet<gtitable['STOP'][0]))] - gtitable['START'][0] 
-    cc = np.zeros_like(undershoot,dtype=np.float)
+def plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable):
 
-    for idx in xrange(1,len(gtitable['START'])):
-	myundershoot = undershootrate[np.where(np.logical_and(hkmet>gtitable['START'][idx],hkmet<gtitable['STOP'][idx]))]
-        undershoot = np.append(undershoot, myundershoot)
-	etime = np.append(etime, (hkmet[np.where(np.logical_and(hkmet>gtitable['START'][idx],hkmet<gtitable['STOP'][idx]))] - gtitable['START'][idx] + gtitable['CUMTIME'][idx]))
-	mycolors = np.zeros_like(myundershoot,dtype=np.float)+np.float(idx)
-        cc = np.append(cc,mycolors)
+    etime, undershoot, cc = convert_to_elapsed_goodtime(hkmet, undershootrate, gtitable)
+
     colornames = ['black','green','red','blue','magenta']
     colorlevels = np.arange(len(colornames))
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
 
     plot.scatter(etime, undershoot, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='+')
+
+    # Add sunshine
+    sunmet = mktable['TIME']
+    sunshine = mktable['SUNSHINE']
+    sunt, suny, suncc = convert_to_elapsed_goodtime(sunmet, sunshine, gtitable)
+    sidx = np.where(suny==0)
+    # Delete the 0 values so they don't plot
+    sunt=np.delete(sunt,sidx)
+    suny=np.delete(suny,sidx)
+    plot.scatter(sunt,suny*undershoot.max(), color = 'y', label = 'Sunshine', marker = '_')
+    plot.legend(loc = 4)
+
     plot.ylabel('Undershoot rate')
     plot.xlabel('Elapsed Time (s)', labelpad = 1)
     if args.lclog:	
         plot.yscale('log')
     
-    return undershoot, etime
-
-def plot_sunshine(args, undershoot, etime, gtitable, hkmet):
-#Getting the correct info
-    obsdir = args.obsdir
-    log.info('Processing '+ obsdir)
-    mkfname = glob(path.join(obsdir,'auxil/*.mkf'))[0]
-    mkf = Table.read(mkfname,hdu=1)
-    mkf.sort('TIME')
-    sunmet = mkf['TIME']
-    earthpos = SkyCoord(mkf['EARTH_RA'],mkf['EARTH_DEC'],frame='icrs')
-    sunpos = SkyCoord(mkf['SUN_RA'],mkf['SUN_DEC'],frame='icrs')
-    sunshine = mkf['SUNSHINE']
-    mpuhkfiles = glob(path.join(obsdir,'xti/hk/*mpu*.hk'))
-    if len(mpuhkfiles) == 0:
-        log.info('No files found')
-    hdulist = pyfits.open(mpuhkfiles[0])
-    td = hdulist[1].data
-    met = td['TIME']
-
-    sep = earthpos.separation(sunpos)
-    ESangle = np.interp(met,sunmet,sep)*sep.unit
-    sunidx  = np.where(ESangle>70.0*u.deg)[0]
-    darkidx = np.where(ESangle<70.0*u.deg)[0]
-    ESangle[sunidx] = max(undershoot)*u.deg + 1000*u.deg
-    ESangle[darkidx] = 0
-#Filtering out the GTI good-times
-    gtimes = met[np.where(np.logical_and(met>gtitable['START'][0],met<gtitable['STOP'][0]))] - gtitable['START'][0]
-    goodangles = ESangle[np.where(np.logical_and(met>gtitable['START'][0],met<gtitable['STOP'][0]))]
-    for idx in xrange(1,len(gtitable['START'])):
-	gtimes = np.append(gtimes, met[np.where(np.logical_and(met>gtitable['START'][idx],met<gtitable['STOP'][idx]))] - gtitable['START'][idx] + gtitable['CUMTIME'][idx])
-        goodangles = np.append(goodangles, ESangle[np.where(np.logical_and(met>gtitable['START'][idx],met<gtitable['STOP'][idx]))])
-    
-    #deleting all the non-sun entries
-    gtimes = np.delete(gtimes, np.where(goodangles == 0))
-    goodangles = np.delete(goodangles, np.where(goodangles == 0))   
-    label = "Sunshine"
-    plot.scatter(gtimes,goodangles, color = 'y', label = label, marker = '_')
-    plot.legend(loc = 4)
     return
+
 
 #-------------------------SUN / EARTH / MOON ANGLES-----------------------------
 def plot_angles(mktable, gtitable):
@@ -473,29 +454,17 @@ def plot_angles(mktable, gtitable):
     moon = mktable['MOON_ANGLE'][0:-1]
     met = mktable['TIME'][0:-1]
 
-    print(sun)
-    #Special first case
-    sunangle= sun[np.where(np.logical_and(met>gtitable['START'][0],met<gtitable['STOP'][0]))]
-    earthangle = earth[np.where(np.logical_and(met>gtitable['START'][0],met<gtitable['STOP'][0]))]
-    moonangle = moon[np.where(np.logical_and(met>gtitable['START'][0],met<gtitable['STOP'][0]))] 
-    goodtime = met[np.where(np.logical_and(met>gtitable['START'][0],met<gtitable['STOP'][0]))] - gtitable['START'][0]
 
-    #The rest of the cases for GTITABLE
-   # for idx in xrange(1,len(gtitable['START'])):
-	#mysangle = sun[np.where(np.logical_and(met>gtitable['START'][idx],met<gtitable['STOP'][idx]))]
-	#myeangle = earth[np.where(np.logical_and(met>gtitable['START'][idx],met<gtitable['STOP'][idx]))]
-       # mymangle = moon[np.where(np.logical_and(met>gtitable['START'][idx],met<gtitable['STOP'][idx]))]
-	#mygtime = met[np.where(np.logical_and(met>gtitable['START'][idx],met<gtitable['STOP'][idx]))] - gtitable['START'][idx] + gtitable['CUMTIME'][idx]
+    goodtime, sunangle, cc = convert_to_elapsed_goodtime(met, sun, gtitable)
+    goodtime, earthangle, cc = convert_to_elapsed_goodtime(met, earth, gtitable)
+    goodtime, moonangle, cc = convert_to_elapsed_goodtime(met, moon, gtitable)
 
-	#sunangle =np.append(sunangle, mysangle)
- 	#earthangle += myeangle
-	#moonangle += mymangle
-	#goodtime = np.append(goodtime, mygtime)
-
-    plot.scatter(goodtime, sunangle, marker = '+', color = 'r', label = 'Sun Angle')
-    plot.scatter(goodtime, earthangle, marker = '_', color = 'g', label = 'Earth Angle')
-    plot.scatter(goodtime, moonangle, marker = '_', color = 'b', label = 'Moon Angle')
+    plot.scatter(goodtime, sunangle, marker = '.', color = 'y', label = 'Sun Angle')
+    plot.scatter(goodtime, earthangle, marker ='.', color = 'b', label = 'Earth Angle')
+    plot.scatter(goodtime, moonangle, marker = '.', color = 'grey', alpha = 0.5, label = 'Moon Angle')
     plot.legend(loc = 1)
+    plot.ylim((0.0,180.0))
+    plot.grid(True)
     plot.xlabel('Elapsed Time (s)')
     plot.ylabel('Angle')
     

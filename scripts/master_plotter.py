@@ -93,6 +93,14 @@ if args.filtall:
     args.filtundershoot=True
     args.filtratio=1.4
 
+if not args.sci and not args.eng and not args.map and not args.ratio:
+    log.warning("No plot requested, making all")
+    args.sci = True
+    args.eng = True
+    args.map = True
+    args.ratio = True
+
+
 # Load files and build events table
 log.info('Reading files')
 tlist = []
@@ -296,10 +304,6 @@ if args.ratio:
 del etable
 
 
-if not args.sci and not args.eng and not args.map and not args.ratio:
-    log.warning("No plot requested, making sci and eng")
-    args.sci = True
-    args.eng = True
 
 #Making all the specified or unspecified plots below
 if args.eng:

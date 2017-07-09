@@ -13,7 +13,6 @@ def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mk
 	log.info('Building Rejected Event Light curve')
 	plt.subplot(ratio_grid[0:2,:4])
 
-
 	#Overshoot rate plot -- use --lclog to make it a log y axis
 	log.info('Building overshoot plot')
 	plt.subplot(ratio_grid[2:4,:4])
@@ -22,8 +21,7 @@ def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mk
 	#Plot of undershoot rate
 	log.info('Building undershoot plot')
 	plt.subplot(ratio_grid[4:6,:4])
-	undershoot, etime=plot_undershoot(etable, undershootrate, gtitable, args, hkmet)
-	plot_sunshine(args, undershoot, etime, gtitable, hkmet)
+	plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable)
         
 	#Plot of Sun / Moon
 	log.info('Building Sun / Moon / Earth angle Plot')
