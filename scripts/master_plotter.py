@@ -53,6 +53,8 @@ parser.add_argument("--par", help="Path to par file", default = None)
 parser.add_argument("--sps", help="Path to SPS HK file (_apid0260.hk)",default=None)
 parser.add_argument("--pscoherent",help = "Display the coherent pulsations power spectrum", action = 'store_true')
 parser.add_argument("--psqpo",help = "Display the noise/qpo characterization", action = 'store_true')
+parser.add_argument("--writeovershoot",help="Write summed overshoot rates to FITS file", action='store_true')
+parser.add_argument("--applygti",help="Read GTI from provided FITS file", default=None)
 args = parser.parse_args()
 
 args.hkfiles = []
@@ -150,13 +152,6 @@ if args.tskip > 0.0:
     etable.meta['EXPOSURE'] -= args.tskip
     etable.meta['TSTART'] += args.tskip
 
-# Add Time column with astropy Time for ease of use
-log.info('Adding time column')
-# This should really be done the FITS way using MJDREF etc...
-# For now, just using MET0
-etime = etable.columns['MET'] + MET0
-etable['T'] = etime
-
 # If there are no PI columns, add them with approximate calibration
 if args.pi or not ('PI' in etable.colnames):
     log.info('Adding PI')
@@ -173,8 +168,6 @@ if args.mask != None:
 # Note: To access event flags, use etable['EVENT_FLAGS'][:,B], where B is
 # the bit number for the flag (e.g. FLAG_UNDERSHOOT)
 
-exposure = etable.meta['EXPOSURE']
-log.info('Exposure : {0:.2f}'.format(exposure))
 
 # Apply filters for good events
 log.info('Filtering...')
@@ -216,11 +209,30 @@ del b1, b2, b3, b4, b5
 filttable = etable[idx]
 filttable.meta['FILT_STR'] = filt_str
 
-#Getting the ones rejected by the filter
+if args.applygti is not None:
+    g = Table.read(args.applygti)
+    log.info('Applying external GTI from {0}'.format(args.applygti))
+    g['DURATION'] = g['STOP']-g['START']
+    # Only keep GTIs longer than 16 seconds
+    g = g[np.where(g['DURATION']>16.0)]
+    print g
+    filttable = apply_gti(filttable,g)
+    filttable.meta['EXPOSURE'] = g['DURATION'].sum()
+    gtitable = g
 
+log.info('Exposure (after filtering) : {0:.2f}'.format(exposure))
 
 log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
     len(filttable), 100*len(filttable)/len(etable)))
+
+# Add Time column with astropy Time for ease of use
+if args.par is not None:
+    log.info('Adding time column')
+    # This should really be done the FITS way using MJDREF etc...
+    # For now, just using MET0
+    etime = filttable.columns['MET'] + MET0
+    filttable['T'] = etime
+
 
 # Set up the light curve bins, so we can have them for building
 # light curves of various quantities, like overshoot rate and ratio filtered events
@@ -245,8 +257,30 @@ for i in range(1,len(gtitable['START'])):
     cumtime += mylcduration
 gtitable['CUMTIME'] = np.array(cumtimes)
 
+bn = path.basename(args.infiles[0]).split('_')[0]
+log.info('OBS_ID {0}'.format(filttable.meta['OBS_ID']))
+if filttable.meta['OBS_ID'].startswith('000000'):
+    log.info('Overwriting OBS_ID with {0}'.format(bn))
+    filttable.meta['OBS_ID'] = bn
+    etable.meta['OBS_ID'] = bn
 
-# getting the overshoot rate from HK files.  Times are hkmet
+if args.guessobj and args.obsdir:
+    # Trim trailing slash, if needed
+    if args.obsdir[-1] == '/':
+        args.obsdir = args.obsdir[:-1]
+    objname = path.basename(args.obsdir)[11:]
+    log.info('Guessing Object name {0}'.format(objname))
+    filttable.meta['OBJECT'] = objname
+    etable.meta['OBJECT'] = objname
+
+if args.basename is None:
+    basename = 'ql-{0}'.format(bn)
+    args.basename = basename
+else:
+    basename = args.basename
+
+
+# getting the overshoot and undershoot rate from HK files.  Times are hkmet
 if len(args.hkfiles) > 0:
     log.info('Reading '+hkfiles[0])
     hdulist = pyfits.open(hkfiles[0])
@@ -271,26 +305,14 @@ if len(args.hkfiles) > 0:
     log.info('Overshoot rate is: {0}'.format(np.mean(overshootrate)))
     del hdulist
 
-bn = path.basename(args.infiles[0]).split('_')[0]
-log.info('OBS_ID {0}'.format(filttable.meta['OBS_ID']))
-if filttable.meta['OBS_ID'].startswith('000000'):
-    log.info('Overwriting OBS_ID with {0}'.format(bn))
-    filttable.meta['OBS_ID'] = bn
-    etable.meta['OBS_ID'] = bn
+    # Write overshoot and undershoot rates to file for filtering
+    if args.writeovershoot:
+        tcol = pyfits.Column(name='TIME',unit='S',array=hkmet,format='D')
+        ocol = pyfits.Column(name='OVERSHOOT',array=overshootrate,format='D')
+        ucol = pyfits.Column(name='UNDERSHOOT',array=undershootrate,format='D')
+        ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol], name='GTI')
+        ovhdu.writeto("{0}.ovs".format(basename),overwrite=True,checksum=True)
 
-if args.guessobj and args.obsdir:
-    # Trim trailing slash, if needed
-    if args.obsdir[-1] == '/':
-        args.obsdir = args.obsdir[:-1]
-    objname = path.basename(args.obsdir)[11:]
-    log.info('Guessing Object name {0}'.format(objname))
-    filttable.meta['OBJECT'] = objname
-    etable.meta['OBJECT'] = objname
-
-if args.basename is None:
-    basename = 'ql-{0}'.format(bn)
-else:
-    basename = args.basename
 
 #Creating the ratio plots
 if args.ratio:
@@ -318,7 +340,7 @@ if args.eng:
 
 if args.sci:
     # Make science plots using filtered events
-    figure2 = sci_plots(filttable, gtitable, args)
+    figure2 = sci_plots(filttable, gtitable, args, hkmet, overshootrate)
     figure2.set_size_inches(16,12)
     if args.save:
     	log.info('Writing sci plot {0}'.format(basename))

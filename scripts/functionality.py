@@ -8,7 +8,7 @@ from astropy import log
 from glob import glob
 from values import *
 from os import path
-from astropy.table import Table
+from astropy.table import Table, vstack
 from astropy.coordinates import SkyCoord
 import astropy.io.fits as pyfits
 import astropy.units as u
@@ -329,8 +329,8 @@ def pulse_profile_fixed(etable, F0):
     plot.xlabel('Pulse Phase')
     plot.title('Pulse Profile (F0={0:.6f})'.format(F0))
 
-def pulse_profile(ax, etable, orbfile, parfile):
-    if (orbfile is None) or (parfile is None):
+def pulse_profile(ax, etable, args):
+    if (args.orb is None) or (args.par is None):
 	log.warning('You did not specify orbfile or parfile')
 	log.info('Please input files for orb and par with --orb and --par')
         return
@@ -346,7 +346,7 @@ def pulse_profile(ax, etable, orbfile, parfile):
                                                                   etable.meta['INSTRUME']))
     # Instantiate NICERObs once so it gets added to the observatory registry
     log.info('Setting up NICER observatory')
-    NICERObs(name='NICER',FPorbname=orbfile,tt2tdb_mode='none')
+    NICERObs(name='NICER',FPorbname=args.orb,tt2tdb_mode='none')
 
     # Read event file and return list of TOA objects
     log.info('doing the load_toas thing')
@@ -363,7 +363,7 @@ def pulse_profile(ax, etable, orbfile, parfile):
 
     log.info('Did all the stuff, now to PARFILE')
     # Load PINT model objects
-    modelin = pint.models.get_model(parfile)
+    modelin = pint.models.get_model(args.par)
     log.info(str(modelin))
 
     # Compute phases
@@ -376,11 +376,23 @@ def pulse_profile(ax, etable, orbfile, parfile):
     ax.hist(phases, bins = 32)
     ax.text(0.1, 0.1, 'H = {0:.2f}'.format(h), transform=ax.transAxes)
 
+    np.savetxt('{0}.phases'.format(args.basename),np.transpose([etable['MET'], etable['PI'],phases]))
+
     plot.ylabel('Counts')
     plot.xlabel('Pulse Phase')
     plot.title('Pulse Profile')
     return
 #-------------------------OVERSHOOT RATE FOR RATIO------------------------------
+
+def apply_gti(etable, gtitable):
+    mets = etable['MET']
+    idx = np.where(np.logical_and(mets>gtitable['START'][0],mets<gtitable['STOP'][0]))
+    goodlist = [ etable[idx] ]
+    for ii in range(1,len(gtitable['START'])):
+        idx = np.where(np.logical_and(mets>gtitable['START'][ii],mets<gtitable['STOP'][ii]))
+        goodlist.append(etable[idx])
+
+    return vstack(goodlist,metadata_conflicts='silent')
 
 
 
@@ -399,7 +411,6 @@ def convert_to_elapsed_goodtime(mets, vals, gtitable):
         cc = np.append(cc, np.zeros_like(vals[idx],dtype=np.float)+np.float(ii))
 
     # Returns the arrays of elapsed times, values, and an array of what segment it is in, used for setting plot colors by GTI segment
-    print "Lens: ", len(etimes), len(goodvals), len(cc)
     return etimes, goodvals, cc
 
 def plot_overshoot(etable, overshootrate, gtitable, args, hkmet):

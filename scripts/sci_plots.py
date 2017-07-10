@@ -5,7 +5,7 @@ from astropy import log
 
 from functionality import *
 
-def sci_plots(etable, gtitable, args):
+def sci_plots(etable, gtitable, args, hkmet, overshootrate):
     #GRID SET UP
     figure2 = plt.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,7)
@@ -44,7 +44,7 @@ def sci_plots(etable, gtitable, args):
     axprofile = plt.subplot(sci_grid[1:3,5:7])
     if (args.orb is not None) and (args.par is not None):
         log.info('Calling pulse profile')
-        pulse_profile(axprofile, etable, args.orb, args.par)
+        pulse_profile(axprofile, etable, args)
     elif args.foldfreq > 0.0:
         log.info('Calling pulse profile with fixed frequency')
         pulse_profile_fixed(etable, args.foldfreq)
