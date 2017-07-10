@@ -28,7 +28,7 @@ def eng_plots(etable, filttable):
     #RESET RATE PER DETECTOR
     log.info('Computing reset rates')
     nresets = reset_rate(etable, IDS)
-    reset_rates = nresets
+    reset_rates = nresets/etable.meta['EXPOSURE']
     print reset_rates
 
     plot.subplot(sci_grid[:2, 2:4])
