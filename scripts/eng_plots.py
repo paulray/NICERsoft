@@ -6,7 +6,7 @@ import argparse
 from functionality import *
 from values import *
 
-def eng_plots(etable):
+def eng_plots(etable, filttable):
     #GRID SET UP
     figure1 = plot.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,6)
@@ -15,20 +15,21 @@ def eng_plots(etable):
     #Total Count Histogram
     ax_counts = plot.subplot(sci_grid[2:5, :3])
     ax_rate = ax_counts.twinx()
-    num_events = plot_total_count_hist(etable, ax_rate, ax_counts)
+    num_events = plot_total_count_hist(filttable, ax_rate, ax_counts)
 
     #Detector Array Chart Thing
     ax_map = plot.subplot(sci_grid[2:5, 3:6])
-    plot_detector_chart(etable, num_events, ax_map)
+    plot_detector_chart(filttable, num_events, ax_map)
 
     #Deadtime
     dead = plot.subplot(sci_grid[:2, 4:6])
-    dead_plot = plot_deadtime(etable)
+    dead_plot = plot_deadtime(filttable)
 
     #RESET RATE PER DETECTOR
     log.info('Computing reset rates')
     nresets = reset_rate(etable, IDS)
     reset_rates = nresets
+    print reset_rates
 
     plot.subplot(sci_grid[:2, 2:4])
     plot_resetrate(IDS, reset_rates)

@@ -53,7 +53,7 @@ def plot_total_count_hist(etable, ax_rate, ax_counts):
     ax_counts.set_xlabel('DET_ID')
     ax_counts.set_ylabel('# of Events')
     plot.locator_params(nticks = 20)
-    plot.title('Total Event Count by Detector')
+    plot.title('Total (Filtered) Event Count by Detector')
     #total_counts.set_ylim([np.min(num_events)-20, np.max(num_events)+20])
 
     return num_events
@@ -94,7 +94,7 @@ def plot_detector_chart(etable, num_events,  ax_map):
     plot.gca().invert_yaxis()
     plot.gca().invert_xaxis()
     plot.rcParams.update({'font.size' : 8})
-    plot.title('Total Event Count by Detector Location')
+    plot.title('Filtered Event Count by Detector Location')
     plot.xlabel('Raw X')
     plot.ylabel('Raw Y')
     plot.colorbar(ax_img, orientation = 'horizontal')
@@ -423,7 +423,7 @@ def plot_overshoot(etable, overshootrate, gtitable, args, hkmet):
     plot.scatter(etime, overshoot, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='+')
     plot.ylabel('Overshoot rate')
     plot.xlabel('Elapsed Time (s)', labelpad = 1)
-    if args.lclog:	
+    if args.lclog:
         plot.yscale('log')
         plot.ylim(ymin=10.0)
     return
@@ -452,9 +452,9 @@ def plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable):
 
     plot.ylabel('Undershoot rate')
     plot.xlabel('Elapsed Time (s)', labelpad = 1)
-    if args.lclog:	
+    if args.lclog:
         plot.yscale('log')
-    
+
     return
 
 
@@ -478,7 +478,7 @@ def plot_angles(mktable, gtitable):
     plot.grid(True)
     plot.xlabel('Elapsed Time (s)')
     plot.ylabel('Angle')
-    
+
     return
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-------
 def reset_rate(etable, IDS):

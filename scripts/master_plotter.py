@@ -217,6 +217,7 @@ idx = np.where(b1 & b2 & b3 & b4 & b5)[0]
 del b1, b2, b3, b4, b5
 filttable = etable[idx]
 filttable.meta['FILT_STR'] = filt_str
+etable.meta['FILT_STR'] = filt_str
 
 if args.applygti is not None:
     g = Table.read(args.applygti)
@@ -283,7 +284,7 @@ if args.guessobj and args.obsdir:
     etable.meta['OBJECT'] = objname
 
 if args.basename is None:
-    basename = 'ql-{0}'.format(bn)
+    basename = '{0}'.format(bn)
     args.basename = basename
 else:
     basename = args.basename
@@ -331,21 +332,18 @@ if args.ratio:
         log.info('Writing ratio plot {0}'.format(basename))
         figure4.savefig('{0}_bkg.png'.format(basename), dpi = 100)
 
-#DELETING ETABLE HERE. USE FILTTABLE FROM NOW ON
-del etable
-
-
-
-#Making all the specified or unspecified plots below
 if args.eng:
-    figure1 = eng_plots(filttable)
+    figure1 = eng_plots(etable, filttable)
     figure1.set_size_inches(16,12)
     if args.save:
     	log.info('Writing eng plot {0}'.format(basename))
     	if args.filtall:
-        	figure1.savefig('{0}_eng_FILT.png'.format(basename), dpi = 100)
+        	figure1.savefig('{0}_eng_clean_{1:.1f}-{2:.1f}keV.png'.format(basename,args.emin,args.emax), dpi = 100)
     	else:
         	figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
+
+#DELETING ETABLE HERE. USE FILTTABLE FROM NOW ON
+del etable
 
 if args.sci:
     # Make science plots using filtered events
@@ -354,7 +352,7 @@ if args.sci:
     if args.save:
     	log.info('Writing sci plot {0}'.format(basename))
     	if args.filtall:
-        	figure2.savefig('{0}_sci_FILT.png'.format(basename), dpi = 100)
+        	figure2.savefig('{0}_sci_clean_{1:.1f}-{2:.1f}keV.png'.format(basename,args.emin,args.emax), dpi = 100)
     	else:
         	figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
 
