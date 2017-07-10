@@ -486,6 +486,7 @@ def plot_angles(mktable, gtitable):
     plot.legend(loc = 2)
     plot.ylim((0.0,180.0))
     plot.grid(True)
+    plot.yticks([0.0, 45.0, 90.0, 135.0, 180.0])
     plot.ylabel('Angle')
 
     return
@@ -502,13 +503,13 @@ def plot_pointing(mktable, gtitable):
     plot.legend(loc = 2)
     plot.ylabel('Angle')
     plot.yscale('log')
-    
+
     return
 #--------------------------LAT / LON---------------------------------------------
 def plot_latlon(mktable, gtitable):
     time, lat, colors = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LAT'], gtitable)
     time, lon, colors = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)
-    
+
     colornames = ['black','green','red','blue','magenta']
     colorlevels = np.arange(len(colornames))
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
@@ -518,7 +519,7 @@ def plot_latlon(mktable, gtitable):
     plot.legend(loc = 2)
     plot.xlabel('Elapsed Time (s)', labelpad = 1)
     plot.ylabel('Degrees')
-    return   
+    return
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-------
 def reset_rate(etable, IDS):
     'Count resets (detector undershoots) for each detector'
