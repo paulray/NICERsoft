@@ -153,7 +153,7 @@ def plot_light_curve(etable, lclog, overshootrate, gtitable, binsize=1.0):
 
     return mean_rate
 
-#-------------------------------THIS PLOTS THE FAST TO SLOW AND SLOW TO FAST------------------
+#-------------------------------THIS PLOTS THE FAST TO SLOW___------------------
 def plot_slowfast(etable):
     'Scatter plot of PI and fast PHA, highlighting points above ratio cut'
 
