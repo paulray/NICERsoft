@@ -17,6 +17,7 @@ def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mk
 	log.info('Building overshoot plot')
 	plt.subplot(ratio_grid[2:4,:4])
 	plot_overshoot(etable, overshootrate, gtitable, args, hkmet)
+        plot_SAA(mktable, gtitable, overshootrate)
 
 	#Plot of undershoot rate
 	log.info('Building undershoot plot')

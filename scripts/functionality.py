@@ -428,7 +428,17 @@ def plot_overshoot(etable, overshootrate, gtitable, args, hkmet):
         plot.yscale('log')
         plot.ylim(ymin=10.0)
     return
-
+def plot_SAA(mktable, gtitable, overshootrate):
+    time, insaa, colors = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAA'], gtitable)
+    time = np.delete(time, np.where(insaa == 0))
+    insaa = np.delete(insaa, np.where(insaa == 0))
+    colornames = ['black','green','red','blue','magenta']
+    colorlevels = np.arange(len(colornames))
+    cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+    insaa[np.where(insaa == 1)] = max(overshootrate) + 100
+    plot.scatter(time, insaa, color = 'y', label = 'In the SAA',marker = '_')
+    plot.legend(loc = 2)
+    
 #-------------------------UNDERSHOOT RATE FOR RATIO------------------------------
 def plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable):
 
