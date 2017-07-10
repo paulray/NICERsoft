@@ -45,10 +45,10 @@ def plot_total_count_hist(etable, ax_rate, ax_counts):
     num_events, colors = hist_use(etable)
 
     tc = ax_counts.bar(IDS, num_events, color = colors)
-    
+
     ax_rate.set_ylabel('c/s')
     cntmin, cntmax = ax_counts.get_ylim()
-    ax_rate.set_ylim((cntmin/etable.meta['EXPOSURE'],cntmax/etable.mets['EXPOSURE']))
+    ax_rate.set_ylim((cntmin/etable.meta['EXPOSURE'],cntmax/etable.meta['EXPOSURE']))
     #countrate.set_ylim([np.min(rate)-20,np.max(rate)+20])
 
     ax_counts.set_xlabel('DET_ID')
