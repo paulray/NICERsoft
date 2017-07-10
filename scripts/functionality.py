@@ -503,6 +503,7 @@ def plot_pointing(mktable, gtitable):
     plot.legend(loc = 2)
     plot.ylabel('Angle')
     plot.yscale('log')
+    plot.ylim((0.0001,100.0))
 
     return
 #--------------------------LAT / LON---------------------------------------------
