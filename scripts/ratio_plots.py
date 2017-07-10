@@ -29,9 +29,9 @@ def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mk
 	plt.subplot(ratio_grid[6:8,:4])	
 	plot_angles(mktable, gtitable)	
 
-	#Plot of ISS LatLong vs Time
+	#Pointing plot
 	plt.subplot(ratio_grid[8:10,:4])
-
+	plot_pointing(mktable, gtitable)
 	#Plot of events rejected
 	plt.subplot(ratio_grid[10:12,:4])
 
@@ -39,7 +39,7 @@ def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mk
 
 	figure.suptitle('Object: {0} at {1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS']),
         fontsize=18)
-	plt.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .9, hspace = .95)
-
+	#plt.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .95, hspace = .95)
+	plt.tight_layout()
 	return figure
 

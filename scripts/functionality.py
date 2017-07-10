@@ -438,7 +438,8 @@ def plot_SAA(mktable, gtitable, overshootrate):
     insaa[np.where(insaa == 1)] = max(overshootrate) + 100
     plot.scatter(time, insaa, color = 'y', label = 'In the SAA',marker = '_')
     plot.legend(loc = 2)
-    
+    return
+
 #-------------------------UNDERSHOOT RATE FOR RATIO------------------------------
 def plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable):
 
@@ -491,6 +492,21 @@ def plot_angles(mktable, gtitable):
     plot.ylabel('Angle')
 
     return
+
+#--------------------------POINTING---------------------------------------------
+def plot_pointing(mktable, gtitable):
+    time, pointing, colors = convert_to_elapsed_goodtime(mktable['TIME'], mktable['ANG_DIST'], gtitable)
+
+    colornames = ['black','green','red','blue','magenta']
+    colorlevels = np.arange(len(colornames))
+    cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+
+    plot.scatter(time, pointing, c = colors, cmap = cmap,marker = '+', label='Pointing')
+    plot.legend(loc = 1)
+    plot.xlabel('Elapsed Time (s)')
+    plot.ylabel('Angle')
+    return
+   
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-------
 def reset_rate(etable, IDS):
     'Count resets (detector undershoots) for each detector'
