@@ -12,7 +12,7 @@ def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mk
 	#Lightcurve of Rejected events
 	log.info('Building Rejected Event Light curve')
 	plt.subplot(ratio_grid[0:2,:4])
-        plot_light_curve(badtable, args.lclog, gtitable, binsize=1.0)
+        plot_light_curve(badtable, args.lclog, overshootrate, gtitable, binsize=1.0)
 
 	#Overshoot rate plot -- use --lclog to make it a log y axis
 	log.info('Building overshoot plot')
