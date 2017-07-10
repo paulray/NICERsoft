@@ -31,9 +31,9 @@ def hist_use(etable):
     stdev = np.std(temp)
     colors = np.array(['k']*len(IDevents))
 
-    # Set points that are off by more that 1 sigma to red
+    # Set points that are off by more that 2 sigma to red
     diff = np.array(IDevents,dtype=np.float)-np.mean(temp)
-    idx = np.where(diff>stdev)[0]
+    idx = np.where(diff>2.0*stdev)[0]
     colors[idx] = 'r'
 
     return IDevents, colors
@@ -479,14 +479,14 @@ def plot_angles(mktable, gtitable):
     goodtime, earthangle, cc = convert_to_elapsed_goodtime(met, earth, gtitable)
     goodtime, moonangle, cc = convert_to_elapsed_goodtime(met, moon, gtitable)
 
-    plot.scatter(goodtime, sunangle, marker = '.', color = 'y', label = 'Sun Angle')
-    plot.scatter(goodtime, earthangle, marker ='.', color = 'b', label = 'Earth Angle')
-    plot.scatter(goodtime, moonangle, marker = '.', color = 'grey', alpha = 0.5, label = 'Moon Angle')
+    plot.scatter(goodtime, sunangle, marker = '.', color = 'y', label = 'Sun')
+    plot.scatter(goodtime, earthangle, marker ='.', color = 'b', label = 'Bright Earth')
+    plot.scatter(goodtime, moonangle, marker = '.', color = 'grey', alpha = 0.5, label = 'Moon')
     plot.legend(loc = 2)
     plot.ylim((0.0,180.0))
     plot.grid(True)
     plot.yticks([0.0, 45.0, 90.0, 135.0, 180.0])
-    plot.ylabel('Angle')
+    plot.ylabel('Angle (deg)')
 
     return
 
@@ -498,10 +498,11 @@ def plot_pointing(mktable, gtitable):
     colorlevels = np.arange(len(colornames))
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
 
-    plot.scatter(time, pointing, c = colors, cmap = cmap,marker = '+', label='Pointing')
+    plot.scatter(time, pointing, c = colors, cmap = cmap,marker = '+', label='Pointing Offset')
     plot.legend(loc = 2)
-    plot.ylabel('Angle')
+    plot.ylabel('Angle (deg)')
     plot.yscale('log')
+    plot.axhline(1.0/60.0,c='r')
     plot.ylim((0.0001,100.0))
 
     return
@@ -515,9 +516,11 @@ def plot_latlon(mktable, gtitable):
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
 
     plot.scatter(time, lat, c = colors, cmap = cmap,marker = '^', label='Latitude')
-    plot.scatter(time, lon, c = colors, cmap = cmap, marker = '_', label = 'Longitude')
+    #plot.scatter(time, lon, c = colors, cmap = cmap, marker = '_', label = 'Longitude')
     plot.legend(loc = 2)
+    plot.ylim((-60.0,60.0))
     plot.xlabel('Elapsed Time (s)', labelpad = 1)
+    plot.grid(True)
     plot.ylabel('Degrees')
     return
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-------
