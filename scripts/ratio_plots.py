@@ -5,13 +5,14 @@ from astropy import log
 
 from functionality import *
 
-def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable):
+def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable, badtable):
 	figure = plt.figure(figsize = (8.5, 11), facecolor = 'white')
    	ratio_grid = gridspec.GridSpec(12,4)
 
 	#Lightcurve of Rejected events
 	log.info('Building Rejected Event Light curve')
 	plt.subplot(ratio_grid[0:2,:4])
+        plot_light_curve(badtable, args.lclog, gtitable, binsize=1.0)
 
 	#Overshoot rate plot -- use --lclog to make it a log y axis
 	log.info('Building overshoot plot')

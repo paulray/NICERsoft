@@ -133,7 +133,7 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0):
         sums = np.append(sums, mysums)
         mycolors = np.zeros_like(mybins,dtype=np.float)+np.float(i)
         cc = np.append(cc,mycolors)
-
+    
     #Compute mean rate
     rate = sums/binsize
     mean_rate = rate.mean()
@@ -145,8 +145,6 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0):
     # Plot line at mean counts per bin
     plot.axhline(y=mean_rate, xmin=bins[0], xmax=bins[-1], linestyle='dashed', label = label)
     #plot.legend(loc = 4)
-    plot.title('Light Curve')
-    plot.xlabel('Time Elapsed (s)')
     plot.ylabel('c/s')
     if lclog:
     	plot.yscale('log')

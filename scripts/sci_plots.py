@@ -15,6 +15,8 @@ def sci_plots(etable, gtitable, args, hkmet, overshootrate):
     log.info('Building light curve')
     plt.subplot(sci_grid[3:5,:7])
     meanrate = plot_light_curve(etable, args.lclog, gtitable, binsize=args.lcbinsize)
+    plot.title('Light Curve')
+    plot.xlabel('Time Elapsed (s)')
     '''
     #Fast / Slow (Slow x, Fast y)
     log.info('Building fast/slow subplot')
