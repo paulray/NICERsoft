@@ -423,7 +423,6 @@ def plot_overshoot(etable, overshootrate, gtitable, args, hkmet):
 
     plot.scatter(etime, overshoot, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='+')
     plot.ylabel('Overshoot rate')
-    plot.xlabel('Elapsed Time (s)', labelpad = 1)
     if args.lclog:
         plot.yscale('log')
         plot.ylim(ymin=10.0)
@@ -460,10 +459,9 @@ def plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable):
     sunt=np.delete(sunt,sidx)
     suny=np.delete(suny,sidx)
     plot.scatter(sunt,suny*undershoot.max(), color = 'y', label = 'Sunshine', marker = '_')
-    plot.legend(loc = 4)
+    plot.legend(loc = 2)
 
     plot.ylabel('Undershoot rate')
-    plot.xlabel('Elapsed Time (s)', labelpad = 1)
     if args.lclog:
         plot.yscale('log')
 
@@ -485,10 +483,9 @@ def plot_angles(mktable, gtitable):
     plot.scatter(goodtime, sunangle, marker = '.', color = 'y', label = 'Sun Angle')
     plot.scatter(goodtime, earthangle, marker ='.', color = 'b', label = 'Earth Angle')
     plot.scatter(goodtime, moonangle, marker = '.', color = 'grey', alpha = 0.5, label = 'Moon Angle')
-    plot.legend(loc = 1)
+    plot.legend(loc = 2)
     plot.ylim((0.0,180.0))
     plot.grid(True)
-    plot.xlabel('Elapsed Time (s)')
     plot.ylabel('Angle')
 
     return
@@ -502,11 +499,26 @@ def plot_pointing(mktable, gtitable):
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
 
     plot.scatter(time, pointing, c = colors, cmap = cmap,marker = '+', label='Pointing')
-    plot.legend(loc = 1)
-    plot.xlabel('Elapsed Time (s)')
+    plot.legend(loc = 2)
     plot.ylabel('Angle')
+    plot.yscale('log')
+    
     return
-   
+#--------------------------LAT / LON---------------------------------------------
+def plot_latlon(mktable, gtitable):
+    time, lat, colors = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LAT'], gtitable)
+    time, lon, colors = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)
+    
+    colornames = ['black','green','red','blue','magenta']
+    colorlevels = np.arange(len(colornames))
+    cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+
+    plot.scatter(time, lat, c = colors, cmap = cmap,marker = '^', label='Latitude')
+    plot.scatter(time, lon, c = colors, cmap = cmap, marker = '_', label = 'Longitude')
+    plot.legend(loc = 2)
+    plot.xlabel('Elapsed Time (s)', labelpad = 1)
+    plot.ylabel('Degrees')
+    return   
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-------
 def reset_rate(etable, IDS):
     'Count resets (detector undershoots) for each detector'

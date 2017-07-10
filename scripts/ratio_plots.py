@@ -32,9 +32,10 @@ def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mk
 	#Pointing plot
 	plt.subplot(ratio_grid[8:10,:4])
 	plot_pointing(mktable, gtitable)
-	#Plot of events rejected
-	plt.subplot(ratio_grid[10:12,:4])
 
+	#Plot of LAT / Long
+	plt.subplot(ratio_grid[10:12,:4])
+	plot_latlon(mktable, gtitable)
 
 
 	figure.suptitle('Object: {0} at {1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS']),
