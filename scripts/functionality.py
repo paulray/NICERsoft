@@ -31,9 +31,9 @@ def hist_use(etable):
     stdev = np.std(temp)
     colors = np.array(['k']*len(IDevents))
 
-    # Set points that are off by more that 1 sigma to red
+    # Set points that are off by more that 2 sigma to red
     diff = np.array(IDevents,dtype=np.float)-np.mean(temp)
-    idx = np.where(diff>stdev)[0]
+    idx = np.where(diff>2.0*stdev)[0]
     colors[idx] = 'r'
 
     return IDevents, colors
