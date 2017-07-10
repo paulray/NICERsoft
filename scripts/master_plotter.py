@@ -214,8 +214,7 @@ if args.filtratio > 0.0:
 else:
     b5 = np.ones_like(etable['PI'],dtype=np.bool)
 idx = np.where(b1 & b2 & b3 & b4 & b5)[0]
-badidx = np.where(b1 | b2 | b3 | b4 | b5)[0]
-badtable = etable[badidx]
+
 del b1, b2, b3, b4, b5
 filttable = etable[idx]
 filttable.meta['FILT_STR'] = filt_str
@@ -328,7 +327,7 @@ if len(args.hkfiles) > 0:
 
 #Creating the ratio plots
 if args.ratio:
-    figure4 = ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable, badtable)
+    figure4 = ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable)
     figure4.set_size_inches(16,12)
     if args.save:
         log.info('Writing ratio plot {0}'.format(basename))
