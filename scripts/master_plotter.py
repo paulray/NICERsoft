@@ -63,7 +63,10 @@ mkfiles = []
 if args.obsdir:
     # Get names of event files from obsdir
     if len(args.infiles) == 0:
-        args.infiles = glob(path.join(args.obsdir,'xti/event_cl/ni*.evt'))
+        # Here we could grab the clean data (cl) or the unfiltered merged (ufa) data.
+        # Clean will have no flagged events
+        #args.infiles = glob(path.join(args.obsdir,'xti/event_cl/ni*mpu?_ufa.evt'))
+        args.infiles = glob(path.join(args.obsdir,'xti/event_cl/ni*mpu?_cl.evt'))
         args.infiles.sort()
     if len(args.infiles) == 0:
         log.error("No event files found!")
@@ -79,7 +82,10 @@ if args.obsdir:
 
     # Get name of SPS HK file (apid0260)
     if args.sps is None:
-        args.sps = glob(path.join(args.obsdir,'auxil/ni*_apid0260.hk'))[0]
+        try:
+            args.sps = glob(path.join(args.obsdir,'auxil/ni*_apid0260.hk'))[0]
+        except:
+            args.sps = None
 
     # Get name of MPU housekeeping files
     hkfiles = glob(path.join(args.obsdir,'xti/hk/ni*.hk'))
@@ -128,7 +134,10 @@ if len(mkfiles) > 0:
     mktable = Table.read(mkfiles,hdu=1)
 
 log.info('Concatenating files')
-etable = vstack(tlist,metadata_conflicts='silent')
+if len(tlist) == 1:
+    etable = tlist[0]
+else:
+    etable = vstack(tlist,metadata_conflicts='silent')
 del tlist
 # Change TIME column name to MET to reflect what it really is
 etable.columns['TIME'].name = 'MET'
@@ -220,7 +229,7 @@ if args.applygti is not None:
     filttable.meta['EXPOSURE'] = g['DURATION'].sum()
     gtitable = g
 
-log.info('Exposure (after filtering) : {0:.2f}'.format(exposure))
+log.info('Exposure (after filtering) : {0:.2f}'.format(etable.meta['EXPOSURE']))
 
 log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
     len(filttable), 100*len(filttable)/len(etable)))
