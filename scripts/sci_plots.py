@@ -14,7 +14,7 @@ def sci_plots(etable, gtitable, args, hkmet, overshootrate):
     #Light Curve
     log.info('Building light curve')
     plt.subplot(sci_grid[3:5,:7])
-    meanrate = plot_light_curve(etable, args.lclog, gtitable, binsize=args.lcbinsize)
+    meanrate = plot_light_curve(etable, args.lclog, overshootrate, gtitable, binsize=args.lcbinsize)
     plot.title('Light Curve')
     plot.xlabel('Time Elapsed (s)')
     '''
@@ -66,10 +66,13 @@ def sci_plots(etable, gtitable, args, hkmet, overshootrate):
     tend = etable.meta['DATE-END'].replace('T', ' at ')
     fraction = exposure/(float(etable.meta['TSTOP'])-float(etable.meta['TSTART']))
     # Add text info here:
-    plt.figtext(.07, .90, 'Start time is {0}, End time is {1}'.format(tstart,tend), fontsize = 10)
-    plt.figtext(.07, .87, 'Exposure is {0:.1f} s, Good time fraction is {1:.3f}'.format(exposure, fraction),
+    plt.figtext(.07, .93, 'Start time is {0}, End time is {1}'.format(tstart,tend), fontsize = 10)
+    plt.figtext(.07, .90, 'Exposure is {0:.1f} s, Good time fraction is {1:.3f}'.format(exposure, fraction),
         fontsize = 10)
-    plt.figtext(.07, .84, 'Mean count rate {0:.3f} c/s'.format(meanrate), fontsize = 10)
-    plt.figtext(.07, .81, etable.meta['FILT_STR'], fontsize=10)
-
+    plt.figtext(.07, .87, 'Mean count rate {0:.3f} c/s'.format(meanrate), fontsize = 10)
+    plt.figtext(.07, .84, etable.meta['FILT_STR'], fontsize=10)
+    plt.figtext(.57, .93, 'GOOD MET INTERVALS')
+    plt.figtext(.5, .75, str(gtitable['START'][0:-1]))
+    plt.figtext(.58, .75, str(gtitable['STOP'][0:-1]))
+    plt.figtext(.66, .75, str(gtitable['DURATION'][0:-1]))
     return figure2
