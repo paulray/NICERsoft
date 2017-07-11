@@ -292,7 +292,6 @@ if args.basename is None:
 else:
     basename = args.basename
 
-
 # getting the overshoot and undershoot rate from HK files.  Times are hkmet
 log.info('Getting overshoot and undershoot rates')
 if len(args.hkfiles) > 0:
@@ -305,32 +304,38 @@ if len(args.hkfiles) > 0:
     overshootrate = td['MPU_OVER_COUNT'].sum(axis=1)
     undershootrate = td['MPU_UNDER_COUNT'].sum(axis=1)
     for fn in hkfiles[1:]:
-        log.info('Reading '+fn)
-        hdulist = pyfits.open(fn)
-        mytd = hdulist[1].data
-        mymet = td['TIME']
-        myovershootrate = td['MPU_OVER_COUNT'].sum(axis=1)
-        myundershootrate = td['MPU_UNDER_COUNT'].sum(axis=1)
+	log.info('Reading '+fn)
+	hdulist = pyfits.open(fn)
+	mytd = hdulist[1].data
+	mymet = td['TIME']
+	myovershootrate = td['MPU_OVER_COUNT'].sum(axis=1)
+	myundershootrate = td['MPU_UNDER_COUNT'].sum(axis=1)
         if not np.all(mymet == hkmet):
-            log.error('TIME axes are not compatible')
-            sys.exit(1)
-        overshootrate += myovershootrate
-        undershootrate += myundershootrate
-    log.info('Overshoot rate is: {0}'.format(np.mean(overshootrate)))
-    del hdulist
+	    log.error('TIME axes are not compatible')
+	    sys.exit(1)
+	overshootrate += myovershootrate
+	undershootrate += myundershootrate
+
+    if args.filtou:
+	b1 = np.where(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == True)
+	b2 = np.where(etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True)
+	b3 = np.intersect1d(b1,b2)
+	time = etable['MET'][b3]
+	counts,a = np.histogram(time,np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0])))
+	overshootrate = overshootrate - counts
+	del b1, b2, b3, time, counts, a
+del hdulist
 
     # Write overshoot and undershoot rates to file for filtering
-    if args.writeovershoot:
-        tcol = pyfits.Column(name='TIME',unit='S',array=hkmet,format='D')
-        ocol = pyfits.Column(name='OVERSHOOT',array=overshootrate,format='D')
-        ucol = pyfits.Column(name='UNDERSHOOT',array=undershootrate,format='D')
-        ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol], name='GTI')
-        ovhdu.writeto("{0}.ovs".format(basename),overwrite=True,checksum=True)
+if args.writeovershoot:
+    tcol = pyfits.Column(name='TIME',unit='S',array=hkmet,format='D')
+    ocol = pyfits.Column(name='OVERSHOOT',array=overshootrate,format='D')
+    ucol = pyfits.Column(name='UNDERSHOOT',array=undershootrate,format='D')
+    ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol], name='GTI')
+    ovhdu.writeto("{0}.ovs".format(basename),overwrite=True,checksum=True)
 
-if args.filtou:
-    b1 = etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == True
-    b2 = etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True
 
+    
 #Creating the ratio plots
 if args.ratio:
     figure4 = ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable)
