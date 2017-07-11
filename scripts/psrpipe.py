@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from __future__ import print_function, division
 import os
 import matplotlib.pyplot as plt
@@ -7,6 +8,7 @@ from astropy import log
 from os import path
 from glob import glob
 from subprocess import check_call
+import shutil
 
 from nicer.values import *
 
@@ -55,6 +57,8 @@ for obsdir in args.indirs:
     # Get orbit file
     orbfile = glob(path.join(obsdir,'auxil/ni*.orb'))[0]
     log.info('Orbit File: {0}'.format(orbfile))
+    # Copy orbit file to results dir for pulsar analysis
+    shutil.copy(orbfile,pipedir)
 
     # Get filter file
     mkfile = glob(path.join(obsdir,'auxil/ni*.mkf'))[0]
@@ -79,15 +83,16 @@ for obsdir in args.indirs:
     for en in evfiles:
         print('{0}[{1}]'.format(en,evfilt_expr),file=fout)
     fout.close()
-    
+
     # Run ftmerge
     mergedname = path.join(pipedir,"merged.evt")
-    cmd = ["ftmerge", "@{0}".format(evlistname), "outfile={0}".format(mergedname)]
+    cmd = ["ftmerge", "@{0}".format(evlistname), "outfile={0}".format(mergedname),
+        "clobber=yes"]
     runcmd(cmd)
 
     # Now apply the good GTI to remove SAA and slew time ranges
     filteredname = path.join(pipedir,"merged_filt.evt")
-    cmd = ["fltime", mergedname, gtiname, filteredname, "copyall=yes"]
+    cmd = ["fltime", mergedname, gtiname, filteredname, "copyall=yes", "clobber=yes"]
     runcmd(cmd)
 
     # Add phases and plot, if requested
