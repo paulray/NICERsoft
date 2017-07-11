@@ -14,7 +14,7 @@ def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mk
 	plt.subplot(ratio_grid[1:5,:4])
 	ratio = np.array(etable['PHA'],dtype=np.float)/np.array(etable['PHA_FAST'],dtype=np.float)
 	badtable = etable[np.where(ratio > 1.4)]
-        plot_light_curve(badtable, args.lclog, overshootrate, gtitable, binsize=1.0)
+        plot_light_curve(badtable, args.lclog, overshootrate, gtitable, binsize=16.0)
 
 	#Overshoot rate plot -- use --lclog to make it a log y axis
 	log.info('Building overshoot plot')

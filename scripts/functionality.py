@@ -534,7 +534,7 @@ def reset_rate(etable, IDS):
         idx = np.where(np.logical_and(etable['DET_ID'] == IDS[i],
                         etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]))[0]
         nresets[i] = len(idx)
-
+    
     return nresets
 
 def plot_resetrate(IDS, reset_rates):

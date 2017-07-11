@@ -335,7 +335,7 @@ if args.ratio:
         figure4.savefig('{0}_bkg.png'.format(basename), dpi = 100)
 
 if args.eng:
-    figure1 = eng_plots(etable, filttable)
+    figure1 = eng_plots(etable, filttable, args)
     figure1.set_size_inches(16,12)
     if args.save:
     	log.info('Writing eng plot {0}'.format(basename))
@@ -360,7 +360,7 @@ if args.sci:
 
 if args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
-    figure3 = cartography(hkmet, overshootrate, args)
+    figure3 = cartography(hkmet, overshootrate, args, undershootrate, filttable)
 
     if args.save:
         log.info('Writing MAP {0}'.format(basename))

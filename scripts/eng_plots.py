@@ -6,7 +6,7 @@ import argparse
 from functionality import *
 from values import *
 
-def eng_plots(etable, filttable):
+def eng_plots(etable, filttable, args):
     #GRID SET UP
     figure1 = plot.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,6)
@@ -36,8 +36,9 @@ def eng_plots(etable, filttable):
     #Making the plot all nice and stuff
     plot.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .7, hspace = .8)
 
-    figure1.suptitle('Object: {0} at {1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS']),
+    figure1.suptitle('Object: {0} at {1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS'].replace('T', ' at ')),
         fontsize=18)
+
 
     plot.figtext(0.02, 0.9, etable.meta['FILT_STR'], fontsize=10)
     #average = "Mean events per detector is {0:.2f}".format(num_events.mean())
@@ -45,5 +46,7 @@ def eng_plots(etable, filttable):
     plot.figtext(.02, .8,
       "Mean reset rate is {0:.2f}/s".format(reset_rates.mean()),
       fontsize = 12.5)
+    if args.mask:
+        plt.figtext(.07, .81, 'IDS {0} are masked'.format(args.mask), fontsize=10)
 
     return figure1
