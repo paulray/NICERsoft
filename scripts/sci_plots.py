@@ -14,16 +14,16 @@ def sci_plots(etable, gtitable, args, hkmet, overshootrate):
     #Light Curve
     log.info('Building light curve')
     plt.subplot(sci_grid[3:5,:7])
-    meanrate = plot_light_curve(etable, args.lclog, overshootrate, gtitable, binsize=args.lcbinsize)
+    #meanrate = plot_light_curve(etable, args.lclog, overshootrate, gtitable, binsize=args.lcbinsize)
     plot.title('Light Curve')
     plot.xlabel('Time Elapsed (s)')
-    '''
+    
     #Fast / Slow (Slow x, Fast y)
     log.info('Building fast/slow subplot')
     plt.subplot(sci_grid[1:3,2:5])
     log.info('Building actual slow fast data')
     plot_slowfast(etable)
-    '''
+    
     #Energy Spectrum
     log.info('Building energy spectrum')
     plt.subplot(sci_grid[1:3,:2])

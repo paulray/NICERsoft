@@ -55,6 +55,7 @@ parser.add_argument("--pscoherent",help = "Display the coherent pulsations power
 parser.add_argument("--psqpo",help = "Display the noise/qpo characterization", action = 'store_true')
 parser.add_argument("--writeovershoot",help="Write summed overshoot rates to FITS file", action='store_true')
 parser.add_argument("--applygti",help="Read GTI from provided FITS file", default=None)
+parser.add_argument("--filtou",help="Filter Over/Undershoot Events for both flags", action='store_true')
 args = parser.parse_args()
 
 args.hkfiles = []
@@ -293,6 +294,7 @@ else:
 
 
 # getting the overshoot and undershoot rate from HK files.  Times are hkmet
+log.info('Getting overshoot and undershoot rates')
 if len(args.hkfiles) > 0:
     log.info('Reading '+hkfiles[0])
     hdulist = pyfits.open(hkfiles[0])
@@ -325,6 +327,11 @@ if len(args.hkfiles) > 0:
         ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol], name='GTI')
         ovhdu.writeto("{0}.ovs".format(basename),overwrite=True,checksum=True)
 
+if args.filtou:
+    b1 = etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == True
+    b2 = etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True
+print('THIS IS THE LENGTH OF FILTABLE')
+print(len(filttable['MET']))
 
 #Creating the ratio plots
 if args.ratio:
