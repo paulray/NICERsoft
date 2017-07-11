@@ -5,7 +5,7 @@ from astropy import log
 
 from functionality import *
 
-def sci_plots(etable, gtitable, args, hkmet, overshootrate):
+def sci_plots(etable, gtitable, args):
     #GRID SET UP
     figure2 = plt.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,7)
@@ -14,7 +14,7 @@ def sci_plots(etable, gtitable, args, hkmet, overshootrate):
     #Light Curve
     log.info('Building light curve')
     plt.subplot(sci_grid[3:5,:7])
-    #meanrate = plot_light_curve(etable, args.lclog, overshootrate, gtitable, binsize=args.lcbinsize)
+    meanrate = plot_light_curve(etable, args.lclog, gtitable, binsize=args.lcbinsize)
     plot.title('Light Curve')
     plot.xlabel('Time Elapsed (s)')
     
