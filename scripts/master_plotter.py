@@ -228,8 +228,9 @@ if args.applygti is not None:
     g = g[np.where(g['DURATION']>16.0)]
     print g
     filttable = apply_gti(filttable,g)
-    filttable.meta['EXPOSURE'] = g['DURATION'].sum()
-    gtitable = g
+    # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
+    #filttable.meta['EXPOSURE'] = g['DURATION'].sum()
+    #gtitable = g
 
 log.info('Exposure (after filtering) : {0:.2f}'.format(etable.meta['EXPOSURE']))
 

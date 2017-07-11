@@ -1,0 +1,1 @@
+(PI>30).and.(EVENT_FLAGS==bx1x000)
