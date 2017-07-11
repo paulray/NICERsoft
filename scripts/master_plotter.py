@@ -316,6 +316,7 @@ if len(args.hkfiles) > 0:
 	overshootrate += myovershootrate
 	undershootrate += myundershootrate
 
+del hdulist
     if args.filtou:
 	b1 = np.where(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == True)
 	b2 = np.where(etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True)
@@ -324,17 +325,18 @@ if len(args.hkfiles) > 0:
 	counts,a = np.histogram(time,np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0])))
 	overshootrate = overshootrate - counts
 	del b1, b2, b3, time, counts, a
-del hdulist
-
     # Write overshoot and undershoot rates to file for filtering
-if args.writeovershoot:
-    tcol = pyfits.Column(name='TIME',unit='S',array=hkmet,format='D')
-    ocol = pyfits.Column(name='OVERSHOOT',array=overshootrate,format='D')
-    ucol = pyfits.Column(name='UNDERSHOOT',array=undershootrate,format='D')
-    ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol], name='GTI')
-    ovhdu.writeto("{0}.ovs".format(basename),overwrite=True,checksum=True)
 
-
+    if args.writeovershoot:
+        tcol = pyfits.Column(name='TIME',unit='S',array=hkmet,format='D')
+        ocol = pyfits.Column(name='OVERSHOOT',array=overshootrate,format='D')
+        ucol = pyfits.Column(name='UNDERSHOOT',array=undershootrate,format='D')
+        ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol], name='GTI')
+        ovhdu.writeto("{0}.ovs".format(basename),overwrite=True,checksum=True)
+else:
+    hkmet = None
+    overshootrate=None
+    undershootrate = None
     
 #Creating the ratio plots
 if args.ratio:
@@ -359,7 +361,7 @@ del etable
 
 if args.sci:
     # Make science plots using filtered events
-    figure2 = sci_plots(filttable, gtitable, args, hkmet, overshootrate)
+    figure2 = sci_plots(filttable, gtitable, args)
     figure2.set_size_inches(16,12)
     if args.save:
     	log.info('Writing sci plot {0}'.format(basename))

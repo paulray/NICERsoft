@@ -120,7 +120,7 @@ def light_curve(etable, startmet, stopmet, binsize):
     # Chop off last bin edge, which is only for computing histogram, not plotting
     return bins[:-1], sums
 
-def plot_light_curve(etable, lclog, overshootrate, gtitable, binsize=1.0):
+def plot_light_curve(etable, lclog, gtitable, binsize=1.0):
    #'Compute binned light curve of events and return mean rate,plots light curve'
     #EDGE CASE FOR FIRST INSTANCE
     bins, sums = light_curve(etable, gtitable['START'][0], gtitable['STOP'][0], binsize=binsize)
