@@ -330,8 +330,6 @@ if len(args.hkfiles) > 0:
 if args.filtou:
     b1 = etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == True
     b2 = etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True
-print('THIS IS THE LENGTH OF FILTABLE')
-print(len(filttable['MET']))
 
 #Creating the ratio plots
 if args.ratio:
