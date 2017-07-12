@@ -227,6 +227,7 @@ if args.applygti is not None:
     g['DURATION'] = g['STOP']-g['START']
     # Only keep GTIs longer than 16 seconds
     g = g[np.where(g['DURATION']>16.0)]
+    log.info('Applying external GTI')
     print g
     filttable = apply_gti(filttable,g)
     # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
@@ -245,7 +246,6 @@ if args.par is not None:
     # For now, just using MET0
     etime = filttable.columns['MET'] + MET0
     filttable['T'] = etime
-
 
 # Set up the light curve bins, so we can have them for building
 # light curves of various quantities, like overshoot rate and ratio filtered events
@@ -277,6 +277,13 @@ if filttable.meta['OBS_ID'].startswith('000000'):
     filttable.meta['OBS_ID'] = bn
     etable.meta['OBS_ID'] = bn
 
+if args.basename is None:
+    basename = '{0}'.format(bn)
+    args.basename = basename
+else:
+    basename = args.basename
+
+
 if args.guessobj and args.obsdir:
     # Trim trailing slash, if needed
     if args.obsdir[-1] == '/':
@@ -285,12 +292,6 @@ if args.guessobj and args.obsdir:
     log.info('Guessing Object name {0}'.format(objname))
     filttable.meta['OBJECT'] = objname
     etable.meta['OBJECT'] = objname
-
-if args.basename is None:
-    basename = '{0}'.format(bn)
-    args.basename = basename
-else:
-    basename = args.basename
 
 # getting the overshoot and undershoot rate from HK files.  Times are hkmet
 log.info('Getting overshoot and undershoot rates')
