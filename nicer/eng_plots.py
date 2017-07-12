@@ -3,7 +3,7 @@ import numpy as np
 import pylab
 import matplotlib.gridspec as gridspec
 import argparse
-from functionality import *
+from plotutils import *
 from values import *
 
 def eng_plots(etable, filttable, args):

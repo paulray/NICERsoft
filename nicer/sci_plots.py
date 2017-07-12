@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 from astropy import log
 
-from functionality import *
+from plotutils import *
 
 def sci_plots(etable, gtitable, args):
     #GRID SET UP
@@ -28,7 +28,7 @@ def sci_plots(etable, gtitable, args):
     log.info('Building energy spectrum')
     plt.subplot(sci_grid[1:3,:2])
     plot_energy_spec(etable)
-
+'''
     #Power Spectrum
     log.info('Looking at power spectrum')
     fourier = plt.subplot(sci_grid[1:3,2:5])
@@ -39,7 +39,7 @@ def sci_plots(etable, gtitable, args):
         log.info('Building QPO characterization')
     else:
         pass
-
+'''
     #PULSE PROFILE
     log.info('Building pulse profile')
 
