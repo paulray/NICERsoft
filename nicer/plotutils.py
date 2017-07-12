@@ -156,7 +156,7 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0):
 #-------------------------------THIS PLOTS THE FAST TO SLOW___------------------
 def plot_slowfast(etable):
     'Scatter plot of PI and fast PHA, highlighting points above ratio cut'
-
+    log.info('Counting slow and fast')
    # First do some counts
     nfastonly = np.count_nonzero(np.logical_and(etable['EVENT_FLAGS'][:,FLAG_FAST],
                                             np.logical_not(etable['EVENT_FLAGS'][:,FLAG_SLOW])))
@@ -164,10 +164,10 @@ def plot_slowfast(etable):
                                             np.logical_not(etable['EVENT_FLAGS'][:,FLAG_FAST])))
     nboth = np.count_nonzero(np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],
                                             etable['EVENT_FLAGS'][:,FLAG_FAST]))
-
+    log.info('Taking out single-flag events')
     # Only compute ratio for events with both triggers
     etable = etable[np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],etable['EVENT_FLAGS'][:,FLAG_FAST])]
-
+    log.info('Computing ratio')
     # Ratio is SLOW to FAST. Edge events should have ratio bigger than cut
     ratio = np.array(etable['PHA'],dtype=np.float)/np.array(etable['PHA_FAST'],dtype=np.float)
 
@@ -175,13 +175,11 @@ def plot_slowfast(etable):
     colors = np.array(['k']*len(ratio))
     idx = np.where(ratio>ratio_cut)[0]
     colors[idx] = 'r'
-
+    log.info('Plotting the points')
     plot.scatter(etable['PI']*PI_TO_KEV,ratio, s=.4, c = colors)
 
     x = np.arange(min(etable['PI']), max(etable['PI']))
     phax = np.ones_like(x)*ratio_cut
-
-    plot.plot(x*PI_TO_KEV, phax , 'g--', linewidth = 0.5)
 
     plot.title('PHA Slow to Fast Ratio vs Energy')
     plot.xlabel('Energy')
@@ -196,7 +194,7 @@ def plot_slowfast(etable):
     plot.annotate(total, xy=(0.03, 0.75), xycoords='axes fraction')
     plot.annotate(bad, xy = (.03, .7), xycoords='axes fraction')
     plot.annotate("Ratio cut = {0:.2f}".format(ratio_cut),xy=(0.65,0.85),xycoords='axes fraction')
-
+    plot.plot(x*PI_TO_KEV, phax, 'g--', linewidth = 0.5)
     return
 
 #-------------------------------THIS PLOTS THE ENERGY SPECTRUM------------------
@@ -544,3 +542,12 @@ def plot_resetrate(IDS, reset_rates):
     plot.ylabel('Reset Rate [Hz]')
     plot.xlabel('DET_ID')
     #plot.ylim([0, np.max(reset_rates)+2])
+
+#----------------------Filter Ratio Cut-----------------------------------------
+def filt_ratio(etable, ratiocut):
+    #Filters out the points > filtratio
+    ratio = np.zeros_like(etable['PI'],dtype=np.float)
+    idx = np.where(np.logical_and(etable['PHA']>0, etable['PHA_FAST']>0))[0]
+    ratio[idx] = np.asarray(etable['PHA'][idx],dtype=np.float)/np.asarray(etable['PHA_FAST'][idx],dtype=np.float)
+    etable = etable[np.where(ratio < ratiocut)[0]]
+    return etable

@@ -47,6 +47,6 @@ def eng_plots(etable, filttable, args):
       "Mean reset rate is {0:.2f}/s".format(reset_rates.mean()),
       fontsize = 12.5)
     if args.mask:
-        plt.figtext(.07, .81, 'IDS {0} are masked'.format(args.mask), fontsize=10)
+        plot.figtext(.07, .81, 'IDS {0} are masked'.format(args.mask), fontsize=10)
 
     return figure1

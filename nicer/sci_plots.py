@@ -11,18 +11,21 @@ def sci_plots(etable, gtitable, args):
     sci_grid = gridspec.GridSpec(5,7)
     #plt.style.use('grayscale')
 
+    #Fast / Slow (Slow x, Fast y)
+    log.info('Building fast/slow subplot')
+    plt.subplot(sci_grid[1:3,2:5])
+    log.info('Building actual slow fast data')
+    plot_slowfast(etable)
+
+    #Filter out the points above the ratio cut
+
+    etable = filt_ratio(etable, ratiocut = 1.4)
     #Light Curve
     log.info('Building light curve')
     plt.subplot(sci_grid[3:5,:7])
     meanrate = plot_light_curve(etable, args.lclog, gtitable, binsize=args.lcbinsize)
     plot.title('Light Curve')
     plot.xlabel('Time Elapsed (s)')
-
-    #Fast / Slow (Slow x, Fast y)
-    log.info('Building fast/slow subplot')
-    plt.subplot(sci_grid[1:3,2:5])
-    log.info('Building actual slow fast data')
-    plot_slowfast(etable)
 
     #Energy Spectrum
     log.info('Building energy spectrum')
@@ -74,7 +77,6 @@ def sci_plots(etable, gtitable, args):
     plt.figtext(.07, .84, etable.meta['FILT_STR'], fontsize=10)
     if args.mask:
         plt.figtext(.07, .81, 'IDS {0} are masked'.format(args.mask), fontsize=10)
-    plt.figtext(.555, .93, 'GOOD MET INTERVALS', fontsize =12)
     plt.figtext(.5, .77, str(gtitable['START'][0:-1]), fontsize =9)
     plt.figtext(.58, .77, str(gtitable['STOP'][0:-1]), fontsize =9)
     plt.figtext(.66, .77, str(gtitable['DURATION'][0:-1]), fontsize =9)
