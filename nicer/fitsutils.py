@@ -18,12 +18,10 @@ def runcmd(cmd):
     log.info('CMD: '+" ".join(cmd))
     check_call(cmd,env=os.environ)
 
-def filtandmerge(evfiles):
+def filtandmerge(evfiles,workdir=None):
     'Merges and filters a set of event files, returning an etable'
 
-    # Might want to specify the directory (with dir=) where this should be.
-    # The default is system-dependents, and likely /tmp
-    tmpdir = tempfile.mkdtemp()
+    tmpdir = tempfile.mkdtemp(dir=workdir)
 
     # Build input file for ftmerge
     evlistname=path.join(tmpdir,'evfiles.txt')
