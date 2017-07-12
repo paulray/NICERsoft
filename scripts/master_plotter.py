@@ -12,12 +12,12 @@ import astropy.units as u
 from astropy.time import Time
 from os import path
 from nicer.values import *
-from cartographer import *
-from functionality import *
-from sci_plots import sci_plots
-from eng_plots import eng_plots
+from nicer.cartographer import *
+from nicer.plotutils import *
+from nicer.sci_plots import sci_plots
+from nicer.eng_plots import eng_plots
 from glob import glob
-from ratio_plots import *
+from nicer.bkg_plots import *
 
 parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
 parser.add_argument("infiles", help="Input files", nargs='*')
@@ -317,17 +317,17 @@ if len(args.hkfiles) > 0:
 	overshootrate += myovershootrate
 	undershootrate += myundershootrate
 
-del hdulist
-    if args.filtou:
-	b1 = np.where(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == True)
-	b2 = np.where(etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True)
-	b3 = np.intersect1d(b1,b2)
-	time = etable['MET'][b3]
-	counts,a = np.histogram(time,np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0])))
-	overshootrate = overshootrate - counts
-	del b1, b2, b3, time, counts, a
-    # Write overshoot and undershoot rates to file for filtering
+    del hdulist
 
+    if args.filtou:
+        b1 = np.where(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == True)
+        b2 = np.where(etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True)
+        b3 = np.intersect1d(b1,b2)
+        time = etable['MET'][b3]
+        counts,a = np.histogram(time,np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0])))
+        overshootrate = overshootrate - counts
+        del b1, b2, b3, time, counts, a
+    # Write overshoot and undershoot rates to file for filtering
     if args.writeovershoot:
         tcol = pyfits.Column(name='TIME',unit='S',array=hkmet,format='D')
         ocol = pyfits.Column(name='OVERSHOOT',array=overshootrate,format='D')
@@ -338,7 +338,7 @@ else:
     hkmet = None
     overshootrate=None
     undershootrate = None
-    
+
 #Creating the ratio plots
 if args.ratio:
     figure4 = ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable)

@@ -17,13 +17,13 @@ def sci_plots(etable, gtitable, args):
     meanrate = plot_light_curve(etable, args.lclog, gtitable, binsize=args.lcbinsize)
     plot.title('Light Curve')
     plot.xlabel('Time Elapsed (s)')
-    
+
     #Fast / Slow (Slow x, Fast y)
     log.info('Building fast/slow subplot')
     plt.subplot(sci_grid[1:3,2:5])
     log.info('Building actual slow fast data')
     plot_slowfast(etable)
-    
+
     #Energy Spectrum
     log.info('Building energy spectrum')
     plt.subplot(sci_grid[1:3,:2])
@@ -78,5 +78,5 @@ def sci_plots(etable, gtitable, args):
     plt.figtext(.5, .77, str(gtitable['START'][0:-1]), fontsize =9)
     plt.figtext(.58, .77, str(gtitable['STOP'][0:-1]), fontsize =9)
     plt.figtext(.66, .77, str(gtitable['DURATION'][0:-1]), fontsize =9)
-    
+
     return figure2
