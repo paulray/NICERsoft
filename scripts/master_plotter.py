@@ -100,7 +100,6 @@ if args.filtall:
     args.filtswtrig=True
     args.filtovershoot=True
     args.filtundershoot=True
-    args.filtratio=1.4
 
 if not args.sci and not args.eng and not args.map and not args.ratio:
     log.warning("No plot requested, making all")
