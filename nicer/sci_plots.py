@@ -28,18 +28,18 @@ def sci_plots(etable, gtitable, args):
     log.info('Building energy spectrum')
     plt.subplot(sci_grid[1:3,:2])
     plot_energy_spec(etable)
-'''
+
     #Power Spectrum
-    log.info('Looking at power spectrum')
-    fourier = plt.subplot(sci_grid[1:3,2:5])
-    if args.pscoherent:
-        log.info('Building coherent power spec')
-        plot_fft_of_power(etable, args.nyquist, args.pslog, args.writeps)
-    elif args.psqpo:
-        log.info('Building QPO characterization')
-    else:
-        pass
-'''
+    #log.info('Looking at power spectrum')
+   # fourier = plt.subplot(sci_grid[1:3,2:5])
+    #if args.pscoherent:
+    #    log.info('Building coherent power spec')
+     #   plot_fft_of_power(etable, args.nyquist, args.pslog, args.writeps)
+   # elif args.psqpo:
+    #    log.info('Building QPO characterization')
+   # else:
+       # pass
+
     #PULSE PROFILE
     log.info('Building pulse profile')
 
