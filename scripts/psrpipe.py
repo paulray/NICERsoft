@@ -72,7 +72,7 @@ for obsdir in args.indirs:
     log.info('MPU HK Files: {0}'.format("\n" + "    \n".join(hkfiles)))
 
     # Create GTI from .mkf file
-    mkf_expr='(SAA.eq.0).and.(FOV_FLAG.eq.0).and.(ANG_DIST.lt.0.02)'
+    mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.02)'
     gtiname = path.join(pipedir,'good.gti')
     cmd = ["maketime", mkfile, gtiname, 'expr={0}'.format(mkf_expr),
         "compact=no", "time=TIME", "clobber=yes"]

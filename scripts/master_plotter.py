@@ -128,18 +128,6 @@ idx = np.where(gtitable['DURATION']>16.0)[0]
 gtitable = gtitable[idx]
 print(gtitable)
 
-# Hack to trim first chunk of data
-if args.tskip > 0.0:
-    t0 = gtitable['START'][0]
-    etable = etable[etable['MET']>t0+args.tskip]
-    # Correct exposure (approximately)
-    etable.meta['TSTART'] += args.tskip
-    if gtitable['START'][0]+args.tskip < gtitable['STOP'][0]:
-        gtitable['START'][0] += args.tskip
-    else:
-        log.error('Trying to skip more than first GTI segment!  **NOT IMPLEMENTED**')
-        sys.exit(1)
-
 #Making the MK Table
 log.info('Getting MKTable')
 if len(mkfiles) > 0:
@@ -166,6 +154,18 @@ log.info("DATE Range {0} to {1}".format(etable.meta['DATE-OBS'],
     etable.meta['DATE-END']))
 if args.object is not None:
     etable.meta['OBJECT'] = args.object
+
+# Hack to trim first chunk of data
+if args.tskip > 0.0:
+    t0 = gtitable['START'][0]
+    etable = etable[etable['MET']>t0+args.tskip]
+    # Correct exposure (approximately)
+    etable.meta['TSTART'] += args.tskip
+    if gtitable['START'][0]+args.tskip < gtitable['STOP'][0]:
+        gtitable['START'][0] += args.tskip
+    else:
+        log.error('Trying to skip more than first GTI segment!  **NOT IMPLEMENTED**')
+        sys.exit(1)
 
 
 # If there are no PI columns, add them with approximate calibration
