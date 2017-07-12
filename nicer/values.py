@@ -9,6 +9,7 @@ GPS0 = Time("1980-01-06T00:00:00",scale='utc')
 
 # Conversion from PI to keV (PI is in units of 10 eV)
 PI_TO_KEV = 10.0/1000.0
+KEV_TO_PI = 1000.0/10.0
 
 # Bit assignments in the EVENT_FLAGS housekeeping
 FLAG_SLOW = 3

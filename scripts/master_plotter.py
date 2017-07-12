@@ -129,6 +129,18 @@ idx = np.where(gtitable['DURATION']>16.0)[0]
 gtitable = gtitable[idx]
 print(gtitable)
 
+# Hack to trim first chunk of data
+if args.tskip > 0.0:
+    t0 = gtitable['START'][0]
+    etable = etable[etable['MET']>t0+args.tskip]
+    # Correct exposure (approximately)
+    etable.meta['TSTART'] += args.tskip
+    if gtitable['START'][0]+args.tskip < gtitable['STOP'][0]:
+        gtitable['START'][0] += args.tskip
+    else:
+        log.error('Trying to skip more than first GTI segment!  **NOT IMPLEMENTED**')
+        sys.exit(1)
+
 #Making the MK Table
 log.info('Getting MKTable')
 if len(mkfiles) > 0:
@@ -142,6 +154,8 @@ else:
 del tlist
 # Change TIME column name to MET to reflect what it really is
 etable.columns['TIME'].name = 'MET'
+# Update exposure to be sum of GTI durations
+etable.meta['EXPOSURE'] = gtitable['DURATION'].sum()
 
 # Sort table by MET
 etable.sort('MET')
@@ -154,13 +168,6 @@ log.info("DATE Range {0} to {1}".format(etable.meta['DATE-OBS'],
 if args.object is not None:
     etable.meta['OBJECT'] = args.object
 
-# Hack to trim first chunk of data
-if args.tskip > 0.0:
-    t0 = etable.meta['TSTART']
-    etable = etable[etable['MET']>t0+args.tskip]
-    # Correct exposure (approximately)
-    etable.meta['EXPOSURE'] -= args.tskip
-    etable.meta['TSTART'] += args.tskip
 
 # If there are no PI columns, add them with approximate calibration
 if args.pi or not ('PI' in etable.colnames):
@@ -234,7 +241,7 @@ if args.applygti is not None:
     #filttable.meta['EXPOSURE'] = g['DURATION'].sum()
     #gtitable = g
 
-log.info('Exposure (after filtering) : {0:.2f}'.format(etable.meta['EXPOSURE']))
+log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
 
 log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
     len(filttable), 100*len(filttable)/len(etable)))
