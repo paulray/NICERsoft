@@ -18,6 +18,7 @@ from nicer.sci_plots import sci_plots
 from nicer.eng_plots import eng_plots
 from glob import glob
 from nicer.bkg_plots import *
+from nicer.fitsutils import *
 
 parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
 parser.add_argument("infiles", help="Input files", nargs='*')
@@ -61,6 +62,7 @@ args = parser.parse_args()
 args.hkfiles = []
 mkfiles = []
 
+#Get file names from the directory
 if args.obsdir:
     # Get names of event files from obsdir
     if len(args.infiles) == 0:
@@ -96,28 +98,20 @@ if args.obsdir:
 
     mkfiles = glob(path.join(args.obsdir,'auxil/ni*.mkf'))[0]
 
+#Get the concatenated and filtered data 
+etable = filtandmerge(args.infiles,workdir=None)
+
 if args.filtall:
     args.filtswtrig=True
     args.filtovershoot=True
     args.filtundershoot=True
 
 if not args.sci and not args.eng and not args.map and not args.ratio:
-    log.warning("No plot requested, making all")
+    log.warning("No specific plot requested, making all")
     args.sci = True
     args.eng = True
     args.map = True
     args.ratio = True
-
-
-# Load files and build events table
-log.info('Reading files')
-tlist = []
-for fn in args.infiles:
-    log.info('Reading file {0}'.format(fn))
-    tlist.append(Table.read(fn,hdu=1))
-    if len(tlist[0]) > (13000000 * 7):
-        log.error('There is too much data to handle. Not processing...')
-        sys.exit(3)
 
 # Read the GTIs from the first event FITS file
 gtitable = Table.read(args.infiles[0],hdu=2)
@@ -133,12 +127,6 @@ log.info('Getting MKTable')
 if len(mkfiles) > 0:
     mktable = Table.read(mkfiles,hdu=1)
 
-log.info('Concatenating files')
-if len(tlist) == 1:
-    etable = tlist[0]
-else:
-    etable = vstack(tlist,metadata_conflicts='silent')
-del tlist
 # Change TIME column name to MET to reflect what it really is
 etable.columns['TIME'].name = 'MET'
 # Update exposure to be sum of GTI durations
@@ -154,7 +142,7 @@ log.info("DATE Range {0} to {1}".format(etable.meta['DATE-OBS'],
     etable.meta['DATE-END']))
 if args.object is not None:
     etable.meta['OBJECT'] = args.object
-
+'''
 # Hack to trim first chunk of data
 if args.tskip > 0.0:
     t0 = gtitable['START'][0]
@@ -167,7 +155,7 @@ if args.tskip > 0.0:
         log.error('Trying to skip more than first GTI segment!  **NOT IMPLEMENTED**')
         sys.exit(1)
 
-
+'''
 # If there are no PI columns, add them with approximate calibration
 if args.pi or not ('PI' in etable.colnames):
     log.info('Adding PI')
@@ -181,52 +169,6 @@ if args.mask != None:
     for id in args.mask:
         etable = etable[np.where(etable['DET_ID'] != id)]
 
-# Note: To access event flags, use etable['EVENT_FLAGS'][:,B], where B is
-# the bit number for the flag (e.g. FLAG_UNDERSHOOT)
-
-
-# Apply filters for good events
-log.info('Filtering...')
-filt_str = 'Filter: {0:.2f} < E < {1:.2f} keV'.format(args.emin,args.emax)
-if args.emin >= 0:
-    b4 = etable['PI'] > args.emin/PI_TO_KEV
-else:
-    b4 = np.ones_like(etable['PI'],dtype=np.bool)
-if args.emax >= 0:
-    b4 = np.logical_and(b4, etable['PI']< args.emax/PI_TO_KEV)
-
-if args.filtswtrig:
-    b1 = etable['EVENT_FLAGS'][:,FLAG_SWTRIG] == False
-    filt_str += ", not SWTRIG"
-else:
-    b1 = np.ones_like(etable['PI'],dtype=np.bool)
-if args.filtundershoot:
-    b2 = etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == False
-    filt_str += ", not UNDERSHOOT"
-else:
-    b2 = np.ones_like(etable['PI'],dtype=np.bool)
-if args.filtovershoot:
-    b3 = etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == False
-    filt_str += ", not OVERSHOOT"
-else:
-    b3 = np.ones_like(etable['PI'],dtype=np.bool)
-
-if args.filtratio > 0.0:
-    ratio = np.zeros_like(etable['PI'],dtype=np.float)
-    idx = np.where(np.logical_and(etable['PHA']>0, etable['PHA_FAST']>0))[0]
-    ratio[idx] = np.asarray(etable['PHA'][idx],dtype=np.float)/np.asarray(etable['PHA_FAST'][idx],dtype=np.float)
-    b5 = np.ones_like(etable['PI'],dtype=np.bool)
-    b5[ratio>args.filtratio] = False
-    filt_str += ", ratio < {0:.2f}".format(args.filtratio)
-else:
-    b5 = np.ones_like(etable['PI'],dtype=np.bool)
-idx = np.where(b1 & b2 & b3 & b4 & b5)[0]
-
-del b1, b2, b3, b4, b5
-filttable = etable[idx]
-filttable.meta['FILT_STR'] = filt_str
-etable.meta['FILT_STR'] = filt_str
-
 if args.applygti is not None:
     g = Table.read(args.applygti)
     log.info('Applying external GTI from {0}'.format(args.applygti))
@@ -235,15 +177,12 @@ if args.applygti is not None:
     g = g[np.where(g['DURATION']>16.0)]
     log.info('Applying external GTI')
     print g
-    filttable = apply_gti(filttable,g)
+    etable = apply_gti(etable,g)
     # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
     #filttable.meta['EXPOSURE'] = g['DURATION'].sum()
     #gtitable = g
 
 log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
-
-log.info("Filtering cut {0} events to {1} ({2:.2f}%)".format(len(etable),
-    len(filttable), 100*len(filttable)/len(etable)))
 
 # Add Time column with astropy Time for ease of use
 if args.par is not None:
@@ -277,10 +216,10 @@ for i in range(1,len(gtitable['START'])):
 gtitable['CUMTIME'] = np.array(cumtimes)
 
 bn = path.basename(args.infiles[0]).split('_')[0]
-log.info('OBS_ID {0}'.format(filttable.meta['OBS_ID']))
-if filttable.meta['OBS_ID'].startswith('000000'):
+log.info('OBS_ID {0}'.format(etable.meta['OBS_ID']))
+if etable.meta['OBS_ID'].startswith('000000'):
     log.info('Overwriting OBS_ID with {0}'.format(bn))
-    filttable.meta['OBS_ID'] = bn
+    etable.meta['OBS_ID'] = bn
     etable.meta['OBS_ID'] = bn
 
 if args.basename is None:
@@ -296,7 +235,7 @@ if args.guessobj and args.obsdir:
         args.obsdir = args.obsdir[:-1]
     objname = path.basename(args.obsdir)[11:]
     log.info('Guessing Object name {0}'.format(objname))
-    filttable.meta['OBJECT'] = objname
+    etable.meta['OBJECT'] = objname
     etable.meta['OBJECT'] = objname
 
 # getting the overshoot and undershoot rate from HK files.  Times are hkmet
@@ -311,7 +250,6 @@ if len(args.hkfiles) > 0:
     overshootrate = td['MPU_OVER_COUNT'].sum(axis=1)
     undershootrate = td['MPU_UNDER_COUNT'].sum(axis=1)
     reset_rates = td['MPU_UNDER_COUNT'].sum(axis=0)
-    print(reset_rates)
     for fn in hkfiles[1:]:
 	log.info('Reading '+fn)
 	hdulist = pyfits.open(fn)
@@ -325,12 +263,9 @@ if len(args.hkfiles) > 0:
 	    sys.exit(1)
 	overshootrate += myovershootrate
 	undershootrate += myundershootrate
-	print(myreset)
 	reset_rates= np.append(reset_rates,myreset)
     del hdulist
 
-    print(reset_rates)
-    print(np.shape(reset_rates))
     if args.filtou:
         b1 = np.where(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == True)
         b2 = np.where(etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True)
@@ -353,7 +288,10 @@ else:
     nresets = reset_rate(etable, IDS)
     reset_rates = nresets/etable.meta['EXPOSURE']
 
-#Creating the ratio plots
+
+filttable = etable
+
+#Creating the Background plots
 if args.ratio:
     figure4 = ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable)
     figure4.set_size_inches(16,12)
@@ -361,8 +299,9 @@ if args.ratio:
         log.info('Writing ratio plot {0}'.format(basename))
         figure4.savefig('{0}_bkg.png'.format(basename), dpi = 100)
 
+#Creating engineering plots
 if args.eng:
-    figure1 = eng_plots(etable, filttable, args, reset_rates)
+    figure1 = eng_plots(etable, args, reset_rates, filttable)
     figure1.set_size_inches(16,12)
     if args.save:
     	log.info('Writing eng plot {0}'.format(basename))
@@ -372,7 +311,6 @@ if args.eng:
         	figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
 
 #DELETING ETABLE HERE. USE FILTTABLE FROM NOW ON
-del etable
 
 if args.sci:
     # Make science plots using filtered events
