@@ -279,7 +279,7 @@ if len(args.hkfiles) > 0:
         tcol = pyfits.Column(name='TIME',unit='S',array=hkmet,format='D')
         ocol = pyfits.Column(name='OVERSHOOT',array=overshootrate,format='D')
         ucol = pyfits.Column(name='UNDERSHOOT',array=undershootrate,format='D')
-        ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol], name='GTI')
+        ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol], name='HKP')
         ovhdu.writeto("{0}.ovs".format(basename),overwrite=True,checksum=True)
 else:
     hkmet = None
