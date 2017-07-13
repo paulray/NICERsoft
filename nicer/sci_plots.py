@@ -77,8 +77,8 @@ def sci_plots(etable, gtitable, args):
     plt.figtext(.07, .84, etable.meta['FILT_STR'], fontsize=10)
     if args.mask:
         plt.figtext(.07, .81, 'IDS {0} are masked'.format(args.mask), fontsize=10)
-    plt.figtext(.5, .77, str(gtitable['START'][0:-1]), fontsize =9)
-    plt.figtext(.58, .77, str(gtitable['STOP'][0:-1]), fontsize =9)
-    plt.figtext(.66, .77, str(gtitable['DURATION'][0:-1]), fontsize =9)
+    plt.figtext(.5, .77, str(gtitable['START'][:]), fontsize =9)
+    plt.figtext(.58, .77, str(gtitable['STOP'][:]), fontsize =9)
+    plt.figtext(.66, .77, str(gtitable['DURATION'][:]), fontsize =9)
 
     return figure2

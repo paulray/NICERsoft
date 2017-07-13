@@ -14,6 +14,8 @@ from nicer.values import *
 
 parser = argparse.ArgumentParser(description = "Process NICER pulsar data.  Output will be written in current working directory.")
 parser.add_argument("indirs", help="Input directories to process", nargs='+')
+parser.add_argument("--emin", help="Minimum energy to include (keV)", default=0.3)
+parser.add_argument("--emax", help="Maximum energy to include (kev)", default=8.0)
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
     default=None)
 args = parser.parse_args()
@@ -70,7 +72,7 @@ for obsdir in args.indirs:
     log.info('MPU HK Files: {0}'.format("\n" + "    \n".join(hkfiles)))
 
     # Create GTI from .mkf file
-    mkf_expr='(SAA.eq.0).and.(FOV_FLAG.eq.0).and.(ANG_DIST.lt.0.02)'
+    mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.02)'
     gtiname = path.join(pipedir,'good.gti')
     cmd = ["maketime", mkfile, gtiname, 'expr={0}'.format(mkf_expr),
         "compact=no", "time=TIME", "clobber=yes"]
@@ -79,7 +81,8 @@ for obsdir in args.indirs:
     # Build input file for ftmerge
     evlistname=path.join(pipedir,'evfiles.txt')
     fout = file(evlistname,'w')
-    evfilt_expr = '(PI>30).and.(EVENT_FLAGS==bx1x000)'
+    evfilt_expr = '(PI>{0}).and.(PI<{1}).and.(EVENT_FLAGS==bx1x000)'.format(
+        args.emin*KEV_TO_PI, args.emax*KEV_TO_PI)
     for en in evfiles:
         print('{0}[{1}]'.format(en,evfilt_expr),file=fout)
     fout.close()
@@ -91,7 +94,7 @@ for obsdir in args.indirs:
     runcmd(cmd)
 
     # Now apply the good GTI to remove SAA and slew time ranges
-    filteredname = path.join(pipedir,"merged_filt.evt")
+    filteredname = path.join(pipedir,"clean.evt")
     cmd = ["fltime", mergedname, gtiname, filteredname, "copyall=yes", "clobber=yes"]
     runcmd(cmd)
 
