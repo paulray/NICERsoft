@@ -6,7 +6,7 @@ import argparse
 from plotutils import *
 from values import *
 
-def eng_plots(etable, filttable, args):
+def eng_plots(etable, args, reset_rates, filttable):
     #GRID SET UP
     figure1 = plot.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,6)
@@ -27,9 +27,6 @@ def eng_plots(etable, filttable, args):
 
     #RESET RATE PER DETECTOR
     log.info('Computing reset rates')
-    nresets = reset_rate(etable, IDS)
-    reset_rates = nresets/etable.meta['EXPOSURE']
-
     plot.subplot(sci_grid[:2, 2:4])
     plot_resetrate(IDS, reset_rates)
 
@@ -40,7 +37,7 @@ def eng_plots(etable, filttable, args):
         fontsize=18)
 
 
-    plot.figtext(0.02, 0.9, etable.meta['FILT_STR'], fontsize=10)
+    #plot.figtext(0.02, 0.9, etable.meta['FILT_STR'], fontsize=10)
     #average = "Mean events per detector is {0:.2f}".format(num_events.mean())
     #ext1 = plot.figtext(.02, .9, average, fontsize = 12.5)
     plot.figtext(.02, .8,

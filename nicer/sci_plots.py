@@ -23,7 +23,7 @@ def sci_plots(etable, gtitable, args):
     #Light Curve
     log.info('Building light curve')
     plt.subplot(sci_grid[3:5,:7])
-    meanrate = plot_light_curve(etable, args.lclog, gtitable, binsize=args.lcbinsize)
+    meanrate, lc = plot_light_curve(etable, args.lclog, gtitable, binsize=args.lcbinsize)
     plot.title('Light Curve')
     plot.xlabel('Time Elapsed (s)')
 
@@ -74,7 +74,7 @@ def sci_plots(etable, gtitable, args):
     plt.figtext(.07, .90, 'Exposure is {0:.1f} s, Good time fraction is {1:.3f}'.format(exposure, fraction),
         fontsize = 10)
     plt.figtext(.07, .87, 'Mean count rate {0:.3f} c/s'.format(meanrate), fontsize = 10)
-    plt.figtext(.07, .84, etable.meta['FILT_STR'], fontsize=10)
+   # plt.figtext(.07, .84, etable.meta['FILT_STR'], fontsize=10)
     if args.mask:
         plt.figtext(.07, .81, 'IDS {0} are masked'.format(args.mask), fontsize=10)
     plt.figtext(.5, .77, str(gtitable['START'][:]), fontsize =9)

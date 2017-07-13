@@ -141,7 +141,7 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0):
     colornames = ['black','green','red','blue','magenta']
     colorlevels = np.arange(len(colornames))
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
-    plot.scatter(bins, rate, c=np.fmod(cc,len(colornames)), cmap=cmap,norm=norm,marker='+')
+    lc = plot.scatter(bins, rate, c=np.fmod(cc,len(colornames)), cmap=cmap,norm=norm,marker='+', label='Light Curve')
     label = 'Mean Rate: {0:.3f} c/s'.format(mean_rate)
     # Plot line at mean counts per bin
     plot.axhline(y=mean_rate, xmin=bins[0], xmax=bins[-1], linestyle='dashed', label = label)
@@ -151,7 +151,7 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0):
     	plot.yscale('log')
         plot.ylim(ymin=0.1)
 
-    return mean_rate
+    return mean_rate, lc
 
 #-------------------------------THIS PLOTS THE FAST TO SLOW___------------------
 def plot_slowfast(etable):
@@ -177,8 +177,7 @@ def plot_slowfast(etable):
     colors[idx] = 'r'
     log.info('Plotting the points')
     plot.scatter(etable['PI']*PI_TO_KEV,ratio, s=.4, c = colors)
-
-    x = np.arange(min(etable['PI']), max(etable['PI']))
+    x = np.arange(min(etable['PI']),max(etable['PI']))
     phax = np.ones_like(x)*ratio_cut
 
     plot.title('PHA Slow to Fast Ratio vs Energy')
