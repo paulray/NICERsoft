@@ -303,21 +303,27 @@ if len(args.hkfiles) > 0:
         hkmet.max(),hkmet.max()-hkmet.min()))
     overshootrate = td['MPU_OVER_COUNT'].sum(axis=1)
     undershootrate = td['MPU_UNDER_COUNT'].sum(axis=1)
+    reset_rates = td['MPU_UNDER_COUNT'].sum(axis=0)
+    print(reset_rates)
     for fn in hkfiles[1:]:
 	log.info('Reading '+fn)
 	hdulist = pyfits.open(fn)
 	mytd = hdulist[1].data
-	mymet = td['TIME']
-	myovershootrate = td['MPU_OVER_COUNT'].sum(axis=1)
-	myundershootrate = td['MPU_UNDER_COUNT'].sum(axis=1)
+	mymet = mytd['TIME']
+	myovershootrate = mytd['MPU_OVER_COUNT'].sum(axis=1)
+	myundershootrate = mytd['MPU_UNDER_COUNT'].sum(axis=1)
+	myreset = mytd['MPU_UNDER_COUNT'].sum(axis=0)
         if not np.all(mymet == hkmet):
 	    log.error('TIME axes are not compatible')
 	    sys.exit(1)
 	overshootrate += myovershootrate
 	undershootrate += myundershootrate
-
+	print(myreset)
+	reset_rates= np.append(reset_rates,myreset)
     del hdulist
 
+    print(reset_rates)
+    print(np.shape(reset_rates))
     if args.filtou:
         b1 = np.where(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == True)
         b2 = np.where(etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True)
@@ -337,6 +343,8 @@ else:
     hkmet = None
     overshootrate=None
     undershootrate = None
+    nresets = reset_rate(etable, IDS)
+    reset_rates = nresets/etable.meta['EXPOSURE']
 
 #Creating the ratio plots
 if args.ratio:
@@ -347,7 +355,7 @@ if args.ratio:
         figure4.savefig('{0}_bkg.png'.format(basename), dpi = 100)
 
 if args.eng:
-    figure1 = eng_plots(etable, filttable, args)
+    figure1 = eng_plots(etable, filttable, args, reset_rates)
     figure1.set_size_inches(16,12)
     if args.save:
     	log.info('Writing eng plot {0}'.format(basename))
