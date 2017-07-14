@@ -9,17 +9,19 @@ def sci_plots(etable, gtitable, args):
     #GRID SET UP
     figure2 = plt.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,7)
-    #plt.style.use('grayscale')
 
-    #Fast / Slow (Slow x, Fast y)
-    log.info('Building fast/slow subplot')
-    plt.subplot(sci_grid[1:3,2:5])
-    log.info('Building actual slow fast data')
-    plot_slowfast(etable)
+    # Build PHA Fast/Slow ratio plot before filtering by ratio
+    # Only do this if powerspectrum not requested
+    if not args.powspec:
+        log.info('Building fast/slow subplot')
+        plt.subplot(sci_grid[1:3,2:5])
+        plot_slowfast(etable)
 
-    #Filter out the points above the ratio cut
+    # Now, filter out the points above the ratio cut, if requested
+    if args.filtratio > 0:
+        log.info('Applying ratio filter at {0}'.format(args.filtratio))
+        etable = filt_ratio(etable, ratiocut = args.filtratio)
 
-    etable = filt_ratio(etable, ratiocut = 1.4)
     #Light Curve
     log.info('Building light curve')
     plt.subplot(sci_grid[3:5,:7])
@@ -33,22 +35,16 @@ def sci_plots(etable, gtitable, args):
     plot_energy_spec(etable)
 
     #Power Spectrum
-    #log.info('Looking at power spectrum')
-   # fourier = plt.subplot(sci_grid[1:3,2:5])
-    #if args.pscoherent:
-    #    log.info('Building coherent power spec')
-     #   plot_fft_of_power(etable, args.nyquist, args.pslog, args.writeps)
-   # elif args.psqpo:
-    #    log.info('Building QPO characterization')
-   # else:
-       # pass
+    if args.powspec:
+        log.info('Looking at power spectrum')
+        plt.subplot(sci_grid[1:3,2:5])
+        # plot_fft_of_power(etable, args.nyquist, args.pslog, args.writeps)
 
-    #PULSE PROFILE
+    # PULSE PROFILE
     log.info('Building pulse profile')
-
     axprofile = plt.subplot(sci_grid[1:3,5:7])
     if (args.orb is not None) and (args.par is not None):
-        log.info('Calling pulse profile')
+        log.info('Calling pulse profile using PINT')
         pulse_profile(axprofile, etable, args)
     elif args.foldfreq > 0.0:
         log.info('Calling pulse profile with fixed frequency')
@@ -61,7 +57,7 @@ def sci_plots(etable, gtitable, args):
 
     figure2.suptitle('ObsID {0}: {1} on {2}'.format(etable.meta['OBS_ID'],
             etable.meta['OBJECT'],etable.meta['DATE-OBS'].replace('T',' at ')),
-            fontsize=18)
+            fontsize=14)
 
     #tstart, tstop, exposure
     exposure = float(etable.meta['EXPOSURE'])

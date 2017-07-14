@@ -423,6 +423,7 @@ def plot_overshoot(etable, overshootrate, gtitable, args, hkmet):
         plot.yscale('log')
         plot.ylim(ymin=10.0)
     return
+
 def plot_SAA(mktable, gtitable, overshootrate):
     time, insaa, colors = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAA'], gtitable)
     time = np.delete(time, np.where(insaa == 0))
@@ -531,7 +532,7 @@ def reset_rate(etable, IDS):
         idx = np.where(np.logical_and(etable['DET_ID'] == IDS[i],
                         etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]))[0]
         nresets[i] = len(idx)
-    
+
     return nresets
 
 def plot_resetrate(IDS, reset_rates):

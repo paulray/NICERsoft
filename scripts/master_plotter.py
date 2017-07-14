@@ -42,8 +42,6 @@ parser.add_argument("--lcbinsize", help="Light curve bin size (s)", default=1.0,
 parser.add_argument("--pi", help="Force use of internal PHA to PI conversion", action='store_true')
 parser.add_argument("--basename", help="Basename for output plots", default=None)
 parser.add_argument("--lclog", help = "make light curve log axis", action = "store_true")
-parser.add_argument("--pslog", help = "make power spectrum log axis", action = "store_true")
-parser.add_argument("--writeps", help = "write out power spectrum", action = "store_true")
 parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed freq (Hz)",
     default=0.0,type=float)
 parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
@@ -52,8 +50,9 @@ parser.add_argument("--map", help= "Creates a map with some stuff on it", action
 parser.add_argument("--orb", help="Path to orbit FITS filed", default = None)
 parser.add_argument("--par", help="Path to par file", default = None)
 parser.add_argument("--sps", help="Path to SPS HK file (_apid0260.hk)",default=None)
-parser.add_argument("--pscoherent",help = "Display the coherent pulsations power spectrum", action = 'store_true')
-parser.add_argument("--psqpo",help = "Display the noise/qpo characterization", action = 'store_true')
+parser.add_argument("--powspec",help = "Display power spectrum (replaces ratio plot)", action = 'store_true')
+parser.add_argument("--pslog", help = "make power spectrum log axis", action = "store_true")
+parser.add_argument("--writeps", help = "write out power spectrum", action = "store_true")
 parser.add_argument("--writeovershoot",help="Write summed overshoot rates to FITS file", action='store_true')
 parser.add_argument("--applygti",help="Read GTI from provided FITS file", default=None)
 parser.add_argument("--filtou",help="Filter Over/Undershoot Events for both flags", action='store_true')
@@ -68,7 +67,7 @@ if args.obsdir:
     if len(args.infiles) == 0:
         # Here we could grab the clean data (cl) or the unfiltered merged (ufa) data.
         # Clean will have no flagged events
-        #args.infiles = glob(path.join(args.obsdir,'xti/event_cl/ni*mpu?_ufa.evt'))
+        # args.infiles = glob(path.join(args.obsdir,'xti/event_cl/ni*mpu?_ufa.evt'))
         args.infiles = glob(path.join(args.obsdir,'xti/event_cl/ni*mpu?_cl.evt'))
         args.infiles.sort()
     if len(args.infiles) == 0:
@@ -98,16 +97,17 @@ if args.obsdir:
 
     mkfiles = glob(path.join(args.obsdir,'auxil/ni*.mkf'))[0]
 
-#Get the concatenated and filtered data 
+#Get the concatenated and filtered data
 etable = filtandmerge(args.infiles,workdir=None)
 
 if args.filtall:
     args.filtswtrig=True
     args.filtovershoot=True
     args.filtundershoot=True
+    args.filtratio=1.4
 
 if not args.sci and not args.eng and not args.map and not args.ratio:
-    log.warning("No specific plot requested, making all")
+    log.info("No specific plot requested, making all")
     args.sci = True
     args.eng = True
     args.map = True
@@ -126,6 +126,8 @@ print(gtitable)
 log.info('Getting MKTable')
 if len(mkfiles) > 0:
     mktable = Table.read(mkfiles,hdu=1)
+else:
+    mktable = None
 
 # Change TIME column name to MET to reflect what it really is
 etable.columns['TIME'].name = 'MET'
@@ -184,7 +186,7 @@ if args.applygti is not None:
 
 log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
 
-# Add Time column with astropy Time for ease of use
+# Add Time column with astropy Time for ease of use and for PINT TOAs
 if args.par is not None:
     log.info('Adding time column')
     # This should really be done the FITS way using MJDREF etc...
@@ -194,6 +196,7 @@ if args.par is not None:
 
 # Set up the light curve bins, so we can have them for building
 # light curves of various quantities, like overshoot rate and ratio filtered events
+# Hmmm. The lc_elapsed_bins and lc_met_bins are never used, but CUMTIME is
 startmet = gtitable['START'][0]
 stopmet = gtitable['STOP'][0]
 duration = stopmet-startmet
@@ -215,6 +218,7 @@ for i in range(1,len(gtitable['START'])):
     cumtime += mylcduration
 gtitable['CUMTIME'] = np.array(cumtimes)
 
+# Define basename for writing output files
 bn = path.basename(args.infiles[0]).split('_')[0]
 log.info('OBS_ID {0}'.format(etable.meta['OBS_ID']))
 if etable.meta['OBS_ID'].startswith('000000'):
@@ -228,7 +232,7 @@ if args.basename is None:
 else:
     basename = args.basename
 
-
+# Overwrite bad OBJECT name, if requested (early FITS all have OBJECT=Crab)
 if args.guessobj and args.obsdir:
     # Trim trailing slash, if needed
     if args.obsdir[-1] == '/':
@@ -288,10 +292,9 @@ else:
     nresets = reset_rate(etable, IDS)
     reset_rates = nresets/etable.meta['EXPOSURE']
 
-
 filttable = etable
 
-#Creating the Background plots
+# Background plots are diagnostics for background rates and filtering
 if args.ratio:
     figure4 = ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable)
     figure4.set_size_inches(16,12)
@@ -299,7 +302,7 @@ if args.ratio:
         log.info('Writing ratio plot {0}'.format(basename))
         figure4.savefig('{0}_bkg.png'.format(basename), dpi = 100)
 
-#Creating engineering plots
+# Engineering plots are reset rates, count rates by detector, and deadtime
 if args.eng:
     figure1 = eng_plots(etable, args, reset_rates, filttable)
     figure1.set_size_inches(16,12)
@@ -312,6 +315,7 @@ if args.eng:
 
 #DELETING ETABLE HERE. USE FILTTABLE FROM NOW ON
 
+# Science plot is light curve, spectrum, pulse profile, and PHA ratio plot (or poweer spectrum)
 if args.sci:
     # Make science plots using filtered events
     figure2 = sci_plots(filttable, gtitable, args)
@@ -323,6 +327,7 @@ if args.sci:
     	else:
         	figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
 
+# Map plot is overshoot and undershoot rates on maps
 if args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
     figure3 = cartography(hkmet, overshootrate, args, undershootrate, filttable)
