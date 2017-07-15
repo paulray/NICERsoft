@@ -19,6 +19,7 @@ from nicer.eng_plots import eng_plots
 from glob import glob
 from nicer.bkg_plots import *
 from nicer.fitsutils import *
+from InteractiveLC import *
 
 parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
 parser.add_argument("infiles", help="Input files", nargs='*')
@@ -56,6 +57,7 @@ parser.add_argument("--writeps", help = "write out power spectrum", action = "st
 parser.add_argument("--writeovershoot",help="Write summed overshoot rates to FITS file", action='store_true')
 parser.add_argument("--applygti",help="Read GTI from provided FITS file", default=None)
 parser.add_argument("--filtou",help="Filter Over/Undershoot Events for both flags", action='store_true')
+parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = 'store_true')
 args = parser.parse_args()
 
 args.hkfiles = []
@@ -106,8 +108,8 @@ if args.filtall:
     args.filtundershoot=True
     args.filtratio=1.4
 
-if not args.sci and not args.eng and not args.map and not args.ratio:
-    log.info("No specific plot requested, making all")
+if not args.sci and not args.eng and not args.map and not args.ratio and not args.interactive:
+    log.warning("No specific plot requested, making all")
     args.sci = True
     args.eng = True
     args.map = True
@@ -313,8 +315,6 @@ if args.eng:
     	else:
         	figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
 
-#DELETING ETABLE HERE. USE FILTTABLE FROM NOW ON
-
 # Science plot is light curve, spectrum, pulse profile, and PHA ratio plot (or poweer spectrum)
 if args.sci:
     # Make science plots using filtered events
@@ -335,6 +335,12 @@ if args.map:
     if args.save:
         log.info('Writing MAP {0}'.format(basename))
         figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
+
+if args.interactive:
+    log.info("Interaction is coming")
+    figure4 = plot.figure()
+    ILC = InteractiveLC(etable, args.lclog, gtitable, figure4, binsize=1.0)
+
 
 # Show all plots at the end, if not saving
 if not args.save:
