@@ -15,23 +15,23 @@ def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mk
 	etable = etable[np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],etable['EVENT_FLAGS'][:,FLAG_FAST])]
 	ratio = np.array(etable['PHA'],dtype=np.float)/np.array(etable['PHA_FAST'],dtype=np.float)
 	badtable = etable[np.where(ratio > 1.4)[0]]
-        r, lc = plot_light_curve(badtable, args.lclog, gtitable, binsize=16.0)
-        plt.legend(handles = [lc], loc = 2)
+	r, lc = plot_light_curve(badtable, args.lclog, gtitable, binsize=16.0)
+	plt.legend(handles = [lc], loc = 2)
 	#Overshoot rate plot -- use --lclog to make it a log y axis
 	log.info('Building overshoot plot')
 	plt.subplot(ratio_grid[5:9,:4])
 	plot_overshoot(etable, overshootrate, gtitable, args, hkmet)
-        plot_SAA(mktable, gtitable, overshootrate)
+	plot_SAA(mktable, gtitable, overshootrate)
 
 	#Plot of undershoot rate
 	log.info('Building undershoot plot')
 	plt.subplot(ratio_grid[9:13,:4])
 	plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable)
-        
+
 	#Plot of Sun / Moon
 	log.info('Building Sun / Moon / Earth angle Plot')
-	plt.subplot(ratio_grid[13:17,:4])	
-	plot_angles(mktable, gtitable)	
+	plt.subplot(ratio_grid[13:17,:4])
+	plot_angles(mktable, gtitable)
 
 	#Pointing plot
 	plt.subplot(ratio_grid[17:21,:4])
@@ -47,4 +47,3 @@ def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mk
 	#plt.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .95, hspace = .95)
 	plt.tight_layout()
 	return figure
-
