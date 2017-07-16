@@ -188,14 +188,6 @@ if args.applygti is not None:
 
 log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
 
-# Add Time column with astropy Time for ease of use and for PINT TOAs
-if args.par is not None:
-    log.info('Adding time column')
-    # This should really be done the FITS way using MJDREF etc...
-    # For now, just using MET0
-    etime = filttable.columns['MET'] + MET0
-    filttable['T'] = etime
-
 # Set up the light curve bins, so we can have them for building
 # light curves of various quantities, like overshoot rate and ratio filtered events
 # Hmmm. The lc_elapsed_bins and lc_met_bins are never used, but CUMTIME is
@@ -296,13 +288,25 @@ else:
 
 filttable = etable
 
+# Add Time column with astropy Time for ease of use and for PINT TOAs
+if args.par is not None:
+    log.info('Adding time column')
+    # This should really be done the FITS way using MJDREF etc...
+    # For now, just using MET0
+    etime = filttable.columns['MET'] + MET0
+    filttable['T'] = etime
+
+
 # Background plots are diagnostics for background rates and filtering
 if args.bkg:
-    figure4 = bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable)
-    figure4.set_size_inches(16,12)
-    if args.save:
-        log.info('Writing bkg plot {0}'.format(basename))
-        figure4.savefig('{0}_bkg.png'.format(basename), dpi = 100)
+    if hkmet is None:
+        log.error("Can't make background plots without MPU HKP files")
+    else:
+        figure4 = bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable)
+        figure4.set_size_inches(16,12)
+        if args.save:
+            log.info('Writing bkg plot {0}'.format(basename))
+            figure4.savefig('{0}_bkg.png'.format(basename), dpi = 100)
 
 # Engineering plots are reset rates, count rates by detector, and deadtime
 if args.eng:

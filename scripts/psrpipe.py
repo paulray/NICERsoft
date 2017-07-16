@@ -100,8 +100,12 @@ for obsdir in args.indirs:
     runcmd(cmd)
 
     # Add phases and plot, if requested
-    cmd = ["python", "master_plotter.py", "--filtall", "--emin", "{0}".format(args.emin),
-        "--emax", "{0}".format(args.emax), "--obsdir", "{0}".format(args.pipedir),
-        "--sci", "--eng", "--bkg"]
+    cmd = ["master_plotter.py", "--save", "--filtall", 
+           "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax), 
+           "--orb", path.join(pipedir,orbfile), 
+           "--sci", "--eng", path.join(pipedir,"clean.evt"),
+           "--basename", path.join(pipedir,basename)]
     if args.par is not None:
-        cmd.append(["--par", "{0}".args.par])
+        cmd.append("--par")
+        cmd.append("{0}".format(args.par))
+    runcmd(cmd)
