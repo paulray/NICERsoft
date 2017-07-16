@@ -18,6 +18,7 @@ parser.add_argument("--emin", help="Minimum energy to include (keV)", default=0.
 parser.add_argument("--emax", help="Maximum energy to include (kev)", default=8.0)
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
     default=None)
+parser.add_argument("--par", help="Par file to use for phases")
 args = parser.parse_args()
 
 os.environ['HEADASNOQUERY'] = ' '
@@ -99,3 +100,8 @@ for obsdir in args.indirs:
     runcmd(cmd)
 
     # Add phases and plot, if requested
+    cmd = ["python", "master_plotter.py", "--filtall", "--emin", "{0}".format(args.emin),
+        "--emax", "{0}".format(args.emax), "--obsdir", "{0}".pipedir,
+        "--sci", "--eng", "--bkg"]
+    if args.par is not None:
+        cmd.append(["--par", "{0}".args.par])

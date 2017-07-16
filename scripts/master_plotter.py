@@ -30,7 +30,7 @@ parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, defau
 parser.add_argument("-s", "--save", help = "Save plots to file", action = "store_true")
 parser.add_argument("--sci", help = "Makes some nice science plots", action = "store_true")
 parser.add_argument("--eng", help = "Makes some nice engineering plots", action = "store_true")
-parser.add_argument("--ratio", help = "Display extra figure with diagnostic data", action = 'store_true')
+parser.add_argument("--bkg", help = "Display background diagnostic plots", action = 'store_true')
 parser.add_argument("--filtswtrig", help = "Filter SW TRIG events", action = "store_true")
 parser.add_argument("--filtovershoot", help = "Filter OVERSHOOT events", action = "store_true")
 parser.add_argument("--filtundershoot", help = "Filter UNDERSHOOT events", action = "store_true")
@@ -47,7 +47,7 @@ parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed
     default=0.0,type=float)
 parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
     default=100.0,type=float)
-parser.add_argument("--map", help= "Creates a map with some stuff on it", action = 'store_true')
+parser.add_argument("--map", help= "Creates a map with overshoots and undershoots", action = 'store_true')
 parser.add_argument("--orb", help="Path to orbit FITS filed", default = None)
 parser.add_argument("--par", help="Path to par file", default = None)
 parser.add_argument("--sps", help="Path to SPS HK file (_apid0260.hk)",default=None)
@@ -108,12 +108,12 @@ if args.filtall:
     args.filtundershoot=True
     args.filtratio=1.4
 
-if not args.sci and not args.eng and not args.map and not args.ratio and not args.interactive:
+if not args.sci and not args.eng and not args.map and not args.bkg and not args.interactive:
     log.warning("No specific plot requested, making all")
     args.sci = True
     args.eng = True
     args.map = True
-    args.ratio = True
+    args.bkg = True
 
 # Read the GTIs from the first event FITS file
 gtitable = Table.read(args.infiles[0],hdu=2)
@@ -297,11 +297,11 @@ else:
 filttable = etable
 
 # Background plots are diagnostics for background rates and filtering
-if args.ratio:
-    figure4 = ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable)
+if args.bkg:
+    figure4 = bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable)
     figure4.set_size_inches(16,12)
     if args.save:
-        log.info('Writing ratio plot {0}'.format(basename))
+        log.info('Writing bkg plot {0}'.format(basename))
         figure4.savefig('{0}_bkg.png'.format(basename), dpi = 100)
 
 # Engineering plots are reset rates, count rates by detector, and deadtime

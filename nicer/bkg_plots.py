@@ -5,13 +5,13 @@ from astropy import log
 
 from plotutils import *
 
-def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable):
+def bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable):
 	figure = plt.figure(figsize = (8.5, 11), facecolor = 'white')
-   	ratio_grid = gridspec.GridSpec(25,4)
+   	bkg_grid = gridspec.GridSpec(25,4)
 
 	#Lightcurve of Rejected events
 	log.info('Building Rejected Event Light curve')
-	plt.subplot(ratio_grid[1:5,:4])
+	plt.subplot(bkg_grid[1:5,:4])
 	etable = etable[np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],etable['EVENT_FLAGS'][:,FLAG_FAST])]
 	ratio = np.array(etable['PHA'],dtype=np.float)/np.array(etable['PHA_FAST'],dtype=np.float)
 	badtable = etable[np.where(ratio > 1.4)[0]]
@@ -19,26 +19,26 @@ def ratio_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mk
 	plt.legend(handles = [lc], loc = 2)
 	#Overshoot rate plot -- use --lclog to make it a log y axis
 	log.info('Building overshoot plot')
-	plt.subplot(ratio_grid[5:9,:4])
+	plt.subplot(bkg_grid[5:9,:4])
 	plot_overshoot(etable, overshootrate, gtitable, args, hkmet)
 	plot_SAA(mktable, gtitable, overshootrate)
 
 	#Plot of undershoot rate
 	log.info('Building undershoot plot')
-	plt.subplot(ratio_grid[9:13,:4])
+	plt.subplot(bkg_grid[9:13,:4])
 	plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable)
 
 	#Plot of Sun / Moon
 	log.info('Building Sun / Moon / Earth angle Plot')
-	plt.subplot(ratio_grid[13:17,:4])
+	plt.subplot(bkg_grid[13:17,:4])
 	plot_angles(mktable, gtitable)
 
 	#Pointing plot
-	plt.subplot(ratio_grid[17:21,:4])
+	plt.subplot(bkg_grid[17:21,:4])
 	plot_pointing(mktable, gtitable)
 
 	#Plot of LAT / Long
-	plt.subplot(ratio_grid[21:25,:4])
+	plt.subplot(bkg_grid[21:25,:4])
 	plot_latlon(mktable, gtitable)
 
 
