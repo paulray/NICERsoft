@@ -14,8 +14,8 @@ from nicer.values import *
 
 parser = argparse.ArgumentParser(description = "Process NICER pulsar data.  Output will be written in current working directory.")
 parser.add_argument("indirs", help="Input directories to process", nargs='+')
-parser.add_argument("--emin", help="Minimum energy to include (keV)", default=0.3)
-parser.add_argument("--emax", help="Maximum energy to include (kev)", default=8.0)
+parser.add_argument("--emin", help="Minimum energy to include (keV)", type=float, default=0.3)
+parser.add_argument("--emax", help="Maximum energy to include (kev)", type=float, default=8.0)
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
     default=None)
 parser.add_argument("--par", help="Par file to use for phases")
