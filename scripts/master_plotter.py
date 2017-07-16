@@ -26,6 +26,7 @@ parser.add_argument("infiles", help="Input files", nargs='*')
 parser.add_argument("--obsdir",help = "Find alllllllll the files!")
 parser.add_argument("--object", help="Override object name", default=None)
 parser.add_argument("--guessobj", help="Try to guess object from directory name", action="store_true")
+parser.add_argument("--useftools", help="Use FTOOLS for filter and merge", action="store_true")
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("-s", "--save", help = "Save plots to file", action = "store_true")
 parser.add_argument("--sci", help = "Makes some nice science plots", action = "store_true")
@@ -99,13 +100,29 @@ if args.obsdir:
 
     mkfiles = glob(path.join(args.obsdir,'auxil/ni*.mkf'))[0]
 
-#Get the concatenated and filtered data
+# Get the concatenated and filtered data
 # Use fileandmerge (FTOOLS) only if we have more than one file and filtall is specified
-if args.filtall and len(args.infiles) > 1:
+if args.useftools:
     etable = filtandmerge(args.infiles,workdir=None)
 else:
-    # FIXME!  Restore old reading method!
-    pass
+    log.info('Reading files')
+    tlist = []
+    for fn in args.infiles:
+        log.info('Reading file {0}'.format(fn))
+        tlist.append(Table.read(fn,hdu=1))
+        if len(tlist[0]) > 3000000:
+            log.error('There is too much data to handle. Not processing...')
+            sys.exit(3)
+    log.info('Concatenating files')
+    if len(tlist) == 1:
+        etable = tlist[0]
+    else:
+        etable = vstack(tlist,metadata_conflicts='silent')
+    del tlist
+
+if len(etable)==0:
+    log.error('No events loaded, bailing!')
+    sys.exit(0)
 
 if args.filtall:
     args.filtswtrig=True
@@ -291,7 +308,37 @@ else:
     nresets = reset_rate(etable, IDS)
     reset_rates = nresets/etable.meta['EXPOSURE']
 
-filttable = etable
+log.info('Filtering...')
+filt_str = 'Filter: {0:.2f} < E < {1:.2f} keV'.format(args.emin,args.emax)
+if args.emin >= 0:
+    b4 = etable['PI'] > args.emin/PI_TO_KEV
+else:
+    b4 = np.ones_like(etable['PI'],dtype=np.bool)
+if args.emax >= 0:
+    b4 = np.logical_and(b4, etable['PI']< args.emax/PI_TO_KEV)
+
+if args.filtswtrig:
+    b1 = etable['EVENT_FLAGS'][:,FLAG_SWTRIG] == False
+    filt_str += ", not SWTRIG"
+else:
+    b1 = np.ones_like(etable['PI'],dtype=np.bool)
+if args.filtundershoot:
+    b2 = etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == False
+    filt_str += ", not UNDERSHOOT"
+else:
+    b2 = np.ones_like(etable['PI'],dtype=np.bool)
+if args.filtovershoot:
+    b3 = etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == False
+    filt_str += ", not OVERSHOOT"
+else:
+    b3 = np.ones_like(etable['PI'],dtype=np.bool)
+
+idx = np.where(b1 & b2 & b3 & b4)[0]
+del b1, b2, b3, b4
+filttable = etable[idx]
+filttable.meta['FILT_STR'] = filt_str
+etable.meta['FILT_STR'] = filt_str
+
 
 # Add Time column with astropy Time for ease of use and for PINT TOAs
 if args.par is not None:
