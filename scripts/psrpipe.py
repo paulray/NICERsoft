@@ -16,6 +16,7 @@ parser = argparse.ArgumentParser(description = "Process NICER pulsar data.  Outp
 parser.add_argument("indirs", help="Input directories to process", nargs='+')
 parser.add_argument("--emin", help="Minimum energy to include (keV)", type=float, default=0.3)
 parser.add_argument("--emax", help="Maximum energy to include (kev)", type=float, default=8.0)
+parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
     default=None)
 parser.add_argument("--par", help="Par file to use for phases")
@@ -52,6 +53,17 @@ for obsdir in args.indirs:
     if not os.path.exists(pipedir):
         os.makedirs(pipedir)
 
+    cmd = ["master_plotter.py", "--save", "--filtall",
+           "--guessobj", "--lclog",
+           "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
+           "--sci", "--eng", "--bkg", "--obsdir", obsdir,
+           "--basename", path.join(pipedir,basename)]
+    if args.par is not None:
+        cmd.append("--par")
+        cmd.append("{0}".format(args.par))
+    runcmd(cmd)
+
+
     # Get event filenames (could be just one)
     evfiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu?_cl.evt'))
     evfiles.sort()
@@ -84,6 +96,9 @@ for obsdir in args.indirs:
     fout = file(evlistname,'w')
     evfilt_expr = '(PI>{0}).and.(PI<{1}).and.(EVENT_FLAGS==bx1x000)'.format(
         args.emin*KEV_TO_PI, args.emax*KEV_TO_PI)
+    if args.mask is not None:
+        for detid in args.mask:
+            evfilt_expr += ".and.(DET_ID!={0})".format(detid)
     for en in evfiles:
         print('{0}[{1}]'.format(en,evfilt_expr),file=fout)
     fout.close()
@@ -100,10 +115,10 @@ for obsdir in args.indirs:
     runcmd(cmd)
 
     # Add phases and plot, if requested
-    cmd = ["master_plotter.py", "--save", "--filtall", 
-           "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax), 
-           "--orb", path.join(pipedir,orbfile), 
-           "--sci", "--eng", path.join(pipedir,"clean.evt"),
+    cmd = ["master_plotter.py", "--save", "--filtall",
+           "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
+           "--orb", path.join(pipedir,orbfile),
+           "--sci", path.join(pipedir,"clean.evt"),
            "--basename", path.join(pipedir,basename)]
     if args.par is not None:
         cmd.append("--par")

@@ -100,7 +100,12 @@ if args.obsdir:
     mkfiles = glob(path.join(args.obsdir,'auxil/ni*.mkf'))[0]
 
 #Get the concatenated and filtered data
-etable = filtandmerge(args.infiles,workdir=None)
+# Use fileandmerge (FTOOLS) only if we have more than one file and filtall is specified
+if args.filtall and len(args.infiles) > 1:
+    etable = filtandmerge(args.infiles,workdir=None)
+else:
+    # FIXME!  Restore old reading method!
+    pass
 
 if args.filtall:
     args.filtswtrig=True
@@ -168,7 +173,7 @@ if args.pi or not ('PI' in etable.colnames):
     etable['PI'] = pi
 
 #filtering out chosen IDS
-if args.mask != None:
+if args.mask is not None:
     log.info('Masking IDS')
     for id in args.mask:
         etable = etable[np.where(etable['DET_ID'] != id)]
