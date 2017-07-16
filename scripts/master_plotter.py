@@ -271,19 +271,20 @@ if len(args.hkfiles) > 0:
     undershootrate = td['MPU_UNDER_COUNT'].sum(axis=1)
     reset_rates = td['MPU_UNDER_COUNT'].sum(axis=0)
     for fn in hkfiles[1:]:
-	log.info('Reading '+fn)
-	hdulist = pyfits.open(fn)
-	mytd = hdulist[1].data
-	mymet = mytd['TIME']
-	myovershootrate = mytd['MPU_OVER_COUNT'].sum(axis=1)
-	myundershootrate = mytd['MPU_UNDER_COUNT'].sum(axis=1)
-	myreset = mytd['MPU_UNDER_COUNT'].sum(axis=0)
+        log.info('Reading '+fn)
+        hdulist = pyfits.open(fn)
+        mytd = hdulist[1].data
+        mymet = mytd['TIME']
+        myovershootrate = mytd['MPU_OVER_COUNT'].sum(axis=1)
+        myundershootrate = mytd['MPU_UNDER_COUNT'].sum(axis=1)
+        myreset = mytd['MPU_UNDER_COUNT'].sum(axis=0)
         if not np.all(mymet == hkmet):
-	    log.error('TIME axes are not compatible')
-	    sys.exit(1)
-	overshootrate += myovershootrate
-	undershootrate += myundershootrate
-	reset_rates= np.append(reset_rates,myreset)
+            log.error('TIME axes are not compatible')
+            print mymet, hkmet
+            sys.exit(1)
+        overshootrate += myovershootrate
+        undershootrate += myundershootrate
+        reset_rates= np.append(reset_rates,myreset)
     del hdulist
 
     if args.filtou:
