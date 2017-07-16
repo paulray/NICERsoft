@@ -101,7 +101,7 @@ for obsdir in args.indirs:
 
     # Add phases and plot, if requested
     cmd = ["python", "master_plotter.py", "--filtall", "--emin", "{0}".format(args.emin),
-        "--emax", "{0}".format(args.emax), "--obsdir", "{0}".pipedir,
+        "--emax", "{0}".format(args.emax), "--obsdir", "{0}".format(args.pipedir),
         "--sci", "--eng", "--bkg"]
     if args.par is not None:
         cmd.append(["--par", "{0}".args.par])
