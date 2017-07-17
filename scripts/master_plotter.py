@@ -205,8 +205,8 @@ if args.applygti is not None:
     print g
     etable = apply_gti(etable,g)
     # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
-    #filttable.meta['EXPOSURE'] = g['DURATION'].sum()
-    #gtitable = g
+    etable.meta['EXPOSURE'] = g['DURATION'].sum()
+    gtitable = g
 
 log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
 
@@ -278,18 +278,20 @@ if len(args.hkfiles) > 0:
         mymet = mytd['TIME']
         myovershootrate = mytd['MPU_OVER_COUNT'].sum(axis=1)
         myundershootrate = mytd['MPU_UNDER_COUNT'].sum(axis=1)
-        myreset = mytd['MPU_UNDER_COUNT'].sum(axis=0)
+        # If time axis is bad, skip this MPU.
+        # Should fix this!
         if not np.all(mymet == hkmet):
             log.error('TIME axes are not compatible')
-            sys.exit(1)
-        overshootrate += myovershootrate
-        undershootrate += myundershootrate
+        else:
+            overshootrate += myovershootrate
+            undershootrate += myundershootrate
+        myreset = mytd['MPU_UNDER_COUNT'].sum(axis=0)
         reset_rates= np.append(reset_rates,myreset)
     del hdulist
 
 else:
     hkmet = None
-    overshootrate=None
+    overshootrate = None
     undershootrate = None
     nresets = reset_rate(etable, IDS)
     reset_rates = nresets/etable.meta['EXPOSURE']

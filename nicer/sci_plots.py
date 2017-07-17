@@ -15,7 +15,7 @@ def sci_plots(etable, gtitable, args):
     if not args.powspec:
         log.info('Building fast/slow subplot')
         plt.subplot(sci_grid[1:3,2:5])
-        plot_slowfast(etable)
+        plot_slowfast(etable,args)
 
     # Now, filter out the points above the ratio cut, if requested
     if args.filtratio > 0:
