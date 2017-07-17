@@ -9,6 +9,7 @@ from os import path
 from glob import glob
 from subprocess import check_call
 import shutil
+from astropy.table import Table
 
 from nicer.values import *
 
@@ -60,7 +61,7 @@ for obsdir in args.indirs:
            "--guessobj", "--lclog", "--useftools",
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--sci", "--eng", "--bkg", "--obsdir", obsdir,
-           "--basename", path.join(pipedir,basename)]
+           "--basename", path.join(pipedir,basename)+'_prefilt']
     if args.par is not None:
         cmd.append("--par")
         cmd.append("{0}".format(args.par))
@@ -82,24 +83,38 @@ for obsdir in args.indirs:
     mkfile = glob(path.join(obsdir,'auxil/ni*.mkf'))[0]
     log.info('MKF File: {0}'.format(mkfile))
 
+    #  Get ATT hk files
+    attfile = glob(path.join(obsdir,'auxil/ni*.att'))[0]
+    log.info('ATT HK File: {0}'.format(attfile))
+
     #  Get MPU hk files
     hkfiles = glob(path.join(obsdir,'xti/hk/ni*.hk'))
     hkfiles.sort()
     log.info('MPU HK Files: {0}'.format("\n" + "    \n".join(hkfiles)))
 
-    #  Get ATT hk files
-    attfile = glob(path.join(obsdir,'xti/hk/ni*.att'))[0]
-    log.info('ATT HK File: {0}'.format(attfile))
 
     # Create GTI from .mkf file
     if args.ultraclean:
         mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0)'
     else:
         mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01)'
-    gtiname = path.join(pipedir,'good.gti')
-    cmd = ["maketime", mkfile, gtiname, 'expr={0}'.format(mkf_expr),
+    gtiname1 = path.join(pipedir,'mkf.gti')
+    cmd = ["maketime", mkfile, gtiname1, 'expr={0}'.format(mkf_expr),
         "compact=no", "time=TIME", "clobber=yes"]
     runcmd(cmd)
+    if len(Table.read(gtiname1,hdu=1))==0:
+        log.error('No good time left after filtering!')
+        sys.exit(0)
+
+    # Create GTI from attitude data
+    gtiname2 = path.join(pipedir,'att.gti')
+    att_expr = '(MODE.eq.1).and.(SUBMODE_AZ.eq.2).and.(SUBMODE_EL.eq.2)'
+    cmd = ["maketime", attfile, gtiname2, 'expr={0}'.format(att_expr),
+        "compact=no", "time=TIME", "clobber=yes"]
+    runcmd(cmd)
+    if len(Table.read(gtiname2,hdu=1))==0:
+        log.error('No good time left after filtering!')
+        sys.exit(0)
 
     # Build input file for ftmerge
     evlistname=path.join(pipedir,'evfiles.txt')
@@ -119,9 +134,20 @@ for obsdir in args.indirs:
         "clobber=yes"]
     runcmd(cmd)
 
-    # Now apply the good GTI to remove SAA and slew time ranges
+    gtiname_merged = path.join(pipedir,"tot.gti")
+    try:
+        os.remove(gtiname_merged)
+    except:
+        pass
+    cmd = ["mgtime", "{0},{1},{2}+2".format(gtiname1,gtiname2,mergedname), gtiname_merged, "AND"]
+    runcmd(cmd)
+
+
+    ## Now apply the good GTI to remove SAA and slew time ranges
+    #### SHOULD REPLACE THIS WITH niextract-events, which updates GTI as well
+    #### Then we would not need to applygti in the master_plotter call later
     filteredname = path.join(pipedir,"clean.evt")
-    cmd = ["fltime", mergedname, gtiname, filteredname, "copyall=yes", "clobber=yes"]
+    cmd = ["fltime", mergedname, gtiname_merged, filteredname, "copyall=yes", "clobber=yes"]
     runcmd(cmd)
 
     # Add phases and plot, if requested
@@ -130,6 +156,7 @@ for obsdir in args.indirs:
         maxratio=1.14
     cmd = ["master_plotter.py", "--save", "--filtratio", "{0}".format(maxratio),
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
+           "--applygti", gtiname_merged,
            "--orb", path.join(pipedir,orbfile),
            "--sci", path.join(pipedir,"clean.evt"),
            "--basename", path.join(pipedir,basename)]

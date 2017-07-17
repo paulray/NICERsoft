@@ -205,8 +205,8 @@ if args.applygti is not None:
     print g
     etable = apply_gti(etable,g)
     # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
-    #filttable.meta['EXPOSURE'] = g['DURATION'].sum()
-    #gtitable = g
+    etable.meta['EXPOSURE'] = g['DURATION'].sum()
+    gtitable = g
 
 log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
 

@@ -154,7 +154,7 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0):
     return mean_rate, lc
 
 #-------------------------------THIS PLOTS THE FAST TO SLOW___------------------
-def plot_slowfast(etable):
+def plot_slowfast(etable,args):
     'Scatter plot of PI and fast PHA, highlighting points above ratio cut'
     log.info('Counting slow and fast')
    # First do some counts
@@ -171,7 +171,7 @@ def plot_slowfast(etable):
     # Ratio is SLOW to FAST. Edge events should have ratio bigger than cut
     ratio = np.array(etable['PHA'],dtype=np.float)/np.array(etable['PHA_FAST'],dtype=np.float)
 
-    ratio_cut = 1.4
+    ratio_cut = args.filtratio
     colors = np.array(['k']*len(ratio))
     idx = np.where(ratio>ratio_cut)[0]
     colors[idx] = 'r'
