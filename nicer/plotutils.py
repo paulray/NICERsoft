@@ -420,13 +420,13 @@ def plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate):
     plot.scatter(etime, overshoot, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='+')
     if bothrate is not None:
         etime, both, cc = convert_to_elapsed_goodtime(hkmet, bothrate, gtitable)
-        plot.scatter(etime, both, color = 'c', marker='_', label='Both Under and Over Flags')
+        plot.scatter(etime, both, color = 'c', marker='.', label='Both Under and Over Flags')
         plot.legend(loc = 2)
     plot.ylabel('Overshoot rate')
 
     if args.lclog:
         plot.yscale('log')
-        plot.ylim(ymin=10.0)
+        plot.ylim(ymin=1.0)
     return
 
 def plot_SAA(mktable, gtitable, overshootrate):
@@ -472,19 +472,22 @@ def plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable):
 
 #-------------------------SUN / EARTH / MOON ANGLES-----------------------------
 def plot_angles(mktable, gtitable):
-    sun = mktable['SUN_ANGLE'][0:-1]
-    earth = mktable['BR_EARTH'][0:-1]
-    moon = mktable['MOON_ANGLE'][0:-1]
-    met = mktable['TIME'][0:-1]
+    sun = mktable['SUN_ANGLE']
+    earth = mktable['BR_EARTH']
+    moon = mktable['MOON_ANGLE']
+    elv = mktable['ELV']
+    met = mktable['TIME']
 
 
     goodtime, sunangle, cc = convert_to_elapsed_goodtime(met, sun, gtitable)
     goodtime, earthangle, cc = convert_to_elapsed_goodtime(met, earth, gtitable)
     goodtime, moonangle, cc = convert_to_elapsed_goodtime(met, moon, gtitable)
+    goodtime, elvangle, cc = convert_to_elapsed_goodtime(met, elv, gtitable)
 
-    plot.scatter(goodtime, sunangle, marker = '.', color = 'y', label = 'Sun')
-    plot.scatter(goodtime, earthangle, marker ='.', color = 'b', label = 'Bright Earth')
+    plot.scatter(goodtime, sunangle, marker = '.', color = 'y', alpha=0.5, label = 'Sun')
+    plot.scatter(goodtime, earthangle, marker ='.', color = 'b', alpha=0.5, label = 'Bright Earth')
     plot.scatter(goodtime, moonangle, marker = '.', color = 'grey', alpha = 0.5, label = 'Moon')
+    plot.scatter(goodtime, elvangle, marker = '.', color = 'm', alpha = 0.5, label = 'ELV')
     plot.legend(loc = 2)
     plot.ylim((0.0,180.0))
     plot.grid(True)
@@ -527,7 +530,7 @@ def plot_latlon(mktable, gtitable):
     plot.ylabel('Degrees')
     return
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-------
-def reset_rate(etable, IDS):
+def calc_nresets(etable, IDS):
     'Count resets (detector undershoots) for each detector'
 
     nresets = np.zeros_like(IDS)

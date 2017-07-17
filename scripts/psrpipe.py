@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
-import os
+import os, sys
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse
@@ -60,7 +60,7 @@ for obsdir in args.indirs:
            "--writeovershoot",
            "--guessobj", "--lclog", "--useftools",
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
-           "--sci", "--eng", "--bkg", "--obsdir", obsdir,
+           "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
            "--basename", path.join(pipedir,basename)+'_prefilt']
     if args.par is not None:
         cmd.append("--par")

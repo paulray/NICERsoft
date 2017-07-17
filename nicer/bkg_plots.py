@@ -16,7 +16,8 @@ def bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mkta
     ratio = np.array(etable['PHA'],dtype=np.float)/np.array(etable['PHA_FAST'],dtype=np.float)
     badtable = etable[np.where(ratio > 1.4)[0]]
     r, lc = plot_light_curve(badtable, args.lclog, gtitable, binsize=16.0)
-    plt.legend(handles = [lc], loc = 2)
+    #plt.legend(handles = [lc], loc = 2)
+    plt.annotate('Ratio-rejected event light curve', xy=(0.03, 0.85), xycoords='axes fraction')
     #Overshoot rate plot -- use --lclog to make it a log y axis
     log.info('Building overshoot plot')
     plt.subplot(bkg_grid[5:9,:4])

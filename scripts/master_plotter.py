@@ -269,7 +269,7 @@ if len(args.hkfiles) > 0:
         hkmet.max(),hkmet.max()-hkmet.min()))
     overshootrate = td['MPU_OVER_COUNT'].sum(axis=1)
     undershootrate = td['MPU_UNDER_COUNT'].sum(axis=1)
-    reset_rates = td['MPU_UNDER_COUNT'].sum(axis=0)
+    nresets = td['MPU_UNDER_COUNT'].sum(axis=0)
 
     for fn in hkfiles[1:]:
         log.info('Reading '+fn)
@@ -286,26 +286,31 @@ if len(args.hkfiles) > 0:
             overshootrate += myovershootrate
             undershootrate += myundershootrate
         myreset = mytd['MPU_UNDER_COUNT'].sum(axis=0)
-        reset_rates= np.append(reset_rates,myreset)
+        nresets = np.append(nresets,myreset)
     del hdulist
+    reset_rates = nresets / np.float(etable.meta['EXPOSURE'])
 
 else:
     hkmet = None
     overshootrate = None
     undershootrate = None
-    nresets = reset_rate(etable, IDS)
+    nresets = calc_nresets(etable, IDS)
     reset_rates = nresets/etable.meta['EXPOSURE']
 
 if args.eventshootrate:
     log.info('Getting event over/under shoot rates')
-    b1 = np.where(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == True)
-    b2 = np.where(etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True)
-    b3 = np.intersect1d(b1,b2)
-    time = etable['MET'][b3]
-    bothrate,a = np.histogram(time,np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0])))
-    eventundershoot, bins = np.histogram(etable['MET'][b1],np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0])))
-    eventovershoot = overshootrate - bothrate
-    del b1, b2, b3, time, a,bins
+    # Define bins for hkmet histogram
+    hkmetbins = np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0]))
+    idx = np.logical_and(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]==True,
+                         etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT]==True)
+    bothrate, edges = np.histogram(etable['MET'][idx],hkmetbins)
+    idx = np.logical_and(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]==True,
+                         etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT]==False)
+    eventundershoot, edges = np.histogram(etable['MET'][idx],hkmetbins)
+    idx = np.logical_and(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]==False,
+                         etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT]==True)
+    eventovershoot, edges = np.histogram(etable['MET'][idx],hkmetbins)
+    del idx, edges
 else:
     bothrate = None
     eventundershoot = None
@@ -369,7 +374,10 @@ if args.bkg:
     if hkmet is None:
         log.error("Can't make background plots without MPU HKP files")
     else:
-        figure4 = bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable, bothrate)
+        if eventovershoot is not None:
+            figure4 = bkg_plots(etable, eventovershoot, gtitable, args, hkmet, eventundershoot, mktable, bothrate)
+        else:
+            figure4 = bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable, bothrate)
         figure4.set_size_inches(16,12)
         if args.save:
             log.info('Writing bkg plot {0}'.format(basename))
@@ -401,7 +409,10 @@ if args.sci:
 # Map plot is overshoot and undershoot rates on maps
 if args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
-    figure3 = cartography(hkmet, overshootrate, args, undershootrate, filttable)
+    if eventovershoot is not None:
+        figure3 = cartography(hkmet, eventovershoot, args, eventundershoot, filttable)
+    else:
+        figure3 = cartography(hkmet, overshootrate, args, undershootrate, filttable)
 
     if args.save:
         log.info('Writing MAP {0}'.format(basename))
@@ -412,7 +423,7 @@ if args.interactive:
     figure4 = plot.figure()
     ILC = InteractiveLC(etable, args.lclog, gtitable, figure4, basename, binsize=1.0)
     ILC.getgoodtimes()
-    ILC.writegti() 
+    ILC.writegti()
 # Show all plots at the end, if not saving
 if not args.save:
     log.info('Showing plots...')
