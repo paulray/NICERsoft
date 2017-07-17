@@ -57,7 +57,7 @@ parser.add_argument("--pslog", help = "make power spectrum log axis", action = "
 parser.add_argument("--writeps", help = "write out power spectrum", action = "store_true")
 parser.add_argument("--writeovershoot",help="Write summed overshoot rates to FITS file", action='store_true')
 parser.add_argument("--applygti",help="Read GTI from provided FITS file", default=None)
-parser.add_argument("--filtou",help="Filter Over/Undershoot Events for both flags", action='store_true')
+parser.add_argument("--eventshootrate",help="Gets over/undershoot rates from the events", action='store_true')
 parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = 'store_true')
 args = parser.parse_args()
 
@@ -270,6 +270,7 @@ if len(args.hkfiles) > 0:
     overshootrate = td['MPU_OVER_COUNT'].sum(axis=1)
     undershootrate = td['MPU_UNDER_COUNT'].sum(axis=1)
     reset_rates = td['MPU_UNDER_COUNT'].sum(axis=0)
+
     for fn in hkfiles[1:]:
         log.info('Reading '+fn)
         hdulist = pyfits.open(fn)
@@ -286,27 +287,36 @@ if len(args.hkfiles) > 0:
         reset_rates= np.append(reset_rates,myreset)
     del hdulist
 
-    if args.filtou:
-        b1 = np.where(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == True)
-        b2 = np.where(etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True)
-        b3 = np.intersect1d(b1,b2)
-        time = etable['MET'][b3]
-        counts,a = np.histogram(time,np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0])))
-        overshootrate = overshootrate - counts
-        del b1, b2, b3, time, counts, a
-    # Write overshoot and undershoot rates to file for filtering
-    if args.writeovershoot:
-        tcol = pyfits.Column(name='TIME',unit='S',array=hkmet,format='D')
-        ocol = pyfits.Column(name='OVERSHOOT',array=overshootrate,format='D')
-        ucol = pyfits.Column(name='UNDERSHOOT',array=undershootrate,format='D')
-        ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol], name='HKP')
-        ovhdu.writeto("{0}.ovs".format(basename),overwrite=True,checksum=True)
 else:
     hkmet = None
     overshootrate=None
     undershootrate = None
     nresets = reset_rate(etable, IDS)
     reset_rates = nresets/etable.meta['EXPOSURE']
+
+if args.eventshootrate:
+    log.info('Getting event over/under shoot rates')
+    b1 = np.where(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT] == True)
+    b2 = np.where(etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True)
+    b3 = np.intersect1d(b1,b2)
+    time = etable['MET'][b3]
+    both,a = np.histogram(time,np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0])))
+    eventundershoot, bins = np.histogram(etable['MET'][b1],np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0])))
+    eventovershoot = overshootrate - both
+    del b1, b2, b3, time, a, bins
+
+# Write overshoot and undershoot rates to file for filtering
+if args.writeovershoot:
+    log.info('Writing over/undershoot rates')
+    tcol = pyfits.Column(name='TIME',unit='S',array=hkmet,format='D')
+    ocol = pyfits.Column(name='HK OVERSHOOT',array=overshootrate,format='D')
+    ucol = pyfits.Column(name='HK UNDERSHOOT',array=undershootrate,format='D')
+    eocol = pyfits.Column(name='EVENT OVERSHOOT',array=eventovershoot,format='D')
+    eucol = pyfits.Column(name='EVENT UNDERSHOOT',array=eventundershoot,format='D')
+    bothcol = pyfits.Column(name='EVENT BOTH',array=both,format='D')
+
+    ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, eucol,bothcol], name='HKP')
+    ovhdu.writeto("{0}.ovs".format(basename),overwrite=True,checksum=True)
 
 log.info('Filtering...')
 filt_str = 'Filter: {0:.2f} < E < {1:.2f} keV'.format(args.emin,args.emax)
@@ -395,9 +405,9 @@ if args.map:
 if args.interactive:
     log.info("Interaction is coming")
     figure4 = plot.figure()
-    ILC = InteractiveLC(etable, args.lclog, gtitable, figure4, binsize=1.0)
-
-
+    ILC = InteractiveLC(etable, args.lclog, gtitable, figure4, basename, binsize=1.0)
+    ILC.getgoodtimes()
+    ILC.writegti() 
 # Show all plots at the end, if not saving
 if not args.save:
     log.info('Showing plots...')
