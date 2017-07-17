@@ -305,7 +305,7 @@ if args.eventshootrate:
     both,a = np.histogram(time,np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0])))
     eventundershoot, bins = np.histogram(etable['MET'][b1],np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0])))
     eventovershoot = overshootrate - both
-    del b1, b2, b3, time, a, bins
+    del b1, b2, b3, time, a,bins
 
 # Write overshoot and undershoot rates to file for filtering
 if args.writeovershoot:
