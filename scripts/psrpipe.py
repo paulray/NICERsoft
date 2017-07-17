@@ -95,7 +95,7 @@ for obsdir in args.indirs:
 
     # Create GTI from .mkf file
     if args.ultraclean:
-        mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0)'
+        mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0).and.(SUNSHINE.eq.0)'
     else:
         mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01)'
     gtiname1 = path.join(pipedir,'mkf.gti')
