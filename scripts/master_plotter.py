@@ -303,7 +303,7 @@ if len(args.hkfiles) > 0:
         ovhdu.writeto("{0}.ovs".format(basename),overwrite=True,checksum=True)
 else:
     hkmet = None
-    overshootrate=None
+    overshootrate = None
     undershootrate = None
     nresets = reset_rate(etable, IDS)
     reset_rates = nresets/etable.meta['EXPOSURE']

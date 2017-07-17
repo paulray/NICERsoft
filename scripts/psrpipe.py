@@ -14,11 +14,12 @@ from nicer.values import *
 
 parser = argparse.ArgumentParser(description = "Process NICER pulsar data.  Output will be written in current working directory.")
 parser.add_argument("indirs", help="Input directories to process", nargs='+')
-parser.add_argument("--emin", help="Minimum energy to include (keV)", type=float, default=0.3)
+parser.add_argument("--emin", help="Minimum energy to include (keV)", type=float, default=0.4)
 parser.add_argument("--emax", help="Maximum energy to include (kev)", type=float, default=8.0)
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
     default=None)
+parser.add_argument("--ultraclean", help="Apply ultraclean background filters", action='store_true')
 parser.add_argument("--par", help="Par file to use for phases")
 args = parser.parse_args()
 
@@ -55,6 +56,7 @@ for obsdir in args.indirs:
 
     log.info('Making initial QL plots')
     cmd = ["master_plotter.py", "--save", "--filtall",
+           "--writeovershoot",
            "--guessobj", "--lclog", "--useftools",
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--sci", "--eng", "--bkg", "--obsdir", obsdir,
@@ -85,8 +87,15 @@ for obsdir in args.indirs:
     hkfiles.sort()
     log.info('MPU HK Files: {0}'.format("\n" + "    \n".join(hkfiles)))
 
+    #  Get ATT hk files
+    attfile = glob(path.join(obsdir,'xti/hk/ni*.att'))[0]
+    log.info('ATT HK File: {0}'.format(attfile))
+
     # Create GTI from .mkf file
-    mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.02)'
+    if args.ultraclean:
+        mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0)'
+    else:
+        mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01)'
     gtiname = path.join(pipedir,'good.gti')
     cmd = ["maketime", mkfile, gtiname, 'expr={0}'.format(mkf_expr),
         "compact=no", "time=TIME", "clobber=yes"]
@@ -116,7 +125,10 @@ for obsdir in args.indirs:
     runcmd(cmd)
 
     # Add phases and plot, if requested
-    cmd = ["master_plotter.py", "--save", "--filtall",
+    maxratio = 1.4
+    if args.ultraclean:
+        maxratio=1.14
+    cmd = ["master_plotter.py", "--save", "--filtratio", "{0}".format(maxratio),
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--orb", path.join(pipedir,orbfile),
            "--sci", path.join(pipedir,"clean.evt"),
