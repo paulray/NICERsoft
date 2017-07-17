@@ -280,7 +280,6 @@ if len(args.hkfiles) > 0:
         myreset = mytd['MPU_UNDER_COUNT'].sum(axis=0)
         if not np.all(mymet == hkmet):
             log.error('TIME axes are not compatible')
-            print mymet, hkmet
             sys.exit(1)
         overshootrate += myovershootrate
         undershootrate += myundershootrate
