@@ -410,7 +410,7 @@ def convert_to_elapsed_goodtime(mets, vals, gtitable):
     # Returns the arrays of elapsed times, values, and an array of what segment it is in, used for setting plot colors by GTI segment
     return etimes, goodvals, cc
 
-def plot_overshoot(etable, overshootrate, gtitable, args, hkmet):
+def plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate):
 
     etime, overshoot, cc = convert_to_elapsed_goodtime(hkmet, overshootrate, gtitable)
     colornames = ['black','green','red','blue','magenta']
@@ -418,7 +418,12 @@ def plot_overshoot(etable, overshootrate, gtitable, args, hkmet):
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
 
     plot.scatter(etime, overshoot, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='+')
+    if bothrate is not None:
+        etime, both, cc = convert_to_elapsed_goodtime(hkmet, bothrate, gtitable)
+        plot.scatter(etime, both, color = 'c', marker='_', label='Both Under and Over Flags')
+        plot.legend(loc = 2)
     plot.ylabel('Overshoot rate')
+
     if args.lclog:
         plot.yscale('log')
         plot.ylim(ymin=10.0)

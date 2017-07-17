@@ -5,7 +5,7 @@ from astropy import log
 
 from plotutils import *
 
-def bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable):
+def bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable, bothrate):
     figure = plt.figure(figsize = (8.5, 11), facecolor = 'white')
     bkg_grid = gridspec.GridSpec(25,4)
 
@@ -21,7 +21,7 @@ def bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mkta
     log.info('Building overshoot plot')
     plt.subplot(bkg_grid[5:9,:4])
     if overshootrate is not None:
-        plot_overshoot(etable, overshootrate, gtitable, args, hkmet)
+        plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate)
         plot_SAA(mktable, gtitable, overshootrate)
 
     #Plot of undershoot rate
