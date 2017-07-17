@@ -302,11 +302,14 @@ if args.eventshootrate:
     b2 = np.where(etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT] == True)
     b3 = np.intersect1d(b1,b2)
     time = etable['MET'][b3]
-    both,a = np.histogram(time,np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0])))
+    bothrate,a = np.histogram(time,np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0])))
     eventundershoot, bins = np.histogram(etable['MET'][b1],np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0])))
-    eventovershoot = overshootrate - both
+    eventovershoot = overshootrate - bothrate
     del b1, b2, b3, time, a,bins
-
+else:
+    bothrate = None
+    eventundershoot = None
+    eventovershoot = None
 # Write overshoot and undershoot rates to file for filtering
 if args.writeovershoot:
     log.info('Writing over/undershoot rates')
@@ -315,7 +318,7 @@ if args.writeovershoot:
     ucol = pyfits.Column(name='HK UNDERSHOOT',array=undershootrate,format='D')
     eocol = pyfits.Column(name='EVENT OVERSHOOT',array=eventovershoot,format='D')
     eucol = pyfits.Column(name='EVENT UNDERSHOOT',array=eventundershoot,format='D')
-    bothcol = pyfits.Column(name='EVENT BOTH',array=both,format='D')
+    bothcol = pyfits.Column(name='EVENT BOTH',array=bothrate,format='D')
 
     ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, eucol,bothcol], name='HKP')
     ovhdu.writeto("{0}.ovs".format(basename),overwrite=True,checksum=True)
@@ -366,7 +369,7 @@ if args.bkg:
     if hkmet is None:
         log.error("Can't make background plots without MPU HKP files")
     else:
-        figure4 = bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable)
+        figure4 = bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable, bothrate)
         figure4.set_size_inches(16,12)
         if args.save:
             log.info('Writing bkg plot {0}'.format(basename))
