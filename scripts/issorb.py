@@ -90,10 +90,10 @@ MoonPos = get_moon(times)
 fig, ax = plt.subplots()
 seps = SourcePos.separation(StarboardPoleCoord(times))
 ax.plot(doy2017, seps.to(u.deg))
-sunseps = SunPos.separation(SourcePos).to(u.deg)
+sunseps = SourcePos.separation(SunPos).to(u.deg)
 idx = np.where(sunseps<SunAvoidance)[0]
 ax.plot(doy2017[idx], SunPos.separation(SourcePos).to(u.deg)[idx],'o',c='y')
-moonseps = MoonPos.separation(SourcePos).to(u.deg)
+moonseps = SourcePos.separation(MoonPos).to(u.deg)
 idx = np.where(moonseps<MoonAvoidance)[0]
 ax.plot(doy2017[idx], MoonPos.separation(SourcePos).to(u.deg)[idx],'o',c='k')
 ax.plot(doy_now,SourcePos.separation(StarboardPoleCoord(now)),'o')
