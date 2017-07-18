@@ -91,8 +91,12 @@ seps = SourcePos.separation(StarboardPoleCoord(times))
 ax.plot(doy2017, seps.to(u.deg))
 
 # The Sun and Moon positions are returned in the GCRS frame
+# Convert them to ICRS so .separation doesn't go insane when
+# comparing different frames with different obstimes.
 SunPos = get_sun(times)
+SunPos = SkyCoord(SunPos.ra, SunPos.dec, frame='icrs')
 MoonPos = get_moon(times)
+MoonPos = SkyCoord(MoonPos.ra, MoonPos.dec, frame='icrs')
 # Plot dots for Sun and Moon separation when they violate the constraint
 sunseps = SourcePos.separation(SunPos).to(u.deg)
 idx = np.where(sunseps<SunAvoidance)[0]
