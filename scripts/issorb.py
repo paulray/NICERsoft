@@ -4,7 +4,7 @@ import numpy as np
 import astropy.units as u
 from astropy.time import Time
 import matplotlib.pyplot as plt
-from astropy.coordinates import SkyCoord, get_sun, get_moon
+from astropy.coordinates import SkyCoord, get_sun, get_moon, ICRS
 from astropy.coordinates.name_resolve import get_icrs_coordinates
 from pyorbital import tlefile
 import argparse
@@ -85,19 +85,27 @@ print("Separation from Port Pole = {0:.3f}".format(SourcePos.separation(PortPole
 # Plot separation from orbit pole for all of 2017
 doy2017 = np.arange(365.0)
 times = doy2017*u.d + Time("2017-01-01T00:00:00",format='isot',scale='utc')
-SunPos = get_sun(times)
-MoonPos = get_moon(times)
+
 fig, ax = plt.subplots()
 seps = SourcePos.separation(StarboardPoleCoord(times))
 ax.plot(doy2017, seps.to(u.deg))
+
+# The Sun and Moon positions are returned in the GCRS frame
+SunPos = get_sun(times)
+MoonPos = get_moon(times)
+# Plot dots for Sun and Moon separation when they violate the constraint
 sunseps = SourcePos.separation(SunPos).to(u.deg)
 idx = np.where(sunseps<SunAvoidance)[0]
-ax.plot(doy2017[idx], SunPos.separation(SourcePos).to(u.deg)[idx],'o',c='y')
+ax.plot(doy2017[idx], sunseps[idx],'o',c='y',label='Sun')
 moonseps = SourcePos.separation(MoonPos).to(u.deg)
 idx = np.where(moonseps<MoonAvoidance)[0]
-ax.plot(doy2017[idx], MoonPos.separation(SourcePos).to(u.deg)[idx],'o',c='k')
-ax.plot(doy_now,SourcePos.separation(StarboardPoleCoord(now)),'o')
+ax.plot(doy2017[idx], moonseps[idx],'o',c='k',label='Moon')
+
+# Plot orange dot for now
+ax.plot(doy_now,SourcePos.separation(StarboardPoleCoord(now)),'o',label='Today')
+
 ax.set_title(args.sourcename)
+ax.legend()
 ax.set_xlabel('DOY 2017')
 ax.set_ylim((0.0,180.0))
 ax.grid(True)
