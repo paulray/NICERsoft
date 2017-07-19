@@ -15,9 +15,9 @@ class InteractiveLC(object):
         self.binsize = 1.0
 
     def welcome(self):
-        print 'Some code is running, and then you can click on teh plots!'
+        print 'Some code is running, and then you can click on the plots!'
         print 'Click on the plot to choose an initial point'
-        print 'Drag WITHOUT RELEASING to chose a second point'
+        print 'Drag WITHOUT RELEASING to choose a second point'
 
     def __init__(self, etable, lclog, gtitable,  fig, name, binsize):
         self.init()
