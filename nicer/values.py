@@ -12,6 +12,7 @@ PI_TO_KEV = 10.0/1000.0
 KEV_TO_PI = 1000.0/10.0
 
 # Bit assignments in the EVENT_FLAGS housekeeping
+FLAG_FIRST_MPU = 2
 FLAG_SLOW = 3
 FLAG_FAST = 4
 FLAG_SWTRIG = 5
