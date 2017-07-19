@@ -423,6 +423,7 @@ def plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate):
         plot.scatter(etime, both, color = 'c', marker='.', label='Both Under and Over Flags')
         plot.legend(loc = 2)
     plot.ylabel('Overshoot rate')
+    plot.grid(True)
 
     if args.lclog:
         plot.yscale('log')
