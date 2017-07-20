@@ -20,6 +20,7 @@ from glob import glob
 from nicer.bkg_plots import *
 from nicer.fitsutils import *
 from InteractiveLC import *
+from nicer.NicerFileSet import *
 
 parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
 parser.add_argument("infiles", help="Input files", nargs='*')
@@ -35,7 +36,7 @@ parser.add_argument("--bkg", help = "Display background diagnostic plots", actio
 parser.add_argument("--filtswtrig", help = "Filter SW TRIG events", action = "store_true")
 parser.add_argument("--filtovershoot", help = "Filter OVERSHOOT events", action = "store_true")
 parser.add_argument("--filtundershoot", help = "Filter UNDERSHOOT events", action = "store_true")
-parser.add_argument("--filtratio", help="Filter PHA/PHA_FAST ratio (argument is ratio to cut at)", type=float, default=0.0)
+parser.add_argument("--filtratio", help="Filter PHA/PHA_FAST ratio (argument is ratio to cut at)", type=float, default=1.4)
 parser.add_argument("--filtall", help = "Filter SWTRIG, UNDERSHOOT and OVERSHOOT events", action = "store_true")
 parser.add_argument("--emin", help="Minimum energy (keV) to keep", default=-1.0, type=float)
 parser.add_argument("--emax", help="Minimum energy (keV) to keep", default=-1.0, type=float)
@@ -61,68 +62,23 @@ parser.add_argument("--eventshootrate",help="Gets over/undershoot rates from the
 parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = 'store_true')
 args = parser.parse_args()
 
-args.hkfiles = []
-mkfiles = []
 
-#Get file names from the directory
-if args.obsdir:
-    # Get names of event files from obsdir
-    if len(args.infiles) == 0:
-        # Here we could grab the clean data (cl) or the unfiltered merged (ufa) data.
-        # Clean will have no flagged events
-        # args.infiles = glob(path.join(args.obsdir,'xti/event_cl/ni*mpu?_ufa.evt'))
-        args.infiles = glob(path.join(args.obsdir,'xti/event_cl/ni*mpu?_cl.evt'))
-        args.infiles.sort()
-    if len(args.infiles) == 0:
-        log.error("No event files found!")
-        sys.exit(1)
-    log.info('Found event files: {0}'.format("\n" + "    \n".join(args.infiles)))
+#Create the data structure
+data = NicerFileSet(args)
+etable = data.etable
+gtitable = data.gtitable
 
-    # Get name of orbit file from obsdir
-    try:
-        args.orb = glob(path.join(args.obsdir,'auxil/ni*.orb'))[0]
-    except:
-        log.error("Orbit file not found!")
-    log.info('Found the orbit file: {0}'.format(args.orb))
-
-    # Get name of SPS HK file (apid0260)
-    if args.sps is None:
-        try:
-            args.sps = glob(path.join(args.obsdir,'auxil/ni*_apid0260.hk'))[0]
-        except:
-            args.sps = None
-
-    # Get name of MPU housekeeping files
-    hkfiles = glob(path.join(args.obsdir,'xti/hk/ni*.hk'))
-    hkfiles.sort()
-    log.info('Found the MPU housekeeping files: {0}'.format("\n"+"\t\n".join(hkfiles)))
-    args.hkfiles = hkfiles
-
-    mkfiles = glob(path.join(args.obsdir,'auxil/ni*.mkf'))[0]
-
-# Get the concatenated and filtered data
-# Use fileandmerge (FTOOLS) only if we have more than one file and filtall is specified
-if args.useftools:
-    etable = filtandmerge(args.infiles,workdir=None)
-else:
-    log.info('Reading files')
-    tlist = []
-    for fn in args.infiles:
-        log.info('Reading file {0}'.format(fn))
-        tlist.append(Table.read(fn,hdu=1))
-        if len(tlist[0]) > 3000000:
-            log.error('There is too much data to handle. Not processing...')
-            sys.exit(3)
-    log.info('Concatenating files')
-    if len(tlist) == 1:
-        etable = tlist[0]
+# Hack to trim first chunk of data
+if args.tskip > 0.0:
+    t0 = gtitable['START'][0]
+    etable = etable[etable['MET']>t0+args.tskip]
+    # Correct exposure (approximately)
+    etable.meta['TSTART'] += args.tskip
+    if gtitable['START'][0]+args.tskip < gtitable['STOP'][0]:
+        gtitable['START'][0] += args.tskip
     else:
-        etable = vstack(tlist,metadata_conflicts='silent')
-    del tlist
-
-if len(etable)==0:
-    log.error('No events loaded, bailing!')
-    sys.exit(0)
+        log.error('Trying to skip more than first GTI segment!  **NOT IMPLEMENTED**')
+        sys.exit(1)
 
 if args.filtall:
     args.filtswtrig=True
@@ -136,79 +92,6 @@ if not args.sci and not args.eng and not args.map and not args.bkg and not args.
     args.eng = True
     args.map = True
     args.bkg = True
-
-# Read the GTIs from the first event FITS file
-gtitable = Table.read(args.infiles[0],hdu=2)
-log.info('Got the good times from GTI')
-gtitable['DURATION'] = gtitable['STOP']-gtitable['START']
-# Only keep GTIs longer than 16 seconds
-idx = np.where(gtitable['DURATION']>16.0)[0]
-gtitable = gtitable[idx]
-print(gtitable)
-
-#Making the MK Table
-log.info('Getting MKTable')
-if len(mkfiles) > 0:
-    mktable = Table.read(mkfiles,hdu=1)
-else:
-    mktable = None
-
-# Change TIME column name to MET to reflect what it really is
-etable.columns['TIME'].name = 'MET'
-# Update exposure to be sum of GTI durations
-etable.meta['EXPOSURE'] = gtitable['DURATION'].sum()
-
-# Sort table by MET
-etable.sort('MET')
-log.info("Event MET Range : {0} to {1}".format(etable['MET'].min(),
-    etable['MET'].max(), etable['MET'].max()-etable['MET'].min()))
-log.info("TSTART {0}  TSTOP {1} (Span {2} seconds)".format(etable.meta['TSTART'],
-    etable.meta['TSTOP'], etable.meta['TSTOP']-etable.meta['TSTART'] ))
-log.info("DATE Range {0} to {1}".format(etable.meta['DATE-OBS'],
-    etable.meta['DATE-END']))
-if args.object is not None:
-    etable.meta['OBJECT'] = args.object
-'''
-# Hack to trim first chunk of data
-if args.tskip > 0.0:
-    t0 = gtitable['START'][0]
-    etable = etable[etable['MET']>t0+args.tskip]
-    # Correct exposure (approximately)
-    etable.meta['TSTART'] += args.tskip
-    if gtitable['START'][0]+args.tskip < gtitable['STOP'][0]:
-        gtitable['START'][0] += args.tskip
-    else:
-        log.error('Trying to skip more than first GTI segment!  **NOT IMPLEMENTED**')
-        sys.exit(1)
-
-'''
-# If there are no PI columns, add them with approximate calibration
-if args.pi or not ('PI' in etable.colnames):
-    log.info('Adding PI')
-    calfile = path.join(datadir,'gaincal_linear.txt')
-    pi = calc_pi(etable,calfile)
-    etable['PI'] = pi
-
-#filtering out chosen IDS
-if args.mask is not None:
-    log.info('Masking IDS')
-    for id in args.mask:
-        etable = etable[np.where(etable['DET_ID'] != id)]
-
-if args.applygti is not None:
-    g = Table.read(args.applygti)
-    log.info('Applying external GTI from {0}'.format(args.applygti))
-    g['DURATION'] = g['STOP']-g['START']
-    # Only keep GTIs longer than 16 seconds
-    g = g[np.where(g['DURATION']>16.0)]
-    log.info('Applying external GTI')
-    print g
-    etable = apply_gti(etable,g)
-    # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
-    etable.meta['EXPOSURE'] = g['DURATION'].sum()
-    gtitable = g
-
-log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
 
 # Set up the light curve bins, so we can have them for building
 # light curves of various quantities, like overshoot rate and ratio filtered events
@@ -234,20 +117,6 @@ for i in range(1,len(gtitable['START'])):
     cumtime += mylcduration
 gtitable['CUMTIME'] = np.array(cumtimes)
 
-# Define basename for writing output files
-bn = path.basename(args.infiles[0]).split('_')[0]
-log.info('OBS_ID {0}'.format(etable.meta['OBS_ID']))
-if etable.meta['OBS_ID'].startswith('000000'):
-    log.info('Overwriting OBS_ID with {0}'.format(bn))
-    etable.meta['OBS_ID'] = bn
-    etable.meta['OBS_ID'] = bn
-
-if args.basename is None:
-    basename = '{0}'.format(bn)
-    args.basename = basename
-else:
-    basename = args.basename
-
 # Overwrite bad OBJECT name, if requested (early FITS all have OBJECT=Crab)
 if args.guessobj and args.obsdir:
     # Trim trailing slash, if needed
@@ -258,76 +127,27 @@ if args.guessobj and args.obsdir:
     etable.meta['OBJECT'] = objname
     etable.meta['OBJECT'] = objname
 
-# getting the overshoot and undershoot rate from HK files.  Times are hkmet
-log.info('Getting overshoot and undershoot rates')
-if len(args.hkfiles) > 0:
-    log.info('Reading '+hkfiles[0])
-    hdulist = pyfits.open(hkfiles[0])
-    td = hdulist[1].data
-    hkmet = td['TIME']
-    log.info("HK MET Range {0} to {1} (Span = {2:.1f} seconds)".format(hkmet.min(),
-        hkmet.max(),hkmet.max()-hkmet.min()))
-    overshootrate = td['MPU_OVER_COUNT'].sum(axis=1)
-    undershootrate = td['MPU_UNDER_COUNT'].sum(axis=1)
-    nresets = td['MPU_UNDER_COUNT'].sum(axis=0)
-
-    for fn in hkfiles[1:]:
-        log.info('Reading '+fn)
-        hdulist = pyfits.open(fn)
-        mytd = hdulist[1].data
-        mymet = mytd['TIME']
-        myovershootrate = mytd['MPU_OVER_COUNT'].sum(axis=1)
-        myundershootrate = mytd['MPU_UNDER_COUNT'].sum(axis=1)
-        # If time axis is bad, skip this MPU.
-        # Should fix this!
-        if not np.all(mymet == hkmet):
-            log.error('TIME axes are not compatible')
-        else:
-            overshootrate += myovershootrate
-            undershootrate += myundershootrate
-        myreset = mytd['MPU_UNDER_COUNT'].sum(axis=0)
-        nresets = np.append(nresets,myreset)
-    del hdulist
-    reset_rates = nresets / np.float(etable.meta['EXPOSURE'])
-
-else:
-    hkmet = None
-    overshootrate = None
-    undershootrate = None
-    nresets = calc_nresets(etable, IDS)
-    reset_rates = nresets/etable.meta['EXPOSURE']
-
+#Getting over/undershoot rate from HK files.
+overshootrate = data.overshootrate
+undershootrate = data.undershootrate
+bothrate = data.bothrate
+reset_rates = data.reset_rates
 if args.eventshootrate:
-    log.info('Getting event over/under shoot rates')
-    # Define bins for hkmet histogram
-    hkmetbins = np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0]))
-    idx = np.logical_and(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]==True,
-                         etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT]==True)
-    bothrate, edges = np.histogram(etable['MET'][idx],hkmetbins)
-    idx = np.logical_and(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]==True,
-                         etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT]==False)
-    eventundershoot, edges = np.histogram(etable['MET'][idx],hkmetbins)
-    idx = np.logical_and(etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]==False,
-                         etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT]==True)
-    eventovershoot, edges = np.histogram(etable['MET'][idx],hkmetbins)
-    del idx, edges
+    data.eventundershootrate()
+    data.getlatlon()
+    eventovershoot = data.eventovershoot
+    eventundershoot = data.eventundershoot
+    bothrate = data.bothrate
 else:
     bothrate = None
     eventundershoot = None
     eventovershoot = None
+
 # Write overshoot and undershoot rates to file for filtering
 if args.writeovershoot:
-    log.info('Writing over/undershoot rates')
-    tcol = pyfits.Column(name='TIME',unit='S',array=hkmet,format='D')
-    ocol = pyfits.Column(name='HK OVERSHOOT',array=overshootrate,format='D')
-    ucol = pyfits.Column(name='HK UNDERSHOOT',array=undershootrate,format='D')
-    eocol = pyfits.Column(name='EVENT OVERSHOOT',array=eventovershoot,format='D')
-    eucol = pyfits.Column(name='EVENT UNDERSHOOT',array=eventundershoot,format='D')
-    bothcol = pyfits.Column(name='EVENT BOTH',array=bothrate,format='D')
+    data.writeovsfile()
 
-    ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, eucol,bothcol], name='HKP')
-    ovhdu.writeto("{0}.ovs".format(basename),overwrite=True,checksum=True)
-
+#Filting all the data as necessary!
 log.info('Filtering...')
 filt_str = 'Filter: {0:.2f} < E < {1:.2f} keV'.format(args.emin,args.emax)
 if args.emin >= 0:
@@ -368,6 +188,11 @@ if args.par is not None:
     etime = filttable.columns['MET'] + MET0
     filttable['T'] = etime
 
+#Some Definitions
+gtitable = data.gtitable
+mktable = data.mktable
+hkmet = data.hkmet
+basename = data.basename
 
 # Background plots are diagnostics for background rates and filtering
 if args.bkg:
@@ -375,6 +200,7 @@ if args.bkg:
         log.error("Can't make background plots without MPU HKP files")
     else:
         if eventovershoot is not None:
+
             figure4 = bkg_plots(etable, eventovershoot, gtitable, args, hkmet, eventundershoot, mktable, bothrate)
         else:
             figure4 = bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable, bothrate)
@@ -405,6 +231,7 @@ if args.sci:
         	figure2.savefig('{0}_sci_clean_{1:.1f}-{2:.1f}keV.png'.format(basename,args.emin,args.emax), dpi = 100)
     	else:
         	figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
+
 
 # Map plot is overshoot and undershoot rates on maps
 if args.map:

@@ -78,26 +78,24 @@ class InteractiveLC(object):
                         if np.logical_and(index == 0,index == (len(goodlist)-1)) : #if it's the first AND ONLY one in goodlist
                             end = self.starts[index] + self.gtitable['START'][idx]
                             self.addtolist(start, end) 
-                            print('FIRST AND ONLY')
                             break
 
                         elif index == 0:
                             end = self.starts[index] + self.gtitable['START'][idx]
                             self.addtolist(start, end) 
-                            print('first')
+
                         elif index == (len(goodlist)-1): #if it's the last one in goodlist
                             start = self.stops[index-1] + self.gtitable['START'][idx]
                             end = self.starts[index]+ self.gtitable['START'][idx]
                             self.addtolist(start,end)
-                            print('last')
+
 
                         else:#if it's in the middle
                             start = self.stops[index] + self.gtitable['START'][idx]
                             end = self.starts[index]+ self.gtitable['START'][idx]
                             self.addtolist(start,end)
-                            print('middle')
+
                     #Tacks the end on to the interval set
-                    print('tacking on the end')
                     start = self.stops[index] + self.gtitable['START'][idx]
                     end = self.gtitable['STOP'][idx]
                     self.addtolist(start,end)
@@ -106,7 +104,6 @@ class InteractiveLC(object):
                     del start, end
 
                 else:#If there were no clicks 
-                    print('no clicks here')
                     start = self.gtitable['START'][idx]
                     end = self.gtitable['STOP'][idx]
                     self.addtolist(start,end)
