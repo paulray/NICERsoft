@@ -135,6 +135,6 @@ class InteractiveLC(object):
         scol = pyfits.Column(name='START',unit='S',array=self.scol,format='D')
         ecol = pyfits.Column(name='STOP',array=self.ecol,format='D')
         ovhdu = pyfits.BinTableHDU.from_columns([scol,ecol], name='NEWGTI')
-        ovhdu.writeto("{0}.ovs".format(self.name),overwrite=True,checksum=True)
+        ovhdu.writeto("{0}.gti".format(self.name),overwrite=True,checksum=True)
         
 
