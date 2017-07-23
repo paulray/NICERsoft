@@ -328,8 +328,8 @@ def pulse_profile_fixed(etable, F0):
 
 def pulse_profile(ax, etable, args):
     if (args.orb is None) or (args.par is None):
-	log.warning('You did not specify orbfile or parfile')
-	log.info('Please input files for orb and par with --orb and --par')
+        log.warning('You did not specify orbfile or parfile')
+        log.info('Please input files for orb and par with --orb and --par')
         return
     import pint
     import astropy.io.fits as pyfits

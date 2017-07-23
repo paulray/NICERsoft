@@ -13,34 +13,18 @@ from fitsutils import *
 from values import *
 
 class NicerFileSet:
-    def init(self):
-        self.hkfiles = None
-        self.mkfiles = None
-        self.filenames = None
-        self.etable = None
-        self.hkmet = None
-        self.overshootrate = None
-        self.undershootrate = None
-        self.reset_rates = None
-        self.eventovershoot = None
-        self.eventundershoot = None
-        self.mktable = None
-        self.lat = None
-        self.lon = None
-        self.ovstable = None
-        self.basename = None
 
     def __init__(self, args):
         log.info('Initializing the data object')
         self.args = args
 
         #Getting the names of the event files from obsdir
-        self.args.infiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu?_cl.evt'))
-        self.args.infiles.sort()
-        if len(self.args.infiles) == 0:
+        self.evfiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu?_cl.evt'))
+        self.evfiles.sort()
+        if len(self.evfiles) == 0:
             log.error("No event files found!")
             sys.exit(1)
-        log.info('Found event files: {0}'.format("\n" + "    \n".join(self.args.infiles)))
+        log.info('Found event files: {0}'.format("\n" + "    \n".join(self.evfiles)))
 
         # Get name of orbit file from obsdir
         try:
@@ -57,18 +41,17 @@ class NicerFileSet:
                 self.args.sps = None
 
         # Get name of MPU housekeeping files
-        hkfiles = glob(path.join(self.args.obsdir,'xti/hk/ni*.hk'))
-        hkfiles.sort()
-        log.info('Found the MPU housekeeping files: {0}'.format("\n"+"\t\n".join(hkfiles)))
-        
-        # Defining them as object properties
-        self.hkfiles = hkfiles
+        self.hkfiles = glob(path.join(self.args.obsdir,'xti/hk/ni*.hk'))
+        self.hkfiles.sort()
+        log.info('Found the MPU housekeeping files: {0}'.format("\n"+"\t\n".join(self.hkfiles)))
+
+        # Get name of filter (.mkf) file
         self.mkfiles = glob(path.join(args.obsdir,'auxil/ni*.mkf'))[0]
 
         #Compiling Event Data
         self.getgti()
         if self.args.useftools:
-            self.etable = self.ftoolssort()
+            self.etable = filtallandmerge_ftools(self.evfiles,workdir=None)
         else:
             self.etable = self.createetable()
         self.sortmet()
@@ -109,14 +92,10 @@ class NicerFileSet:
         #self.eventovershootrate()
 
 
-    def ftoolssort(self):
-        self.etable = filtandmerge(self.args.infiles,workdir=None)
-        return self.etable
-    
     def createetable(self):
         log.info('Reading files')
         tlist = []
-        for fn in self.args.infiles:
+        for fn in self.evfiles:
             log.info('Reading file {0}'.format(fn))
             tlist.append(Table.read(fn,hdu=1))
             if len(tlist[0]) > 3000000:
@@ -159,7 +138,7 @@ class NicerFileSet:
 
     def hkshootrate(self):
         # getting the overshoot and undershoot rate from HK files.  Times are hkmet
-        log.info('Getting overshoot and undershoot rates')
+        log.info('Getting HKP overshoot and undershoot rates')
         if len(self.hkfiles) > 0:
             log.info('Reading '+self.hkfiles[0])
             hdulist = pyfits.open(self.hkfiles[0])
@@ -200,13 +179,13 @@ class NicerFileSet:
     def eventovershootrate(self):
         #Get a table of OVERSHOOT ONLY events
         log.info('Getting overshoot only events')
-        self.ovstable = get_overshoots(self.args.infiles,workdir=None)
+        self.ovstable = get_eventovershoots_ftools(self.evfiles,workdir=None)
         hkmetbins = np.append(self.hkmet,(self.hkmet[-1]+self.hkmet[1]-self.hkmet[0]))
         bins = np.arange(self.ovstable['TIME'][0], self.ovstable['TIME'][-1]+self.ovstable['TIME'][1]-self.ovstable['TIME'][0], self.args.lcbinsize)
         self.eventovershoot, edges = np.histogram(self.ovstable['TIME'],bins)
 
     def eventundershootrate(self):
-        log.info('Getting event under shoot rates')
+        log.info('Getting event undershoot rates')
         # Define bins for hkmet histogram
         hkmetbins = np.append(self.hkmet,(self.hkmet[-1]+self.hkmet[1]-self.hkmet[0]))
         #Both under and overshoot
@@ -235,20 +214,20 @@ class NicerFileSet:
         # Write overshoot and undershoot rates to file for filtering
         log.info('Writing over/undershoot rates')
         tcol = pyfits.Column(name='TIME',unit='S',array=self.hkmet,format='D')
-        ocol = pyfits.Column(name='HK OVERSHOOT',array=self.overshootrate,format='D')
-        ucol = pyfits.Column(name='HK UNDERSHOOT',array=self.undershootrate,format='D')
-        eocol = pyfits.Column(name='EVENT OVERSHOOT',array=self.eventovershoot,format='D')
-        eucol = pyfits.Column(name='EVENT UNDERSHOOT',array=self.eventundershoot,format='D')
-        bothcol = pyfits.Column(name='EVENT BOTH',array=self.bothrate,format='D')
+        ocol = pyfits.Column(name='HK_OVERSHOOT',array=self.overshootrate,format='D')
+        ucol = pyfits.Column(name='HK_UNDERSHOOT',array=self.undershootrate,format='D')
+        eocol = pyfits.Column(name='EV_OVERSHOOT',array=self.eventovershoot,format='D')
+        eucol = pyfits.Column(name='EV_UNDERSHOOT',array=self.eventundershoot,format='D')
+        bothcol = pyfits.Column(name='EV_BOTH',array=self.bothrate,format='D')
         lat = pyfits.Column(name='SAT_LAT',array=self.lat,format='D')
-        lon = pyfits.Column(name='SAT LON',array=self.lon,format='D')
-        sun = pyfits.Column(name='SAT LON',array=self.sun,format='D')
+        lon = pyfits.Column(name='SAT_LON',array=self.lon,format='D')
+        sun = pyfits.Column(name='SUNSHINE',array=self.sun,format='D')
         ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, eucol, bothcol, lat, lon, sun], name='HKP')
         ovhdu.writeto("{0}.ovs".format(self.basename),overwrite=True,checksum=True)
 
     def getgti(self):
             # Read the GTIs from the first event FITS file
-        self.gtitable = Table.read(self.args.infiles[0],hdu=2)
+        self.gtitable = Table.read(self.evfiles[0],hdu=2)
         log.info('Got the good times from GTI')
         self.gtitable['DURATION'] = self.gtitable['STOP']- self.gtitable['START']
         # Only keep GTIs longer than 16 seconds
@@ -257,7 +236,7 @@ class NicerFileSet:
         print(self.gtitable)
 
     def makebasename(self):
-        bn = path.basename(self.args.infiles[0]).split('_')[0]
+        bn = path.basename(self.evfiles[0]).split('_')[0]
         log.info('OBS_ID {0}'.format(self.etable.meta['OBS_ID']))
         if self.etable.meta['OBS_ID'].startswith('000000'):
             log.info('Overwriting OBS_ID with {0}'.format(bn))

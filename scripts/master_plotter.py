@@ -62,7 +62,6 @@ parser.add_argument("--eventshootrate",help="Gets over/undershoot rates from the
 parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = 'store_true')
 args = parser.parse_args()
 
-
 #Create the data structure
 data = NicerFileSet(args)
 etable = data.etable
