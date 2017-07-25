@@ -61,13 +61,7 @@ parser.add_argument("--eventshootrate",help="Gets over/undershoot rates from the
 parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = 'store_true')
 args = parser.parse_args()
 
-#---------------------Options for data filtering / Plotting -------------------
-if args.filtall:
-    args.filtswtrig=True
-    args.filtovershoot=True
-    args.filtundershoot=True
-    args.filtratio=1.4
-
+#------------------------------Getting the data and concatenating------------------------------
 if np.logical_or(args.obsdir is not None, args.infiles is not None):
     if args.obsdir is not None:
         #Create the data structure
@@ -140,12 +134,20 @@ else:
     log.warning('You have not specified any files, please input the path to the files you want to see. Exiting.')
     sys.exit()
 
+
+#---------------------Options for data filtering / Plotting -------------------
 if not args.sci and not args.eng and not args.map and not args.bkg and not args.interactive:
     log.warning("No specific plot requested, making all")
     args.sci = True
     args.eng = True
     args.map = True
     args.bkg = True
+
+if args.filtall:
+    args.filtswtrig=True
+    args.filtovershoot=True
+    args.filtundershoot=True
+    args.filtratio=1.4
 
 #--------------------Editing / Filtering the event data Options-----------------
 # Hack to trim first chunk of data
@@ -186,6 +188,7 @@ if args.applygti is not None:
     gtitable = g
 log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
 
+
 # Set up the light curve bins, so we can have them for building
 # light curves of various quantities, like overshoot rate and ratio filtered events
 # Hmmm. The lc_elapsed_bins and lc_met_bins are never used, but CUMTIME is
@@ -224,23 +227,23 @@ if args.guessobj and args.obsdir:
 if args.eventshootrate:
     eventovershoot = data.eventovershoot
     eventundershoot = data.eventundershoot
-    bothrate = data.bothrate
+    bothshoots = data.bothshoots
 else:
-    bothrate = None
+    bothshoots = None
     eventundershoot = None
     eventovershoot = None
 
 if args.obsdir is not None:
-    overshootrate = data.overshootrate
-    undershootrate = data.undershootrate
-    bothrate = data.bothrate
+    hkovershoots = data.hkovershoots
+    hkundershoots = data.hkundershoots
+    bothshoots = data.bothshoots
     reset_rates = data.reset_rates
 
 # Write overshoot and undershoot rates to file for filtering
 if args.writeovershoot:
     data.writeovsfile()
 
-#Filting all the data as necessary!---------------------------------------------------------------
+#---------------------------------------------Filting all the data as necessary!---------------------------------------------------------------
 log.info('Filtering...')
 filt_str = 'Filter: {0:.2f} < E < {1:.2f} keV'.format(args.emin,args.emax)
 if args.emin >= 0:
@@ -290,9 +293,9 @@ if args.bkg:
     else:
         if eventovershoot is not None:
             
-            figure4 = bkg_plots(etable, eventovershoot, gtitable, args, hkmet, eventundershoot, mktable, bothrate)
+            figure4 = bkg_plots(etable, eventovershoot, gtitable, args, hkmet, eventundershoot, mktable, bothshoots)
         else:
-            figure4 = bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable, bothrate)
+            figure4 = bkg_plots(etable, hkovershoots, gtitable, args, hkmet, hkundershoots, mktable, bothshoots)
         figure4.set_size_inches(16,12)
         if args.save:
             log.info('Writing bkg plot {0}'.format(basename))
@@ -328,7 +331,7 @@ if args.map:
     if eventovershoot is not None:
         figure3 = cartography(hkmet, eventovershoot, args, eventundershoot, filttable, mktable)
     else:
-        figure3 = cartography(hkmet, overshootrate, args, undershootrate, filttable, mktable)
+        figure3 = cartography(hkmet, hkovershoots, args, hkundershoots, filttable, mktable)
     
     if args.save:
         log.info('Writing MAP {0}'.format(basename))
