@@ -46,9 +46,9 @@ parser.add_argument("--pi", help="Force use of internal PHA to PI conversion", a
 parser.add_argument("--basename", help="Basename for output plots", default=None)
 parser.add_argument("--lclog", help = "make light curve log axis", action = "store_true")
 parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed freq (Hz)",
-    default=0.0,type=float)
+                    default=0.0,type=float)
 parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
-    default=100.0,type=float)
+                    default=100.0,type=float)
 parser.add_argument("--map", help= "Creates a map with overshoots and undershoots", action = 'store_true')
 parser.add_argument("--orb", help="Path to orbit FITS filed", default = None)
 parser.add_argument("--par", help="Path to par file", default = None)
@@ -62,23 +62,7 @@ parser.add_argument("--eventshootrate",help="Gets over/undershoot rates from the
 parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = 'store_true')
 args = parser.parse_args()
 
-#Create the data structure
-data = NicerFileSet(args)
-etable = data.etable
-gtitable = data.gtitable
-
-# Hack to trim first chunk of data
-if args.tskip > 0.0:
-    t0 = gtitable['START'][0]
-    etable = etable[etable['MET']>t0+args.tskip]
-    # Correct exposure (approximately)
-    etable.meta['TSTART'] += args.tskip
-    if gtitable['START'][0]+args.tskip < gtitable['STOP'][0]:
-        gtitable['START'][0] += args.tskip
-    else:
-        log.error('Trying to skip more than first GTI segment!  **NOT IMPLEMENTED**')
-        sys.exit(1)
-
+#---------------------Options for data filtering / Plotting -------------------
 if args.filtall:
     args.filtswtrig=True
     args.filtovershoot=True
@@ -91,6 +75,51 @@ if not args.sci and not args.eng and not args.map and not args.bkg and not args.
     args.eng = True
     args.map = True
     args.bkg = True
+
+if args.obsdir is not None:
+    #Create the data structure
+    data = NicerFileSet(args)
+    etable = data.etable
+    gtitable = data.gtitable
+
+#--------------------Editing / Filtering the event data Options-----------------
+# Hack to trim first chunk of data
+if args.tskip > 0.0:
+    t0 = gtitable['START'][0]
+    etable = etable[etable['MET']>t0+args.tskip]
+    # Correct exposure (approximately)
+    etable.meta['TSTART'] += args.tskip
+    if gtitable['START'][0]+args.tskip < gtitable['STOP'][0]:
+        gtitable['START'][0] += args.tskip
+    else:
+        log.error('Trying to skip more than first GTI segment!  **NOT IMPLEMENTED**')
+        sys.exit(1)
+
+#filtering out chosen IDS
+if args.mask is not None:
+    log.info('Masking IDS')
+    for id in args.mask:
+        etable = etable[np.where(etable['DET_ID'] != id)]
+        # If there are no PI columns, add them with approximate calibration
+if args.pi or not ('PI' in etable.colnames):
+    log.info('Adding PI')
+    calfile = path.join(datadir,'gaincal_linear.txt')
+    pi = calc_pi(etable,calfile)
+    etable['PI'] = pi
+
+if args.applygti is not None:
+    g = Table.read(args.applygti)
+    log.info('Applying external GTI from {0}'.format(args.applygti))
+    g['DURATION'] = g['STOP']-g['START']
+    # Only keep GTIs longer than 16 seconds
+    g = g[np.where(g['DURATION']>16.0)]
+    log.info('Applying external GTI')
+    print g
+    etable = apply_gti(etable,g)
+    # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
+    etable.meta['EXPOSURE'] = g['DURATION'].sum()
+    gtitable = g
+log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
 
 # Set up the light curve bins, so we can have them for building
 # light curves of various quantities, like overshoot rate and ratio filtered events
@@ -108,8 +137,7 @@ for i in range(1,len(gtitable['START'])):
     stopmet = gtitable['STOP'][i]
     duration = stopmet-startmet
     myelapsedbins = np.arange(0.0,duration+args.lcbinsize,args.lcbinsize)
-    lc_elapsed_bins = np.append(lc_elapsed_bins,
-        cumtime+myelapsedbins)
+    lc_elapsed_bins = np.append(lc_elapsed_bins,cumtime+myelapsedbins)
     lc_met_bins = np.append(lc_met_bins,np.arange(startmet,stopmet+args.lcbinsize,args.lcbinsize))
     mylcduration = myelapsedbins[-1]+args.lcbinsize
     cumtimes.append(cumtime)
@@ -199,7 +227,7 @@ if args.bkg:
         log.error("Can't make background plots without MPU HKP files")
     else:
         if eventovershoot is not None:
-
+            
             figure4 = bkg_plots(etable, eventovershoot, gtitable, args, hkmet, eventundershoot, mktable, bothrate)
         else:
             figure4 = bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable, bothrate)
@@ -213,11 +241,11 @@ if args.eng:
     figure1 = eng_plots(etable, args, reset_rates, filttable)
     figure1.set_size_inches(16,12)
     if args.save:
-    	log.info('Writing eng plot {0}'.format(basename))
-    	if args.filtall:
-        	figure1.savefig('{0}_eng_clean_{1:.1f}-{2:.1f}keV.png'.format(basename,args.emin,args.emax), dpi = 100)
-    	else:
-        	figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
+        log.info('Writing eng plot {0}'.format(basename))
+        if args.filtall:
+            figure1.savefig('{0}_eng_clean_{1:.1f}-{2:.1f}keV.png'.format(basename,args.emin,args.emax), dpi = 100)
+        else:
+            figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
 
 # Science plot is light curve, spectrum, pulse profile, and PHA ratio plot (or poweer spectrum)
 if args.sci:
@@ -225,21 +253,21 @@ if args.sci:
     figure2 = sci_plots(filttable, gtitable, args)
     figure2.set_size_inches(16,12)
     if args.save:
-    	log.info('Writing sci plot {0}'.format(basename))
-    	if args.filtall:
-        	figure2.savefig('{0}_sci_clean_{1:.1f}-{2:.1f}keV.png'.format(basename,args.emin,args.emax), dpi = 100)
-    	else:
-        	figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
+        log.info('Writing sci plot {0}'.format(basename))
+        if args.filtall:
+            figure2.savefig('{0}_sci_clean_{1:.1f}-{2:.1f}keV.png'.format(basename,args.emin,args.emax), dpi = 100)
+        else:
+            figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
 
 
 # Map plot is overshoot and undershoot rates on maps
 if args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
     if eventovershoot is not None:
-        figure3 = cartography(hkmet, eventovershoot, args, eventundershoot, filttable)
+        figure3 = cartography(hkmet, eventovershoot, args, eventundershoot, filttable, mktable)
     else:
-        figure3 = cartography(hkmet, overshootrate, args, undershootrate, filttable)
-
+        figure3 = cartography(hkmet, overshootrate, args, undershootrate, filttable, mktable)
+    
     if args.save:
         log.info('Writing MAP {0}'.format(basename))
         figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
