@@ -8,9 +8,10 @@ import astropy.units as u
 from astropy.time import Time
 from os import path
 from glob import glob
-from plotutils import *
-from fitsutils import *
-from values import *
+#from nicer.plotutils import *
+from nicer.fitsutils import *
+from nicer.values import *
+import sys
 
 class NicerFileSet:
     def __init__(self, args):
@@ -18,7 +19,7 @@ class NicerFileSet:
         self.args = args
         
         #Getting the names of the event files from obsdir
-        self.evfiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu?_cl.evt'))
+        self.evfiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu?_cl.evt*'))
         self.evfiles.sort()
         if len(self.evfiles) == 0:
             log.error("No event files found!")
@@ -27,7 +28,7 @@ class NicerFileSet:
 
         # Get name of orbit file from obsdir
         try:
-            self.args.orb = glob(path.join(self.args.obsdir,'auxil/ni*.orb'))[0]
+            self.args.orb = glob(path.join(self.args.obsdir,'auxil/ni*.orb*'))[0]
         except:
             log.error("Orbit file not found!")
         log.info('Found the orbit file: {0}'.format(self.args.orb))
@@ -35,17 +36,17 @@ class NicerFileSet:
         # Get name of SPS HK file (apid0260)
         if self.args.sps is None:
             try:
-                self.args.sps = glob(path.join(self.args.obsdir,'auxil/ni*_apid0260.hk'))[0]
+                self.args.sps = glob(path.join(self.args.obsdir,'auxil/ni*_apid0260.hk*'))[0]
             except:
                 self.args.sps = None
 
         # Get name of MPU housekeeping files
-        self.hkfiles = glob(path.join(self.args.obsdir,'xti/hk/ni*.hk'))
+        self.hkfiles = glob(path.join(self.args.obsdir,'xti/hk/ni*.hk*'))
         self.hkfiles.sort()
         log.info('Found the MPU housekeeping files: {0}'.format("\n"+"\t\n".join(self.hkfiles)))
 
         # Get name of filter (.mkf) file
-        self.mkfiles = glob(path.join(args.obsdir,'auxil/ni*.mkf'))[0]
+        self.mkfiles = glob(path.join(args.obsdir,'auxil/ni*.mkf*'))[0]
 
         #Compiling Event Data
         self.getgti()
@@ -55,7 +56,7 @@ class NicerFileSet:
             self.etable = self.createetable()
         self.sortmet()
         self.makebasename()
-
+        
         #Compiling HK Data
         self.getmk()
         self.hkshootrate()
