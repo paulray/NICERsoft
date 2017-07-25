@@ -8,9 +8,10 @@ import astropy.units as u
 from astropy.time import Time
 from os import path
 from glob import glob
-from plotutils import *
-from fitsutils import *
-from values import *
+#from nicer.plotutils import *
+from nicer.fitsutils import *
+from nicer.values import *
+import sys
 
 class NicerFileSet:
 
