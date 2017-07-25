@@ -77,7 +77,7 @@ class NicerFileSet:
             # Only keep GTIs longer than 16 seconds
             g = g[np.where(g['DURATION']>16.0)]
             log.info('Applying external GTI')
-            print g
+            print(g)
             self.etable = apply_gti(self.etable,g)
             # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
             self.etable.meta['EXPOSURE'] = g['DURATION'].sum()
