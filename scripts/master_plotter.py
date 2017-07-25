@@ -81,6 +81,59 @@ if args.obsdir is not None:
     data = NicerFileSet(args)
     etable = data.etable
     gtitable = data.gtitable
+    #Some Definitions
+    mktable = data.mktable
+    hkmet = data.hkmet
+    basename = data.basename
+
+
+else:
+    print('in the infiles')
+    #Creating the data table for each separate file
+    if args.useftools:
+        etable = filtandmerge(args.infiles,workdir=None)
+    else:
+        log.info('Reading files')
+        tlist = []
+        for fn in args.infiles:
+            log.info('Reading file {0}'.format(fn))
+            tlist.append(Table.read(fn,hdu=1))
+            if len(tlist[0]) > 3000000:
+                log.error('There is too much data to handle. Not processing...')
+                sys.exit(3)
+        log.info('Concatenating files')
+
+        if len(tlist) == 1:
+            etable = tlist[0]
+        else:
+            etable = vstack(tlist,metadata_conflicts='silent')
+        del tlist
+            
+    # Read the GTIs from the first event FITS file
+    gtitable = Table.read(args.infiles[0],hdu=2)
+    log.info('Got the good times from GTI')
+    gtitable['DURATION'] = gtitable['STOP']- gtitable['START']
+    # Only keep GTIs longer than 16 seconds
+    idx = np.where(gtitable['DURATION']>16.0)[0]
+    gtitable = gtitable[idx]
+    print(gtitable)
+
+    # Change TIME column name to MET to reflect what it really is
+    etable.columns['TIME'].name = 'MET'
+
+    # Update exposure to be sum of GTI durations
+    etable.meta['EXPOSURE'] = gtitable['DURATION'].sum()
+
+    # Sort table by MET
+    etable.sort('MET')
+    log.info("Event MET Range : {0} to {1}".format(etable['MET'].min(),etable['MET'].max(), etable['MET'].max()-etable['MET'].min()))
+    log.info("TSTART {0}  TSTOP {1} (Span {2} seconds)".format(etable.meta['TSTART'],etable.meta['TSTOP'], etable.meta['TSTOP']-etable.meta['TSTART'] ))
+    log.info("DATE Range {0} to {1}".format(etable.meta['DATE-OBS'],etable.meta['DATE-END']))
+
+    if args.object is not None:
+        etable.meta['OBJECT'] = args.object
+
+    reset_rates = None
 
 #--------------------Editing / Filtering the event data Options-----------------
 # Hack to trim first chunk of data
@@ -124,25 +177,26 @@ log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
 # Set up the light curve bins, so we can have them for building
 # light curves of various quantities, like overshoot rate and ratio filtered events
 # Hmmm. The lc_elapsed_bins and lc_met_bins are never used, but CUMTIME is
-startmet = gtitable['START'][0]
-stopmet = gtitable['STOP'][0]
-duration = stopmet-startmet
-# Add 1 bin to make sure last bin covers last events
-lc_elapsed_bins = np.arange(0.0,duration+args.lcbinsize,args.lcbinsize)
-lc_met_bins = startmet+lc_elapsed_bins
-cumtimes = [ 0.0 ]
-cumtime = lc_elapsed_bins[-1]+args.lcbinsize
-for i in range(1,len(gtitable['START'])):
-    startmet = gtitable['START'][i]
-    stopmet = gtitable['STOP'][i]
+if gtitable is not None:
+    startmet = gtitable['START'][0]
+    stopmet = gtitable['STOP'][0]
     duration = stopmet-startmet
-    myelapsedbins = np.arange(0.0,duration+args.lcbinsize,args.lcbinsize)
-    lc_elapsed_bins = np.append(lc_elapsed_bins,cumtime+myelapsedbins)
-    lc_met_bins = np.append(lc_met_bins,np.arange(startmet,stopmet+args.lcbinsize,args.lcbinsize))
-    mylcduration = myelapsedbins[-1]+args.lcbinsize
-    cumtimes.append(cumtime)
-    cumtime += mylcduration
-gtitable['CUMTIME'] = np.array(cumtimes)
+    # Add 1 bin to make sure last bin covers last events
+    lc_elapsed_bins = np.arange(0.0,duration+args.lcbinsize,args.lcbinsize)
+    lc_met_bins = startmet+lc_elapsed_bins
+    cumtimes = [ 0.0 ]
+    cumtime = lc_elapsed_bins[-1]+args.lcbinsize
+    for i in range(1,len(gtitable['START'])):
+        startmet = gtitable['START'][i]
+        stopmet = gtitable['STOP'][i]
+        duration = stopmet-startmet
+        myelapsedbins = np.arange(0.0,duration+args.lcbinsize,args.lcbinsize)
+        lc_elapsed_bins = np.append(lc_elapsed_bins,cumtime+myelapsedbins)
+        lc_met_bins = np.append(lc_met_bins,np.arange(startmet,stopmet+args.lcbinsize,args.lcbinsize))
+        mylcduration = myelapsedbins[-1]+args.lcbinsize
+        cumtimes.append(cumtime)
+        cumtime += mylcduration
+    gtitable['CUMTIME'] = np.array(cumtimes)
 
 # Overwrite bad OBJECT name, if requested (early FITS all have OBJECT=Crab)
 if args.guessobj and args.obsdir:
@@ -154,14 +208,9 @@ if args.guessobj and args.obsdir:
     etable.meta['OBJECT'] = objname
     etable.meta['OBJECT'] = objname
 
+#-------------------------------------------MAKE THIS WORK FOR 1 INFILE--------------------------------------------
 #Getting over/undershoot rate from HK files.
-overshootrate = data.overshootrate
-undershootrate = data.undershootrate
-bothrate = data.bothrate
-reset_rates = data.reset_rates
 if args.eventshootrate:
-    data.eventundershootrate()
-    data.getlatlon()
     eventovershoot = data.eventovershoot
     eventundershoot = data.eventundershoot
     bothrate = data.bothrate
@@ -170,6 +219,13 @@ else:
     eventundershoot = None
     eventovershoot = None
 
+if args.obsdir is not None:
+    overshootrate = data.overshootrate
+    undershootrate = data.undershootrate
+    bothrate = data.bothrate
+    reset_rates = data.reset_rates
+
+#-------------------------------------------MAKE THIS WORK FOR 1 INFILE--------------------------------------------
 # Write overshoot and undershoot rates to file for filtering
 if args.writeovershoot:
     data.writeovsfile()
@@ -215,11 +271,6 @@ if args.par is not None:
     etime = filttable.columns['MET'] + MET0
     filttable['T'] = etime
 
-#Some Definitions
-gtitable = data.gtitable
-mktable = data.mktable
-hkmet = data.hkmet
-basename = data.basename
 
 # Background plots are diagnostics for background rates and filtering
 if args.bkg:
