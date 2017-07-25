@@ -17,7 +17,7 @@ class NicerFileSet:
     def __init__(self, args):
         log.info('Initializing the data object')
         self.args = args
-
+        
         #Getting the names of the event files from obsdir
         self.evfiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu?_cl.evt'))
         self.evfiles.sort()
@@ -56,34 +56,6 @@ class NicerFileSet:
             self.etable = self.createetable()
         self.sortmet()
         self.makebasename()
-
-        #--------------------Editing / Filtering the event data-----------------
-        #filtering out chosen IDS
-        if self.args.mask is not None:
-            log.info('Masking IDS')
-            for id in self.args.mask:
-                self.etable = self.etable[np.where(self.etable['DET_ID'] != id)]
-        # If there are no PI columns, add them with approximate calibration
-        if self.args.pi or not ('PI' in self.etable.colnames):
-            log.info('Adding PI')
-            calfile = path.join(datadir,'gaincal_linear.txt')
-            pi = calc_pi(self.etable,calfile)
-            self.etable['PI'] = pi
-
-        if self.args.applygti is not None:
-            g = Table.read(self.args.applygti)
-            log.info('Applying external GTI from {0}'.format(self.args.applygti))
-            g['DURATION'] = g['STOP']-g['START']
-            # Only keep GTIs longer than 16 seconds
-            g = g[np.where(g['DURATION']>16.0)]
-            log.info('Applying external GTI')
-            print g
-            self.etable = apply_gti(self.etable,g)
-            # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
-            self.etable.meta['EXPOSURE'] = g['DURATION'].sum()
-            self.gtitable = g
-        log.info('Exposure : {0:.2f}'.format(self.etable.meta['EXPOSURE']))
-        #-----------------------------------------------------------------------
 
         #Compiling HK Data
         self.getmk()
