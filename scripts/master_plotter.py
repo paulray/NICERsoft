@@ -17,14 +17,15 @@ from nicer.plotutils import *
 from nicer.sci_plots import sci_plots
 from nicer.eng_plots import eng_plots
 from glob import glob
+import sys
 from nicer.bkg_plots import *
 from nicer.fitsutils import *
 from InteractiveLC import *
 from nicer.NicerFileSet import *
 
 parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
-parser.add_argument("infiles", help="Input files", nargs='*')
-parser.add_argument("--obsdir",help = "Find alllllllll the files!")
+parser.add_argument("infiles", help="Input files", nargs='*', default = None)
+parser.add_argument("--obsdir",help = "Find alllllllll the files!", default = None)
 parser.add_argument("--object", help="Override object name", default=None)
 parser.add_argument("--guessobj", help="Try to guess object from directory name", action="store_true")
 parser.add_argument("--useftools", help="Use FTOOLS for filter and merge", action="store_true")
@@ -45,10 +46,8 @@ parser.add_argument("--lcbinsize", help="Light curve bin size (s)", default=1.0,
 parser.add_argument("--pi", help="Force use of internal PHA to PI conversion", action='store_true')
 parser.add_argument("--basename", help="Basename for output plots", default=None)
 parser.add_argument("--lclog", help = "make light curve log axis", action = "store_true")
-parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed freq (Hz)",
-                    default=0.0,type=float)
-parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",
-                    default=100.0,type=float)
+parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed freq (Hz)",default=0.0,type=float)
+parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",default=100.0,type=float)
 parser.add_argument("--map", help= "Creates a map with overshoots and undershoots", action = 'store_true')
 parser.add_argument("--orb", help="Path to orbit FITS filed", default = None)
 parser.add_argument("--par", help="Path to par file", default = None)
@@ -62,13 +61,81 @@ parser.add_argument("--eventshootrate",help="Gets over/undershoot rates from the
 parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = 'store_true')
 args = parser.parse_args()
 
-#---------------------Options for data filtering / Plotting -------------------
-if args.filtall:
-    args.filtswtrig=True
-    args.filtovershoot=True
-    args.filtundershoot=True
-    args.filtratio=1.4
+#------------------------------Getting the data and concatenating------------------------------
+if np.logical_or(args.obsdir is not None, args.infiles is not None):
+    if args.obsdir is not None:
+        #Create the data structure
+        data = NicerFileSet(args)
+        etable = data.etable
+        gtitable = data.gtitable
+        #Some Definitions
+        mktable = data.mktable
+        hkmet = data.hkmet
+        basename = data.basename
 
+    else:
+        #Creating the data table for each separate file
+        if args.useftools:
+            etable = filtandmerge(args.infiles,workdir=None)
+        else:
+            log.info('Reading files')
+            tlist = []
+            for fn in args.infiles:
+                log.info('Reading file {0}'.format(fn))
+                tlist.append(Table.read(fn,hdu=1))
+                if len(tlist[0]) > 3000000:
+                    log.error('There is too much data to handle. Not processing...')
+                    sys.exit(3)
+            log.info('Concatenating files')
+
+            if len(tlist) == 1:
+                etable = tlist[0]
+            else:
+                etable = vstack(tlist,metadata_conflicts='silent')
+            del tlist
+                
+        # Read the GTIs from the first event FITS file
+        gtitable = Table.read(args.infiles[0],hdu=2)
+        log.info('Got the good times from GTI')
+        gtitable['DURATION'] = gtitable['STOP']- gtitable['START']
+        # Only keep GTIs longer than 16 seconds
+        idx = np.where(gtitable['DURATION']>16.0)[0]
+        gtitable = gtitable[idx]
+        print(gtitable)
+
+        # Change TIME column name to MET to reflect what it really is
+        etable.columns['TIME'].name = 'MET'
+
+        # Update exposure to be sum of GTI durations
+        etable.meta['EXPOSURE'] = gtitable['DURATION'].sum()
+
+        # Sort table by MET
+        etable.sort('MET')
+        log.info("Event MET Range : {0} to {1}".format(etable['MET'].min(),etable['MET'].max(), etable['MET'].max()-etable['MET'].min()))
+        log.info("TSTART {0}  TSTOP {1} (Span {2} seconds)".format(etable.meta['TSTART'],etable.meta['TSTOP'], etable.meta['TSTOP']-etable.meta['TSTART'] ))
+        log.info("DATE Range {0} to {1}".format(etable.meta['DATE-OBS'],etable.meta['DATE-END']))
+
+        if args.object is not None:
+            etable.meta['OBJECT'] = args.object
+
+        bn = path.basename(args.infiles[0]).split('_')[0]
+        log.info('OBS_ID {0}'.format(etable.meta['OBS_ID']))
+        if etable.meta['OBS_ID'].startswith('000000'):
+            log.info('Overwriting OBS_ID with {0}'.format(bn))
+            etable.meta['OBS_ID'] = bn
+            etable.meta['OBS_ID'] = bn
+        if args.basename is None:
+            basename = '{0}'.format(bn)
+        else:
+            basename = args.basename
+
+        reset_rates = None
+else:
+    log.warning('You have not specified any files, please input the path to the files you want to see. Exiting.')
+    sys.exit()
+
+
+#---------------------Options for data filtering / Plotting -------------------
 if not args.sci and not args.eng and not args.map and not args.bkg and not args.interactive:
     log.warning("No specific plot requested, making all")
     args.sci = True
@@ -76,11 +143,11 @@ if not args.sci and not args.eng and not args.map and not args.bkg and not args.
     args.map = True
     args.bkg = True
 
-if args.obsdir is not None:
-    #Create the data structure
-    data = NicerFileSet(args)
-    etable = data.etable
-    gtitable = data.gtitable
+if args.filtall:
+    args.filtswtrig=True
+    args.filtovershoot=True
+    args.filtundershoot=True
+    args.filtratio=1.4
 
 #--------------------Editing / Filtering the event data Options-----------------
 # Hack to trim first chunk of data
@@ -121,28 +188,30 @@ if args.applygti is not None:
     gtitable = g
 log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
 
+
 # Set up the light curve bins, so we can have them for building
 # light curves of various quantities, like overshoot rate and ratio filtered events
 # Hmmm. The lc_elapsed_bins and lc_met_bins are never used, but CUMTIME is
-startmet = gtitable['START'][0]
-stopmet = gtitable['STOP'][0]
-duration = stopmet-startmet
-# Add 1 bin to make sure last bin covers last events
-lc_elapsed_bins = np.arange(0.0,duration+args.lcbinsize,args.lcbinsize)
-lc_met_bins = startmet+lc_elapsed_bins
-cumtimes = [ 0.0 ]
-cumtime = lc_elapsed_bins[-1]+args.lcbinsize
-for i in range(1,len(gtitable['START'])):
-    startmet = gtitable['START'][i]
-    stopmet = gtitable['STOP'][i]
+if gtitable is not None:
+    startmet = gtitable['START'][0]
+    stopmet = gtitable['STOP'][0]
     duration = stopmet-startmet
-    myelapsedbins = np.arange(0.0,duration+args.lcbinsize,args.lcbinsize)
-    lc_elapsed_bins = np.append(lc_elapsed_bins,cumtime+myelapsedbins)
-    lc_met_bins = np.append(lc_met_bins,np.arange(startmet,stopmet+args.lcbinsize,args.lcbinsize))
-    mylcduration = myelapsedbins[-1]+args.lcbinsize
-    cumtimes.append(cumtime)
-    cumtime += mylcduration
-gtitable['CUMTIME'] = np.array(cumtimes)
+    # Add 1 bin to make sure last bin covers last events
+    lc_elapsed_bins = np.arange(0.0,duration+args.lcbinsize,args.lcbinsize)
+    lc_met_bins = startmet+lc_elapsed_bins
+    cumtimes = [ 0.0 ]
+    cumtime = lc_elapsed_bins[-1]+args.lcbinsize
+    for i in range(1,len(gtitable['START'])):
+        startmet = gtitable['START'][i]
+        stopmet = gtitable['STOP'][i]
+        duration = stopmet-startmet
+        myelapsedbins = np.arange(0.0,duration+args.lcbinsize,args.lcbinsize)
+        lc_elapsed_bins = np.append(lc_elapsed_bins,cumtime+myelapsedbins)
+        lc_met_bins = np.append(lc_met_bins,np.arange(startmet,stopmet+args.lcbinsize,args.lcbinsize))
+        mylcduration = myelapsedbins[-1]+args.lcbinsize
+        cumtimes.append(cumtime)
+        cumtime += mylcduration
+    gtitable['CUMTIME'] = np.array(cumtimes)
 
 # Overwrite bad OBJECT name, if requested (early FITS all have OBJECT=Crab)
 if args.guessobj and args.obsdir:
@@ -154,27 +223,27 @@ if args.guessobj and args.obsdir:
     etable.meta['OBJECT'] = objname
     etable.meta['OBJECT'] = objname
 
-#Getting over/undershoot rate from HK files.
-overshootrate = data.overshootrate
-undershootrate = data.undershootrate
-bothrate = data.bothrate
-reset_rates = data.reset_rates
+#Getting over/undershoot rate from event data.
 if args.eventshootrate:
-    data.eventundershootrate()
-    data.getlatlon()
     eventovershoot = data.eventovershoot
     eventundershoot = data.eventundershoot
-    bothrate = data.bothrate
+    bothshoots = data.bothshoots
 else:
-    bothrate = None
+    bothshoots = None
     eventundershoot = None
     eventovershoot = None
+
+if args.obsdir is not None:
+    hkovershoots = data.hkovershoots
+    hkundershoots = data.hkundershoots
+    bothshoots = data.bothshoots
+    reset_rates = data.reset_rates
 
 # Write overshoot and undershoot rates to file for filtering
 if args.writeovershoot:
     data.writeovsfile()
 
-#Filting all the data as necessary!
+#---------------------------------------------Filting all the data as necessary!---------------------------------------------------------------
 log.info('Filtering...')
 filt_str = 'Filter: {0:.2f} < E < {1:.2f} keV'.format(args.emin,args.emax)
 if args.emin >= 0:
@@ -215,12 +284,8 @@ if args.par is not None:
     etime = filttable.columns['MET'] + MET0
     filttable['T'] = etime
 
-#Some Definitions
-gtitable = data.gtitable
-mktable = data.mktable
-hkmet = data.hkmet
-basename = data.basename
 
+#------------------------------------------------------PLOTTING HAPPENS BELOW HERE ------------------------------------------------------
 # Background plots are diagnostics for background rates and filtering
 if args.bkg:
     if hkmet is None:
@@ -228,9 +293,9 @@ if args.bkg:
     else:
         if eventovershoot is not None:
             
-            figure4 = bkg_plots(etable, eventovershoot, gtitable, args, hkmet, eventundershoot, mktable, bothrate)
+            figure4 = bkg_plots(etable, eventovershoot, gtitable, args, hkmet, eventundershoot, mktable, bothshoots)
         else:
-            figure4 = bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable, bothrate)
+            figure4 = bkg_plots(etable, hkovershoots, gtitable, args, hkmet, hkundershoots, mktable, bothshoots)
         figure4.set_size_inches(16,12)
         if args.save:
             log.info('Writing bkg plot {0}'.format(basename))
@@ -266,7 +331,7 @@ if args.map:
     if eventovershoot is not None:
         figure3 = cartography(hkmet, eventovershoot, args, eventundershoot, filttable, mktable)
     else:
-        figure3 = cartography(hkmet, overshootrate, args, undershootrate, filttable, mktable)
+        figure3 = cartography(hkmet, hkovershoots, args, hkundershoots, filttable, mktable)
     
     if args.save:
         log.info('Writing MAP {0}'.format(basename))
