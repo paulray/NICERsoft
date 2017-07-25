@@ -13,7 +13,6 @@ from fitsutils import *
 from values import *
 
 class NicerFileSet:
-
     def __init__(self, args):
         log.info('Initializing the data object')
         self.args = args
@@ -60,7 +59,7 @@ class NicerFileSet:
         #Compiling HK Data
         self.getmk()
         self.hkshootrate()
-        self.eventundershootrate()
+        self.geteventshoots()
         #self.eventovershootrate()
 
 
@@ -118,8 +117,8 @@ class NicerFileSet:
             self.hkmet = td['TIME']
             log.info("HK MET Range {0} to {1} (Span = {2:.1f} seconds)".format(self.hkmet.min(),
                 self.hkmet.max(),self.hkmet.max()-self.hkmet.min()))
-            self.overshootrate = td['MPU_OVER_COUNT'].sum(axis=1)
-            self.undershootrate = td['MPU_UNDER_COUNT'].sum(axis=1)
+            self.hkovershoots = td['MPU_OVER_COUNT'].sum(axis=1)
+            self.hkundershoots = td['MPU_UNDER_COUNT'].sum(axis=1)
             nresets = td['MPU_UNDER_COUNT'].sum(axis=0)
 
             for fn in self.hkfiles[1:]:
@@ -127,15 +126,15 @@ class NicerFileSet:
                 hdulist = pyfits.open(fn)
                 mytd = hdulist[1].data
                 mymet = mytd['TIME']
-                myovershootrate = mytd['MPU_OVER_COUNT'].sum(axis=1)
-                myundershootrate = mytd['MPU_UNDER_COUNT'].sum(axis=1)
+                myhkovershoots= mytd['MPU_OVER_COUNT'].sum(axis=1)
+                myhkundershoots = mytd['MPU_UNDER_COUNT'].sum(axis=1)
                 # If time axis is bad, skip this MPU.
                 # Should fix this!
                 if not np.all(mymet == self.hkmet):
                     log.error('TIME axes are not compatible')
                 else:
-                    self.overshootrate += myovershootrate
-                    self.undershootrate += myundershootrate
+                    self.hkovershoots += myhkovershoots
+                    self.hkundershoots += myhkundershoots
                 myreset = mytd['MPU_UNDER_COUNT'].sum(axis=0)
                 nresets = np.append(nresets,myreset)
             del hdulist
@@ -143,8 +142,8 @@ class NicerFileSet:
 
         else:
             hkmet = None
-            overshootrate = None
-            undershootrate = None
+            hkovershoots = None
+            hkundershoots = None
             nresets = calc_nresets(self.etable, IDS)
             reset_rates = nresets/self.etable.meta['EXPOSURE']
 
@@ -156,14 +155,15 @@ class NicerFileSet:
         bins = np.arange(self.ovstable['TIME'][0], self.ovstable['TIME'][-1]+self.ovstable['TIME'][1]-self.ovstable['TIME'][0], self.args.lcbinsize)
         self.eventovershoot, edges = np.histogram(self.ovstable['TIME'],bins)
 
-    def eventundershootrate(self):
+    def geteventshoots(self):
         log.info('Getting event undershoot rates')
         # Define bins for hkmet histogram
         hkmetbins = np.append(self.hkmet,(self.hkmet[-1]+self.hkmet[1]-self.hkmet[0]))
+        
         #Both under and overshoot
         idx = np.logical_and(self.etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]==True,
                              self.etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT]==True)
-        self.bothrate, edges = np.histogram(self.etable['MET'][idx],hkmetbins)
+        self.bothshoots, edges = np.histogram(self.etable['MET'][idx],hkmetbins)
 
         #Just undershoot
         idx = np.logical_and(self.etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]==True,
@@ -186,8 +186,8 @@ class NicerFileSet:
         # Write overshoot and undershoot rates to file for filtering
         log.info('Writing over/undershoot rates')
         tcol = pyfits.Column(name='TIME',unit='S',array=self.hkmet,format='D')
-        ocol = pyfits.Column(name='HK_OVERSHOOT',array=self.overshootrate,format='D')
-        ucol = pyfits.Column(name='HK_UNDERSHOOT',array=self.undershootrate,format='D')
+        ocol = pyfits.Column(name='HK_OVERSHOOT',array=self.hkovershoots,format='D')
+        ucol = pyfits.Column(name='HK_UNDERSHOOT',array=self.hkundershoots,format='D')
         eocol = pyfits.Column(name='EV_OVERSHOOT',array=self.eventovershoot,format='D')
         eucol = pyfits.Column(name='EV_UNDERSHOOT',array=self.eventundershoot,format='D')
         bothcol = pyfits.Column(name='EV_BOTH',array=self.bothrate,format='D')
