@@ -164,9 +164,14 @@ def plot_slowfast(etable,args):
                                             np.logical_not(etable['EVENT_FLAGS'][:,FLAG_FAST])))
     nboth = np.count_nonzero(np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],
                                             etable['EVENT_FLAGS'][:,FLAG_FAST]))
-    log.info('Taking out single-flag events')
+    log.info('Using only SLOW+FAST events for ratio plot')
     # Only compute ratio for events with both triggers
     etable = etable[np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],etable['EVENT_FLAGS'][:,FLAG_FAST])]
+    downsampfac = None
+    if len(etable) > 50000:
+        log.warning('Too many events for ratio plot. Plotting subset of points')
+        downsampfac = len(etable)//50000
+        etable = etable[::downsampfac]
     log.info('Computing ratio')
     # Ratio is SLOW to FAST. Edge events should have ratio bigger than cut
     ratio = np.array(etable['PHA'],dtype=np.float)/np.array(etable['PHA_FAST'],dtype=np.float)
@@ -180,7 +185,10 @@ def plot_slowfast(etable,args):
     x = np.arange(min(etable['PI']),max(etable['PI']))
     phax = np.ones_like(x)*ratio_cut
 
-    plot.title('PHA Slow to Fast Ratio vs Energy')
+    if downsampfac is None:
+        plot.title('PHA Slow to Fast Ratio vs Energy')
+    else:
+        plot.title('PHA Slow to Fast Ratio vs Energy (SUBSET)')
     plot.xlabel('Energy')
     plot.ylabel('PHA Ratio')
     plot.ylim([min(ratio)-.5,ratio_cut + 1.5])
