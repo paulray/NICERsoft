@@ -57,10 +57,10 @@ for obsdir in args.indirs:
 
     log.info('Making initial QL plots')
     cmd = ["master_plotter.py", "--save", "--filtall",
-           "--writeovershoot",
+#           "--writeovershoot",
            "--guessobj", "--lclog", "--useftools",
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
-           "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
+           "--sci", "--eng", "--bkg", "--obsdir", obsdir,
            "--basename", path.join(pipedir,basename)+'_prefilt']
     if args.par is not None:
         cmd.append("--par")
@@ -97,7 +97,7 @@ for obsdir in args.indirs:
     if args.ultraclean:
         mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0).and.(SUNSHINE.eq.0)'
     else:
-        mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01)'
+        mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0)'
     gtiname1 = path.join(pipedir,'mkf.gti')
     cmd = ["maketime", mkfile, gtiname1, 'expr={0}'.format(mkf_expr),
         "compact=no", "time=TIME", "clobber=yes"]
@@ -116,6 +116,56 @@ for obsdir in args.indirs:
         log.error('No good time left after filtering!')
         sys.exit(0)
 
+    gtiname_merged = path.join(pipedir,"tot.gti")
+    try:
+        os.remove(gtiname_merged)
+    except:
+        pass
+    cmd = ["mgtime", "{0},{1}".format(gtiname1,gtiname2), gtiname_merged, "AND"]
+    runcmd(cmd)
+
+    # Extract filtered events and apply merged GTI
+    filteredname = path.join(pipedir,"cleanfilt.evt")
+
+    # Build input file for niextract-events
+    evlistname=path.join(pipedir,'evfiles.txt')
+    fout = file(evlistname,'w')
+    for en in evfiles:
+        print('{0}'.format(en),file=fout)
+    fout.close()
+
+    # Build selection expression for niextract-events
+    evfilt_expr = 'PI={0}:{1},EVENT_FLAGS==bx1x000'.format(
+        int(args.emin*KEV_TO_PI), int(args.emax*KEV_TO_PI))
+    if args.mask is not None:
+        for detid in args.mask:
+            evfilt_expr += ",DET_ID!={0}".format(detid)
+
+    cmd = ["niextract-events", "filename=@{0}[{1}]".format(evlistname,evfilt_expr),
+        "eventsout={0}".format(filteredname), "timefile={0}".format(gtiname_merged),
+        "gti=gti", "clobber=yes"]
+    runcmd(cmd)
+
+    ## Now apply the good GTI to remove SAA and slew time ranges
+
+    # Add phases and plot, if requested
+    maxratio = 1.4
+    if args.ultraclean:
+        maxratio=1.14
+    cmd = ["master_plotter.py", "--save", "--filtratio", "{0}".format(maxratio),
+           "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
+           "--applygti", gtiname_merged,
+           "--orb", path.join(pipedir,path.basename(orbfile)),
+           "--sci", filteredname,
+           "--basename", path.join(pipedir,basename)]
+    if args.par is not None:
+        cmd.append("--par")
+        cmd.append("{0}".format(args.par))
+    runcmd(cmd)
+
+
+"""
+OLD METHOD:
     # Build input file for ftmerge
     evlistname=path.join(pipedir,'evfiles.txt')
     fout = file(evlistname,'w')
@@ -150,17 +200,4 @@ for obsdir in args.indirs:
     cmd = ["fltime", mergedname, gtiname_merged, filteredname, "copyall=yes", "clobber=yes"]
     runcmd(cmd)
 
-    # Add phases and plot, if requested
-    maxratio = 1.4
-    if args.ultraclean:
-        maxratio=1.14
-    cmd = ["master_plotter.py", "--save", "--filtratio", "{0}".format(maxratio),
-           "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
-           "--applygti", gtiname_merged,
-           "--orb", path.join(pipedir,orbfile),
-           "--sci", path.join(pipedir,"clean.evt"),
-           "--basename", path.join(pipedir,basename)]
-    if args.par is not None:
-        cmd.append("--par")
-        cmd.append("{0}".format(args.par))
-    runcmd(cmd)
+"""

@@ -5,6 +5,12 @@ This repo is for sharing NICER analysis codes, mostly written in Python, and fre
 
 Please contribute tools you develop!
 
+USAGE:
+
+To use these scripts add <basedir>/NICERsoft/scripts to your PATH
+and add <basedir>/NICERsoft to your PYTHONPATH, where <basedir> is wherever you
+cloned NICERsoft.
+
 NOTES:
 
 * Dependencies on PINT are OK
