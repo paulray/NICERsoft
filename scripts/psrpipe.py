@@ -154,7 +154,7 @@ for obsdir in args.indirs:
         maxratio=1.14
     cmd = ["master_plotter.py", "--save", "--filtratio", "{0}".format(maxratio),
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
-           "--applygti", gtiname_merged,
+#           "--applygti", gtiname_merged,
            "--orb", path.join(pipedir,path.basename(orbfile)),
            "--sci", filteredname,
            "--basename", path.join(pipedir,basename)]
