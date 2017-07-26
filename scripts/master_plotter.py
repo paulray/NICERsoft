@@ -75,7 +75,6 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
         mktable = data.mktable
         hkmet = data.hkmet
         basename = data.basename
-
     else:
         #Creating the data table for each separate file
         if args.useftools:
@@ -86,9 +85,6 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
             for fn in args.infiles:
                 log.info('Reading file {0}'.format(fn))
                 tlist.append(Table.read(fn,hdu=1))
-                if len(tlist[0]) > 3000000:
-                    log.error('There is too much data to handle. Not processing...')
-                    sys.exit(3)
             log.info('Concatenating files')
 
             if len(tlist) == 1:
@@ -182,19 +178,6 @@ if args.pi or not ('PI' in etable.colnames):
     pi = calc_pi(etable,calfile)
     etable['PI'] = pi
 
-if args.applygti is not None:
-    g = Table.read(args.applygti)
-    log.info('Applying external GTI from {0}'.format(args.applygti))
-    g['DURATION'] = g['STOP']-g['START']
-    # Only keep GTIs longer than 16 seconds
-    g = g[np.where(g['DURATION']>16.0)]
-    print(g)
-    etable = apply_gti(etable,g)
-    # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
-    etable.meta['EXPOSURE'] = g['DURATION'].sum()
-    gtitable = g
-log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
-
 
 # Set up the light curve bins, so we can have them for building
 # light curves of various quantities, like overshoot rate and ratio filtered events
@@ -234,31 +217,35 @@ if args.guessobj and args.obsdir:
 if args.eventshootrate:
     eventovershoot = data.eventovershoot
     eventundershoot = data.eventundershoot
-    bothshoots = data.bothshoots
+    eventbothshoots = data.eventbothshoots
 else:
-    bothshoots = None
+    eventbothshoots = None
     eventundershoot = None
     eventovershoot = None
 
 if args.obsdir is not None:
     hkovershoots = data.hkovershoots
     hkundershoots = data.hkundershoots
-    bothshoots = data.eventbothshoots
+    eventbothshoots = data.eventbothshoots
+
     reset_rates = data.reset_rates
 
 # Write overshoot and undershoot rates to file for filtering
 if args.writeovershoot:
-
+    #Writing the rejected events light curve to be written out with the overshoot file
     temptable = etable[np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],etable['EVENT_FLAGS'][:,FLAG_FAST])]
     ratio = np.array(temptable['PHA'],dtype=np.float)/np.array(temptable['PHA_FAST'],dtype=np.float)
     badtable = temptable[np.where(ratio > args.filtratio)[0]]
-    # This is no good.  Needs to be binned on hkmet bins.
-    r, badlightcurve = plot_light_curve(badtable, args.lclog, gtitable,
-        binsize=16.0, noplot=True)
-
+    hkmetbins = np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0]))
+    badlightcurve = np.histogram(badtable['MET'], hkmetbins)[0]
+    
     badlightcurve = np.array(badlightcurve)
+    
+    #Writing it out in NicerFileSet
     data.writeovsfile(badlightcurve)
-    del r, temptable, ratio
+
+    del temptable, ratio
+
 
 if np.logical_and(args.readovs is not None, args.writeovershoot == True):
     ovsfile = "{0}.ovs".format(basename)
@@ -308,7 +295,18 @@ if args.par is not None:
     etime = filttable.columns['MET'] + MET0
     filttable['T'] = etime
 
-
+if args.applygti is not None:
+    g = Table.read(args.applygti)
+    log.info('Applying external GTI from {0}'.format(args.applygti))
+    g['DURATION'] = g['STOP']-g['START']
+    # Only keep GTIs longer than 16 seconds
+    g = g[np.where(g['DURATION']>16.0)]
+    print(g)
+    etable = apply_gti(etable,g)
+    # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
+    etable.meta['EXPOSURE'] = g['DURATION'].sum()
+    gtitable = g
+log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
 #------------------------------------------------------PLOTTING HAPPENS BELOW HERE ------------------------------------------------------
 # Background plots are diagnostics for background rates and filtering
 if args.bkg:
@@ -317,9 +315,9 @@ if args.bkg:
     else:
         if eventovershoot is not None:
 
-            figure4 = bkg_plots(etable, eventovershoot, gtitable, args, hkmet, eventundershoot, mktable, bothshoots)
+            figure4 = bkg_plots(etable, eventovershoot, gtitable, args, hkmet, eventundershoot, mktable, eventbothshoots)
         else:
-            figure4 = bkg_plots(etable, hkovershoots, gtitable, args, hkmet, hkundershoots, mktable, bothshoots)
+            figure4 = bkg_plots(etable, hkovershoots, gtitable, args, hkmet, hkundershoots, mktable, eventbothshoots)
         figure4.set_size_inches(16,12)
         if args.save:
             log.info('Writing bkg plot {0}'.format(basename))
@@ -361,6 +359,7 @@ if args.map:
         log.info('Writing MAP {0}'.format(basename))
         figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
 
+#Interactive light curve for choosing time intervals to edit out of the light curve
 if args.interactive:
     log.info("Interaction is coming")
     figure4 = plot.figure()
