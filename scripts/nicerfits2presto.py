@@ -35,7 +35,7 @@ base = os.path.splitext(os.path.basename(args.evfile))[0]
 etable = Table.read(args.evfile,hdu=1)
 if etable.meta['TIMESYS'] != 'TDB':
     log.error('Event file must be barycentered!')
-    #sys.exit(1)
+    sys.exit(1)
 gtitable = Table.read(args.evfile,hdu=2)
 
 epoch_met = gtitable['START'][0]
