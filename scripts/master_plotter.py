@@ -243,7 +243,7 @@ else:
 if args.obsdir is not None:
     hkovershoots = data.hkovershoots
     hkundershoots = data.hkundershoots
-    bothshoots = data.bothshoots
+    bothshoots = data.eventbothshoots
     reset_rates = data.reset_rates
 
 # Write overshoot and undershoot rates to file for filtering

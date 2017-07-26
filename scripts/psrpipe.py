@@ -57,7 +57,7 @@ for obsdir in args.indirs:
 
     log.info('Making initial QL plots')
     cmd = ["master_plotter.py", "--save", "--filtall",
-           "--writeovershoot", "--map"
+           "--writeovershoot", "--map",
            "--guessobj", "--lclog", "--useftools",
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--sci", "--eng", "--bkg", "--obsdir", obsdir,
