@@ -1,6 +1,7 @@
 from __future__ import (print_function, division, unicode_literals, absolute_import)
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 import argparse
 from astropy import log
 from astropy.table import Table, vstack
@@ -17,14 +18,18 @@ class NicerFileSet:
     def __init__(self, args):
         log.info('Initializing the data object')
         self.args = args
-        
+
         #Getting the names of the event files from obsdir
         self.evfiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu?_cl.evt*'))
         self.evfiles.sort()
         if len(self.evfiles) == 0:
             log.error("No event files found!")
             sys.exit(1)
-        log.info('Found event files: {0}'.format("\n" + "    \n".join(self.evfiles)))
+        log.info('Found clean event files: {0}'.format("\n" + "    \n".join(self.evfiles)))
+
+        self.ufafiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu?_ufa.evt*'))
+        self.ufafiles.sort()
+        log.info('Found unfiltered event files: {0}'.format("\n" + "    \n".join(self.ufafiles)))
 
         # Get name of orbit file from obsdir
         try:
@@ -46,7 +51,8 @@ class NicerFileSet:
         log.info('Found the MPU housekeeping files: {0}'.format("\n"+"\t\n".join(self.hkfiles)))
 
         # Get name of filter (.mkf) file
-        self.mkfiles = glob(path.join(args.obsdir,'auxil/ni*.mkf*'))[0]
+        self.mkfile = glob(path.join(args.obsdir,'auxil/ni*.mkf*'))[0]
+        self.mktable = Table.read(self.mkfile,hdu=1)
 
         #Compiling Event Data
         self.getgti()
@@ -69,16 +75,11 @@ class NicerFileSet:
             # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
             etable.meta['EXPOSURE'] = g['DURATION'].sum()
             gtitable = g
-    
+
         #Compiling HK Data
-        self.getmk()
         self.hkshootrate()
         self.geteventshoots()
-        #self.eventovershootrate()
 
-        #Compiling other data
-        self.getlatlon()
-        
     def createetable(self):
         log.info('Reading files')
         tlist = []
@@ -111,14 +112,6 @@ class NicerFileSet:
 
         if self.args.object is not None:
             self.etable.meta['OBJECT'] = self.args.object
-
-    def getmk(self):
-        #Making the MK Table
-        log.info('Getting MKTable')
-        if len(self.mkfiles) > 0:
-            self.mktable = Table.read(self.mkfiles,hdu=1)
-        else:
-            self.mktable = None
 
     def hkshootrate(self):
         # getting the overshoot and undershoot rate from HK files.  Times are hkmet
@@ -160,40 +153,24 @@ class NicerFileSet:
             nresets = calc_nresets(self.etable, IDS)
             reset_rates = nresets/self.etable.meta['EXPOSURE']
 
-    def eventovershootrate(self):
-        #Get a table of OVERSHOOT ONLY events
-        log.info('Getting overshoot only events')
-        self.ovstable = get_eventovershoots_ftools(self.evfiles,workdir=None)
-        hkmetbins = np.append(self.hkmet,(self.hkmet[-1]+self.hkmet[1]-self.hkmet[0]))
-        bins = np.arange(self.ovstable['TIME'][0], self.ovstable['TIME'][-1]+self.ovstable['TIME'][1]-self.ovstable['TIME'][0], self.args.lcbinsize)
-        self.eventovershoot, edges = np.histogram(self.ovstable['TIME'],bins)
-
     def geteventshoots(self):
         log.info('Getting event undershoot rates')
         # Define bins for hkmet histogram
         hkmetbins = np.append(self.hkmet,(self.hkmet[-1]+self.hkmet[1]-self.hkmet[0]))
-        
+
         #Both under and overshoot
-        idx = np.logical_and(self.etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]==True,
-                             self.etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT]==True)
-        self.eventbothshoots, edges = np.histogram(self.etable['MET'][idx],hkmetbins)
+        etable = get_eventbothshoots_ftools(self.ufafiles,workdir=None)
+        self.eventbothshoots, edges = np.histogram(etable['TIME'],hkmetbins)
 
         #Just undershoot
-        idx = np.logical_and(self.etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]==True,
-                             self.etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT]==False)
-        self.eventundershoot, edges = np.histogram(self.etable['MET'][idx],hkmetbins)
+        etable = get_eventundershoots_ftools(self.ufafiles,workdir=None)
+        self.eventundershoots, edges = np.histogram(etable['TIME'],hkmetbins)
 
         #Just overshoot
-        idx = np.logical_and(self.etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]==False,
-                             self.etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT]==True)
-        self.eventovershoot, edges = np.histogram(self.etable['MET'][idx],hkmetbins)
+        etable = get_eventovershoots_ftools(self.ufafiles,workdir=None)
+        self.eventovershoots, edges = np.histogram(etable['TIME'],hkmetbins)
 
-        del idx, edges
-
-    def getlatlon(self):
-        self.lat = self.mktable['SAT_LAT']
-        self.lon = self.mktable['SAT_LON']
-        self.sun = self.mktable['SUNSHINE']
+        del etable
 
     def writeovsfile(self, badlightcurve):
         # Write overshoot and undershoot rates to file for filtering
@@ -201,8 +178,8 @@ class NicerFileSet:
         tcol = pyfits.Column(name='TIME',unit='S',array=self.hkmet,format='D')
         ocol = pyfits.Column(name='HK_OVERSHOOT',array=self.hkovershoots,format='D')
         ucol = pyfits.Column(name='HK_UNDERSHOOT',array=self.hkundershoots,format='D')
-        eocol = pyfits.Column(name='EV_OVERSHOOT',array=self.eventovershoot,format='D')
-        eucol = pyfits.Column(name='EV_UNDERSHOOT',array=self.eventundershoot,format='D')
+        eocol = pyfits.Column(name='EV_OVERSHOOT',array=self.eventovershoots,format='D')
+        eucol = pyfits.Column(name='EV_UNDERSHOOT',array=self.eventundershoots,format='D')
         bothcol = pyfits.Column(name='EV_BOTH',array=self.eventbothshoots,format='D')
 
         if badlightcurve is not None:
