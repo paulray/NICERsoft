@@ -227,6 +227,7 @@ if args.obsdir is not None:
     hkovershoots = data.hkovershoots
     hkundershoots = data.hkundershoots
     eventbothshoots = data.eventbothshoots
+
     reset_rates = data.reset_rates
 
 # Write overshoot and undershoot rates to file for filtering
@@ -237,17 +238,20 @@ if args.writeovershoot:
     badtable = temptable[np.where(ratio > args.filtratio)[0]]
     hkmetbins = np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0]))
     badlightcurve = np.histogram(badtable['MET'], hkmetbins)[0]
+    
     badlightcurve = np.array(badlightcurve)
     
     #Writing it out in NicerFileSet
     data.writeovsfile(badlightcurve)
+
+    del temptable, ratio
 
 
 if np.logical_and(args.readovs is not None, args.writeovershoot == True):
     ovsfile = "{0}.ovs".format(basename)
     ovstable = Table.read(ovsfile,hdu=1)
     print(ovstable)
-    
+
 
 
 #---------------------------------------------Filting all the data as necessary!---------------------------------------------------------------

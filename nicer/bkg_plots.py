@@ -13,6 +13,7 @@ def bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mkta
     #Lightcurve of Rejected events
     log.info('Building Rejected Event Light curve')
     plt.subplot(bkg_grid[1:5,:4])
+<<<<<<< HEAD
     temptable = etable[np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],etable['EVENT_FLAGS'][:,FLAG_FAST])]
     ratio = np.array(temptable['PHA'],dtype=np.float)/np.array(temptable['PHA_FAST'],dtype=np.float)
     badtable = temptable[np.where(ratio > args.filtratio)[0]]
@@ -30,9 +31,16 @@ def bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mkta
     
     plot.scatter(times, lc, c=colors, cmap=cmap, norm=norm, marker='+')
     
+=======
+    etable = etable[np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],etable['EVENT_FLAGS'][:,FLAG_FAST])]
+    ratio = np.array(etable['PHA'],dtype=np.float)/np.array(etable['PHA_FAST'],dtype=np.float)
+    badtable = etable[np.where(ratio > 1.4)[0]]
+    r, a = plot_light_curve(badtable, args.lclog, gtitable, binsize=16.0)
+        
+>>>>>>> d962b0713f27e81df55788788feeb3cf963fd508
     #plt.legend(handles = [lc], loc = 2)
     plt.annotate('Ratio-rejected event light curve', xy=(0.03, 0.85), xycoords='axes fraction')
-    
+
     #Overshoot rate plot -- use --lclog to make it a log y axis
     log.info('Building overshoot plot')
     plt.subplot(bkg_grid[5:9,:4])

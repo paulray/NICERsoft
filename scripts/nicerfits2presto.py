@@ -17,8 +17,10 @@ from astropy.table import Table
 from nicer.values import *
 from nicer.plotutils import choose_N
 
-parser = argparse.ArgumentParser(description="Convert NICER events to PRESTO bin+inf files")
-parser.add_argument("evfile", help="Name of event file to convert")
+desc="""Convert NICER events to PRESTO bin+inf files. """
+
+parser = argparse.ArgumentParser(description=desc)
+parser.add_argument("evfile", help="Name of event file to convert (must be barycentered)")
 parser.add_argument("--dt", help="Time series bin size", type=float, default=1.0/128.0)
 parser.add_argument("--ra",help="RA in HH:MM:SS.s",default="00:00:00")
 parser.add_argument("--dec",help="DEC in DD:MM:SS.s", default="00:00:00")
