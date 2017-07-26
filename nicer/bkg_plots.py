@@ -1,9 +1,10 @@
+from __future__ import (print_function, division, unicode_literals, absolute_import)
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.gridspec as gridspec
 from astropy import log
 
-from plotutils import *
+from nicer.plotutils import *
 
 def bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable, bothrate):
     figure = plt.figure(figsize = (8.5, 11), facecolor = 'white')
@@ -17,7 +18,7 @@ def bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mkta
     badtable = etable[np.where(ratio > 1.4)[0]]
     r, lc, a = plot_light_curve(badtable, args.lclog, gtitable, binsize=16.0)
 
-    del r, a 
+    del r, a
     
     #plt.legend(handles = [lc], loc = 2)
     plt.annotate('Ratio-rejected event light curve', xy=(0.03, 0.85), xycoords='axes fraction')

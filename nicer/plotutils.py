@@ -1,3 +1,4 @@
+from __future__ import (print_function, division, unicode_literals, absolute_import)
 import numpy as np
 import matplotlib.pyplot as plot
 import matplotlib as mpl
@@ -6,7 +7,7 @@ import scipy
 from scipy import ndimage
 from astropy import log
 from glob import glob
-from values import *
+from nicer.values import *
 from os import path
 from astropy.table import Table, vstack
 from astropy.coordinates import SkyCoord
@@ -72,7 +73,7 @@ def structure(etable, num_events):
             rawx[count] = etable['RAWX'][idx][0]
             rawy[count] = etable['RAWY'][idx][0]
         else:
-            print "No counts for det ",detid
+            print("No counts for det ",detid)
             rawx[count] = -1
             rawy[count] = -1
 

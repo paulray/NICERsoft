@@ -1,10 +1,11 @@
+from __future__ import (print_function, division, unicode_literals, absolute_import)
 import matplotlib.pyplot as plot
 import numpy as np
 import pylab
 import matplotlib.gridspec as gridspec
 import argparse
-from plotutils import *
-from values import *
+from nicer.plotutils import *
+from nicer.values import *
 
 def eng_plots(etable, args, reset_rates, filttable):
     #GRID SET UP

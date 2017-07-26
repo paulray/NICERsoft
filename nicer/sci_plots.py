@@ -1,9 +1,10 @@
+from __future__ import (print_function, division, unicode_literals, absolute_import)
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.gridspec as gridspec
 from astropy import log
 
-from plotutils import *
+from nicer.plotutils import *
 
 def sci_plots(etable, gtitable, args):
     #GRID SET UP

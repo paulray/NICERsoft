@@ -1,3 +1,4 @@
+from __future__ import (print_function, division, unicode_literals, absolute_import)
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse
@@ -8,9 +9,9 @@ import astropy.units as u
 from astropy.time import Time
 from os import path
 from glob import glob
-from plotutils import *
-from fitsutils import *
-from values import *
+from nicer.plotutils import *
+from nicer.fitsutils import *
+from nicer.values import *
 
 class NicerFileSet:
     def __init__(self, args):
@@ -63,7 +64,7 @@ class NicerFileSet:
             # Only keep GTIs longer than 16 seconds
             g = g[np.where(g['DURATION']>16.0)]
             log.info('Applying external GTI')
-            print g
+            print(g)
             etable = apply_gti(etable,g)
             # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
             etable.meta['EXPOSURE'] = g['DURATION'].sum()
