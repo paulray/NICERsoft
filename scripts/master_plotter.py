@@ -59,6 +59,8 @@ parser.add_argument("--writeovershoot",help="Write summed overshoot rates to FIT
 parser.add_argument("--applygti",help="Read GTI from provided FITS file", default=None)
 parser.add_argument("--eventshootrate",help="Gets over/undershoot rates from the events", action='store_true')
 parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = 'store_true')
+parser.add_argument("--readovs", help = "Filters events with overshoot > input number", nargs = '*', type = float, default = None)
+parser.add_argument("--andrea",help = "Help out Andrea!!!", action = 'store_true')
 args = parser.parse_args()
 
 #------------------------------Getting the data and concatenating------------------------------
@@ -109,6 +111,7 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
         # Update exposure to be sum of GTI durations
         etable.meta['EXPOSURE'] = gtitable['DURATION'].sum()
 
+        log.info('Got the good times from GTI')
         # Sort table by MET
         etable.sort('MET')
         log.info("Event MET Range : {0} to {1}".format(etable['MET'].min(),etable['MET'].max(), etable['MET'].max()-etable['MET'].min()))
@@ -149,6 +152,10 @@ if args.filtall:
     args.filtundershoot=True
     args.filtratio=1.4
 
+if args.andrea:
+    args.sci = True
+    args.eng = True
+    args.bkg = True
 #--------------------Editing / Filtering the event data Options-----------------
 # Hack to trim first chunk of data
 if args.tskip > 0.0:
@@ -241,7 +248,22 @@ if args.obsdir is not None:
 
 # Write overshoot and undershoot rates to file for filtering
 if args.writeovershoot:
-    data.writeovsfile()
+    
+    temptable = etable[np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],etable['EVENT_FLAGS'][:,FLAG_FAST])]
+    ratio = np.array(temptable['PHA'],dtype=np.float)/np.array(temptable['PHA_FAST'],dtype=np.float)
+    badtable = temptable[np.where(ratio > 1.4)[0]]
+    r, plo, badlightcurve = plot_light_curve(badtable, args.lclog, gtitable, binsize=16.0)
+
+    badlightcurve = np.array(badlightcurve)
+    data.writeovsfile(badlightcurve)
+    del r,plo
+
+if np.logical_and(args.readovs is not None, args.writeovershoot == True):
+    ovsfile = "{0}.ovs".format(basename)
+    ovstable = Table.read(ovsfile,hdu=1)
+    print(ovstable)
+    
+
 
 #---------------------------------------------Filting all the data as necessary!---------------------------------------------------------------
 log.info('Filtering...')
@@ -343,6 +365,7 @@ if args.interactive:
     ILC = InteractiveLC(etable, args.lclog, gtitable, figure4, basename, binsize=1.0)
     ILC.getgoodtimes()
     ILC.writegti()
+
 # Show all plots at the end, if not saving
 if not args.save:
     log.info('Showing plots...')

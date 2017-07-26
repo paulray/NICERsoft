@@ -32,7 +32,7 @@ class InteractiveLC(object):
         self.connect()
         self.gtitable = gtitable
         self.name = name
-        meanrate, lc = plot_light_curve(etable, lclog, gtitable, binsize)
+        meanrate, lc, other = plot_light_curve(etable, lclog, gtitable, binsize)
         plot.title('Light Curve')
         plot.xlabel('Time Elapsed (s)')
         plot.show()
@@ -51,7 +51,6 @@ class InteractiveLC(object):
         x = [self.x0, self.x1]
         y = [self.y0, self.y0]
         plot.plot(x,y,color = 'r', marker = '+')
-        print('The times that you chose are {0} s'.format(x))
         self.getclicks()
         plot.show()
 
@@ -60,8 +59,7 @@ class InteractiveLC(object):
         self.stops = np.append(self.stops,self.x1)
         self.starts = np.sort(self.starts)
         self.stops = np.sort(self.stops)
-        print(self.starts)
-        print(self.stops)
+        print('Your X values are from {0} to {1}.'.format(self.starts, self.stops))
 
     def getgoodtimes(self):
         if len(self.starts) > 0: #If there were clicks
@@ -103,7 +101,7 @@ class InteractiveLC(object):
 
                     del start, end
 
-                else:#If there were no clicks 
+                else:#If there were no clicks
                     start = self.gtitable['START'][idx]
                     end = self.gtitable['STOP'][idx]
                     self.addtolist(start,end)
@@ -129,9 +127,19 @@ class InteractiveLC(object):
         return ans
         
     def writegti(self):
+        
+        startmets, stopmets = convert_from_elapsed_goodtime(self.starts, self.stops, self.gtitable)
+        for i in xrange(0,len(startmets)):
+            print('The MET interval you chose is from {0} to {1} s'.format(startmets[i], stopmets[i]))
+        
         scol = pyfits.Column(name='START',unit='S',array=self.scol,format='D')
         ecol = pyfits.Column(name='STOP',array=self.ecol,format='D')
         ovhdu = pyfits.BinTableHDU.from_columns([scol,ecol], name='NEWGTI')
+        
+        chosentimes = Table([self.scol, self.ecol], names = ('Start Met','Stop Met'))
+        print('The new GTI table is below')
+        print(chosentimes)
+        
         ovhdu.writeto("{0}.gti".format(self.name),overwrite=True,checksum=True)
         
 
