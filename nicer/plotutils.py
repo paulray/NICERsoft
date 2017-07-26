@@ -121,7 +121,7 @@ def light_curve(etable, startmet, stopmet, binsize):
     # Chop off last bin edge, which is only for computing histogram, not plotting
     return bins[:-1], sums
 
-def plot_light_curve(etable, lclog, gtitable, binsize=1.0):
+def plot_light_curve(etable, lclog, gtitable, binsize=1.0, noplot=False):
    #'Compute binned light curve of events and return mean rate,plots light curve'
     #EDGE CASE FOR FIRST INSTANCE
     bins, sums = light_curve(etable, gtitable['START'][0], gtitable['STOP'][0], binsize=binsize)
@@ -139,20 +139,21 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0):
     #Compute mean rate
     rate = sums/binsize
     mean_rate = rate.mean()
-    colornames = ['black','green','red','blue','magenta']
-    colorlevels = np.arange(len(colornames))
-    cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
-    lc = plot.scatter(bins, rate, c=np.fmod(cc,len(colornames)), cmap=cmap,norm=norm,marker='+', label='Light Curve')
-    label = 'Mean Rate: {0:.3f} c/s'.format(mean_rate)
-    # Plot line at mean counts per bin
-    plot.axhline(y=mean_rate, xmin=bins[0], xmax=bins[-1], linestyle='dashed', label = label)
-    #plot.legend(loc = 4)
-    plot.ylabel('c/s')
-    if lclog:
-    	plot.yscale('log')
-        plot.ylim(ymin=0.1)
+    if not noplot:
+        colornames = ['black','green','red','blue','magenta']
+        colorlevels = np.arange(len(colornames))
+        cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+        plot.scatter(bins, rate, c=np.fmod(cc,len(colornames)), cmap=cmap,norm=norm,marker='+', label='Light Curve')
+        label = 'Mean Rate: {0:.3f} c/s'.format(mean_rate)
+        # Plot line at mean counts per bin
+        plot.axhline(y=mean_rate, xmin=bins[0], xmax=bins[-1], linestyle='dashed', label = label)
+        #plot.legend(loc = 4)
+        plot.ylabel('c/s')
+        if lclog:
+            plot.yscale('log')
+            plot.ylim(ymin=0.1)
 
-    return mean_rate, lc, sums
+    return mean_rate, sums
 
 #-------------------------------THIS PLOTS THE FAST TO SLOW___------------------
 def plot_slowfast(etable,args):

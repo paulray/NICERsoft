@@ -248,21 +248,23 @@ if args.obsdir is not None:
 
 # Write overshoot and undershoot rates to file for filtering
 if args.writeovershoot:
-    
+
     temptable = etable[np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],etable['EVENT_FLAGS'][:,FLAG_FAST])]
     ratio = np.array(temptable['PHA'],dtype=np.float)/np.array(temptable['PHA_FAST'],dtype=np.float)
-    badtable = temptable[np.where(ratio > 1.4)[0]]
-    r, plo, badlightcurve = plot_light_curve(badtable, args.lclog, gtitable, binsize=16.0)
+    badtable = temptable[np.where(ratio > args.filtratio)[0]]
+    # This is no good.  Needs to be binned on hkmet bins.
+    r, badlightcurve = plot_light_curve(badtable, args.lclog, gtitable,
+        binsize=16.0, noplot=True)
 
     badlightcurve = np.array(badlightcurve)
     data.writeovsfile(badlightcurve)
-    del r,plo
+    del r, temptable, ratio
 
 if np.logical_and(args.readovs is not None, args.writeovershoot == True):
     ovsfile = "{0}.ovs".format(basename)
     ovstable = Table.read(ovsfile,hdu=1)
     print(ovstable)
-    
+
 
 
 #---------------------------------------------Filting all the data as necessary!---------------------------------------------------------------

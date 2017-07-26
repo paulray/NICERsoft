@@ -13,7 +13,7 @@ def sci_plots(etable, gtitable, args):
 
     # Build PHA Fast/Slow ratio plot before filtering by ratio
     # Only do this if powerspectrum not requested
-    
+
     if not args.powspec:
         log.info('Building fast/slow subplot')
         plt.subplot(sci_grid[1:3,2:5])
@@ -27,8 +27,7 @@ def sci_plots(etable, gtitable, args):
     #Light Curve
     log.info('Building light curve')
     plt.subplot(sci_grid[3:5,:7])
-    meanrate, lc, a = plot_light_curve(etable, args.lclog, gtitable, binsize=args.lcbinsize)
-    del a
+    meanrate, a = plot_light_curve(etable, args.lclog, gtitable, binsize=args.lcbinsize)
     plot.title('Light Curve')
     plot.xlabel('Time Elapsed (s)')
 

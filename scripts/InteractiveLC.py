@@ -33,7 +33,7 @@ class InteractiveLC(object):
         self.connect()
         self.gtitable = gtitable
         self.name = name
-        meanrate, lc, other = plot_light_curve(etable, lclog, gtitable, binsize)
+        meanrate, other = plot_light_curve(etable, lclog, gtitable, binsize)
         plot.title('Light Curve')
         plot.xlabel('Time Elapsed (s)')
         plot.show()
@@ -41,7 +41,7 @@ class InteractiveLC(object):
     def connect(self):
         self.cidpress  = self.fig.canvas.mpl_connect('button_press_event',self.on_press)
         self.cidrelese = self.fig.canvas.mpl_connect('button_release_event',self.on_release)
-	
+
     def on_press(self,event):
         self.x0 = event.xdata
         self.y0 = event.ydata
@@ -69,19 +69,19 @@ class InteractiveLC(object):
                 for sidx in xrange(0, len(self.starts)):#For every click
                     if self.gticheck(self.starts[sidx], idx):#Check if any of the clicks were in this GTI
                         goodlist = np.append(goodlist,sidx)
-                    
+
                 if len(goodlist) > 0:#If there were clicks
                     #The first interval will start here
                     start = self.gtitable['START'][idx]
                     for index in xrange(0,len(goodlist)):#for every click in this GTI
                         if np.logical_and(index == 0,index == (len(goodlist)-1)) : #if it's the first AND ONLY one in goodlist
                             end = self.starts[index] + self.gtitable['START'][idx]
-                            self.addtolist(start, end) 
+                            self.addtolist(start, end)
                             break
 
                         elif index == 0:
                             end = self.starts[index] + self.gtitable['START'][idx]
-                            self.addtolist(start, end) 
+                            self.addtolist(start, end)
 
                         elif index == (len(goodlist)-1): #if it's the last one in goodlist
                             start = self.stops[index-1] + self.gtitable['START'][idx]
@@ -124,23 +124,21 @@ class InteractiveLC(object):
             if np.logical_and(clickstart < self.gtitable['CUMTIME'][idx+1], clickstart > self.gtitable['CUMTIME'][idx]):
                 ans = True
             else:
-                ans = False 
+                ans = False
         return ans
-        
+
     def writegti(self):
-        
+
         startmets, stopmets = convert_from_elapsed_goodtime(self.starts, self.stops, self.gtitable)
         for i in xrange(0,len(startmets)):
             print('The MET interval you chose is from {0} to {1} s'.format(startmets[i], stopmets[i]))
-        
+
         scol = pyfits.Column(name='START',unit='S',array=self.scol,format='D')
         ecol = pyfits.Column(name='STOP',array=self.ecol,format='D')
         ovhdu = pyfits.BinTableHDU.from_columns([scol,ecol], name='NEWGTI')
-        
+
         chosentimes = Table([self.scol, self.ecol], names = ('Start Met','Stop Met'))
         print('The new GTI table is below')
         print(chosentimes)
-        
-        ovhdu.writeto("{0}.gti".format(self.name),overwrite=True,checksum=True)
-        
 
+        ovhdu.writeto("{0}.gti".format(self.name),overwrite=True,checksum=True)
