@@ -1,3 +1,4 @@
+from __future__ import (print_function, division, unicode_literals, absolute_import)
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.gridspec as gridspec
@@ -15,9 +16,9 @@ class InteractiveLC(object):
         self.binsize = 1.0
 
     def welcome(self):
-        print 'Some code is running, and then you can click on the plots!'
-        print 'Click on the plot to choose an initial point'
-        print 'Drag WITHOUT RELEASING to choose a second point'
+        print('Some code is running, and then you can click on the plots!')
+        print('Click on the plot to choose an initial point')
+        print('Drag WITHOUT RELEASING to choose a second point')
 
     def __init__(self, etable, lclog, gtitable,  fig, name, binsize):
         self.init()

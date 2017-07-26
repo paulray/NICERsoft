@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import (print_function, division, unicode_literals, absolute_import)
 import sys
 # Hack to add this to pythonpath
 #sys.path.append('/Users/paulr/src/NICERsoft')
@@ -187,7 +188,7 @@ if args.applygti is not None:
     g['DURATION'] = g['STOP']-g['START']
     # Only keep GTIs longer than 16 seconds
     g = g[np.where(g['DURATION']>16.0)]
-    print g
+    print(g)
     etable = apply_gti(etable,g)
     # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
     etable.meta['EXPOSURE'] = g['DURATION'].sum()
