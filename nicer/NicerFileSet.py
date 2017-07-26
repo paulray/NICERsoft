@@ -158,17 +158,20 @@ class NicerFileSet:
         # Define bins for hkmet histogram
         hkmetbins = np.append(self.hkmet,(self.hkmet[-1]+self.hkmet[1]-self.hkmet[0]))
 
-        #Both under and overshoot
-        etable = get_eventbothshoots_ftools(self.ufafiles,workdir=None)
-        self.eventbothshoots, edges = np.histogram(etable['TIME'],hkmetbins)
+        if self.args.eventshootrate or self.args.writeovershoot:
+            #Both under and overshoot
+            etable = get_eventbothshoots_ftools(self.ufafiles,workdir=None)
+            self.eventbothshoots, edges = np.histogram(etable['TIME'],hkmetbins)
+            #Just overshoot
+            etable = get_eventovershoots_ftools(self.ufafiles,workdir=None)
+            self.eventovershoots, edges = np.histogram(etable['TIME'],hkmetbins)
 
-        #Just undershoot
-        etable = get_eventundershoots_ftools(self.ufafiles,workdir=None)
-        self.eventundershoots, edges = np.histogram(etable['TIME'],hkmetbins)
+        #Just undershoot -- S
+        # Unless specifically requested
+        if self.args.eventshootrate:
+            etable = get_eventundershoots_ftools(self.ufafiles,workdir=None)
+            self.eventundershoots, edges = np.histogram(etable['TIME'],hkmetbins)
 
-        #Just overshoot
-        etable = get_eventovershoots_ftools(self.ufafiles,workdir=None)
-        self.eventovershoots, edges = np.histogram(etable['TIME'],hkmetbins)
 
         del etable
 
@@ -179,15 +182,22 @@ class NicerFileSet:
         ocol = pyfits.Column(name='HK_OVERSHOOT',array=self.hkovershoots,format='D')
         ucol = pyfits.Column(name='HK_UNDERSHOOT',array=self.hkundershoots,format='D')
         eocol = pyfits.Column(name='EV_OVERSHOOT',array=self.eventovershoots,format='D')
-        eucol = pyfits.Column(name='EV_UNDERSHOOT',array=self.eventundershoots,format='D')
         bothcol = pyfits.Column(name='EV_BOTH',array=self.eventbothshoots,format='D')
 
         if badlightcurve is not None:
             badcol = pyfits.Column(name='BAD_LC', array=badlightcurve, format='D')
-            ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, eucol, bothcol, badcol], name='HKP')
+            ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, bothcol, badcol], name='HKP')
+            ovhdu.header['TIMESYS'] = self.etable.meta['TIMESYS']
+            ovhdu.header['TIMEREF'] = self.etable.meta['TIMEREF']
+            ovhdu.header['MJDREFI'] = self.etable.meta['MJDREFI']
+            ovhdu.header['MJDREFF'] = self.etable.meta['MJDREFF']
+            ovhdu.header['TIMEZERO'] = self.etable.meta['TIMEZERO']
+            ovhdu.header['TIMEUNIT'] = self.etable.meta['TIMEUNIT']
+            ovhdu.header['TSTART'] = self.etable.meta['TSTART']
+            ovhdu.header['TSTOP'] = self.etable.meta['TSTOP']
             ovhdu.writeto("{0}.ovs".format(self.basename),overwrite=True,checksum=True)
         else:
-            ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, eucol, bothcol], name='HKP')
+            ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, bothcol], name='HKP')
             ovhdu.writeto("{0}.ovs".format(self.basename),overwrite=True,checksum=True)
         return
 

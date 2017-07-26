@@ -18,6 +18,8 @@ parser.add_argument("indirs", help="Input directories to process", nargs='+')
 parser.add_argument("--emin", help="Minimum energy to include (keV)", type=float, default=0.4)
 parser.add_argument("--emax", help="Maximum energy to include (kev)", type=float, default=8.0)
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
+parser.add_argument("--maxovershoot",help="Select data where overshoot rate is below this limit (default: no filter)",
+    type=float,default=-1)
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
     default=None)
 parser.add_argument("--ultraclean", help="Apply ultraclean background filters", action='store_true')
@@ -87,6 +89,10 @@ for obsdir in args.indirs:
     attfile = glob(path.join(obsdir,'auxil/ni*.att'))[0]
     log.info('ATT HK File: {0}'.format(attfile))
 
+    #  Get OVS hk files
+    ovsfile = path.join(pipedir,basename)+'_prefilt.ovs'
+    log.info('OVS HK File: {0}'.format(ovsfile))
+
     #  Get MPU hk files
     hkfiles = glob(path.join(obsdir,'xti/hk/ni*.hk'))
     hkfiles.sort()
@@ -116,12 +122,27 @@ for obsdir in args.indirs:
         log.error('No good time left after filtering!')
         sys.exit(0)
 
+    # Create GTI from overshoot file
+    if args.maxovershoot > 0:
+        gtiname3 = path.join(pipedir,'ovs.gti')
+        ovs_expr = 'EV_OVERSHOOT.lt.{0}'.format(args.maxovershoot)
+        cmd = ["maketime", ovsfile, gtiname3, 'expr={0}'.format(ovs_expr),
+            "compact=no", "time=TIME", "prefr=0", "postfr=0", "clobber=yes"]
+        runcmd(cmd)
+        if len(Table.read(gtiname3,hdu=1))==0:
+            log.error('No good time left after filtering!')
+            sys.exit(0)
+
     gtiname_merged = path.join(pipedir,"tot.gti")
     try:
         os.remove(gtiname_merged)
     except:
         pass
-    cmd = ["mgtime", "{0},{1}".format(gtiname1,gtiname2), gtiname_merged, "AND"]
+
+    if args.maxovershoot > 0:
+        cmd = ["mgtime", "{0},{1},{2}".format(gtiname1,gtiname2,gtiname3), gtiname_merged, "AND"]
+    else:
+        cmd = ["mgtime", "{0},{1}".format(gtiname1,gtiname2), gtiname_merged, "AND"]
     runcmd(cmd)
 
     # Extract filtered events and apply merged GTI
