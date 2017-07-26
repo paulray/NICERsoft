@@ -28,7 +28,8 @@ def eng_plots(etable, args, reset_rates, filttable):
     #RESET RATE PER DETECTOR
     log.info('Computing reset rates')
     plot.subplot(sci_grid[:2, 2:4])
-    plot_resetrate(IDS, reset_rates)
+    if reset_rates is not None:
+        plot_resetrate(IDS, reset_rates)
 
     #Making the plot all nice and stuff
     plot.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .7, hspace = .8)

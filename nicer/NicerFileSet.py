@@ -18,7 +18,7 @@ class NicerFileSet:
         self.args = args
         
         #Getting the names of the event files from obsdir
-        self.evfiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu?_cl.evt'))
+        self.evfiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu?_cl.evt*'))
         self.evfiles.sort()
         if len(self.evfiles) == 0:
             log.error("No event files found!")
@@ -27,7 +27,7 @@ class NicerFileSet:
 
         # Get name of orbit file from obsdir
         try:
-            self.args.orb = glob(path.join(self.args.obsdir,'auxil/ni*.orb'))[0]
+            self.args.orb = glob(path.join(self.args.obsdir,'auxil/ni*.orb*'))[0]
         except:
             log.error("Orbit file not found!")
         log.info('Found the orbit file: {0}'.format(self.args.orb))
@@ -35,17 +35,17 @@ class NicerFileSet:
         # Get name of SPS HK file (apid0260)
         if self.args.sps is None:
             try:
-                self.args.sps = glob(path.join(self.args.obsdir,'auxil/ni*_apid0260.hk'))[0]
+                self.args.sps = glob(path.join(self.args.obsdir,'auxil/ni*_apid0260.hk*'))[0]
             except:
                 self.args.sps = None
 
         # Get name of MPU housekeeping files
-        self.hkfiles = glob(path.join(self.args.obsdir,'xti/hk/ni*.hk'))
+        self.hkfiles = glob(path.join(self.args.obsdir,'xti/hk/ni*.hk*'))
         self.hkfiles.sort()
         log.info('Found the MPU housekeeping files: {0}'.format("\n"+"\t\n".join(self.hkfiles)))
 
         # Get name of filter (.mkf) file
-        self.mkfiles = glob(path.join(args.obsdir,'auxil/ni*.mkf'))[0]
+        self.mkfiles = glob(path.join(args.obsdir,'auxil/ni*.mkf*'))[0]
 
         #Compiling Event Data
         self.getgti()
@@ -56,13 +56,28 @@ class NicerFileSet:
         self.sortmet()
         self.makebasename()
 
+        if args.applygti is not None:
+            g = Table.read(args.applygti)
+            log.info('Applying external GTI from {0}'.format(args.applygti))
+            g['DURATION'] = g['STOP']-g['START']
+            # Only keep GTIs longer than 16 seconds
+            g = g[np.where(g['DURATION']>16.0)]
+            log.info('Applying external GTI')
+            print g
+            etable = apply_gti(etable,g)
+            # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
+            etable.meta['EXPOSURE'] = g['DURATION'].sum()
+            gtitable = g
+    
         #Compiling HK Data
         self.getmk()
         self.hkshootrate()
         self.geteventshoots()
         #self.eventovershootrate()
 
-
+        #Compiling other data
+        self.getlatlon()
+        
     def createetable(self):
         log.info('Reading files')
         tlist = []
@@ -182,7 +197,7 @@ class NicerFileSet:
         self.lon = self.mktable['SAT_LON']
         self.sun = self.mktable['SUNSHINE']
 
-    def writeovsfile(self):
+    def writeovsfile(self, badlightcurve):
         # Write overshoot and undershoot rates to file for filtering
         log.info('Writing over/undershoot rates')
         tcol = pyfits.Column(name='TIME',unit='S',array=self.hkmet,format='D')
@@ -190,12 +205,19 @@ class NicerFileSet:
         ucol = pyfits.Column(name='HK_UNDERSHOOT',array=self.hkundershoots,format='D')
         eocol = pyfits.Column(name='EV_OVERSHOOT',array=self.eventovershoot,format='D')
         eucol = pyfits.Column(name='EV_UNDERSHOOT',array=self.eventundershoot,format='D')
-        bothcol = pyfits.Column(name='EV_BOTH',array=self.bothrate,format='D')
+        bothcol = pyfits.Column(name='EV_BOTH',array=self.bothshoots,format='D')
         lat = pyfits.Column(name='SAT_LAT',array=self.lat,format='D')
         lon = pyfits.Column(name='SAT_LON',array=self.lon,format='D')
         sun = pyfits.Column(name='SUNSHINE',array=self.sun,format='D')
-        ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, eucol, bothcol, lat, lon, sun], name='HKP')
-        ovhdu.writeto("{0}.ovs".format(self.basename),overwrite=True,checksum=True)
+
+        if badlightcurve is not None:
+            badcol = pyfits.Column(name='BAD_LC', array=badlightcurve, format='D')
+            ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, eucol, bothcol, lat, lon, sun, badcol], name='HKP')
+            ovhdu.writeto("{0}.ovs".format(self.basename),overwrite=True,checksum=True)
+        else:
+            ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, eucol, bothcol, lat, lon, sun], name='HKP')
+            ovhdu.writeto("{0}.ovs".format(self.basename),overwrite=True,checksum=True)
+        return
 
     def getgti(self):
             # Read the GTIs from the first event FITS file

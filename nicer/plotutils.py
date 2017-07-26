@@ -151,7 +151,7 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0):
     	plot.yscale('log')
         plot.ylim(ymin=0.1)
 
-    return mean_rate, lc
+    return mean_rate, lc, sums
 
 #-------------------------------THIS PLOTS THE FAST TO SLOW___------------------
 def plot_slowfast(etable,args):
@@ -399,7 +399,25 @@ def apply_gti(etable, gtitable):
 
     return vstack(goodlist,metadata_conflicts='silent')
 
-
+def convert_from_elapsed_goodtime(elapsedstarts, elapsedstops, gtitable):
+    'Given a set of elapsed time starts and stops will convert to MET'
+    startmets = np.array([])
+    stopmets = np.array([])
+    for timex in xrange(0,len(elapsedstarts)):
+        starttime = elapsedstarts[timex]
+        stoptime = elapsedstarts[timex]
+        for idx in xrange(0,len(gtitable)):
+            if idx < len(gtitable)-1:
+                if np.logical_and(starttime >= gtitable['CUMTIME'][idx], stoptime < gtitable['CUMTIME'][idx + 1]):
+                    startmets = np.append(startmets, starttime + gtitable['START'][idx])
+                    stopmets = np.append(startmets, stoptime + gtitable['START'][idx])
+                else:
+                    continue
+            else:
+                if starttime > gtitable['CUMTIME'][idx]:
+                    startmets = np.append(startmets, starttime + gtitable['START'][idx])
+                    stopmets = np.append(startmets, stoptime + gtitable['START'][idx])
+    return startmets, stopmets
 
 def convert_to_elapsed_goodtime(mets, vals, gtitable):
     'Given a set of values at METs, extract the values during the GTIs and return times that are in elapsed good time for plotting'
@@ -417,6 +435,8 @@ def convert_to_elapsed_goodtime(mets, vals, gtitable):
 
     # Returns the arrays of elapsed times, values, and an array of what segment it is in, used for setting plot colors by GTI segment
     return etimes, goodvals, cc
+
+
 
 def plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate):
 
