@@ -100,7 +100,7 @@ for obsdir in args.indirs:
         mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0)'
     gtiname1 = path.join(pipedir,'mkf.gti')
     cmd = ["maketime", mkfile, gtiname1, 'expr={0}'.format(mkf_expr),
-        "compact=no", "time=TIME", "clobber=yes"]
+        "compact=no", "time=TIME",  "prefr=0", "postfr=0", "clobber=yes"]
     runcmd(cmd)
     if len(Table.read(gtiname1,hdu=1))==0:
         log.error('No good time left after filtering!')
@@ -110,7 +110,7 @@ for obsdir in args.indirs:
     gtiname2 = path.join(pipedir,'att.gti')
     att_expr = '(MODE.eq.1).and.(SUBMODE_AZ.eq.2).and.(SUBMODE_EL.eq.2)'
     cmd = ["maketime", attfile, gtiname2, 'expr={0}'.format(att_expr),
-        "compact=no", "time=TIME", "clobber=yes"]
+        "compact=no", "time=TIME", "prefr=0", "postfr=0", "clobber=yes"]
     runcmd(cmd)
     if len(Table.read(gtiname2,hdu=1))==0:
         log.error('No good time left after filtering!')
@@ -154,7 +154,7 @@ for obsdir in args.indirs:
         maxratio=1.14
     cmd = ["master_plotter.py", "--save", "--filtratio", "{0}".format(maxratio),
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
-           "--applygti", gtiname_merged,
+#           "--applygti", gtiname_merged,
            "--orb", path.join(pipedir,path.basename(orbfile)),
            "--sci", filteredname,
            "--basename", path.join(pipedir,basename)]

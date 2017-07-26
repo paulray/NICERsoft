@@ -95,7 +95,7 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
             else:
                 etable = vstack(tlist,metadata_conflicts='silent')
             del tlist
-                
+
         # Read the GTIs from the first event FITS file
         gtitable = Table.read(args.infiles[0],hdu=2)
         log.info('Got the good times from GTI')
@@ -187,7 +187,6 @@ if args.applygti is not None:
     g['DURATION'] = g['STOP']-g['START']
     # Only keep GTIs longer than 16 seconds
     g = g[np.where(g['DURATION']>16.0)]
-    log.info('Applying external GTI')
     print g
     etable = apply_gti(etable,g)
     # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
@@ -314,7 +313,7 @@ if args.bkg:
         log.error("Can't make background plots without MPU HKP files")
     else:
         if eventovershoot is not None:
-            
+
             figure4 = bkg_plots(etable, eventovershoot, gtitable, args, hkmet, eventundershoot, mktable, bothshoots)
         else:
             figure4 = bkg_plots(etable, hkovershoots, gtitable, args, hkmet, hkundershoots, mktable, bothshoots)
@@ -354,7 +353,7 @@ if args.map:
         figure3 = cartography(hkmet, eventovershoot, args, eventundershoot, filttable, mktable)
     else:
         figure3 = cartography(hkmet, hkovershoots, args, hkundershoots, filttable, mktable)
-    
+
     if args.save:
         log.info('Writing MAP {0}'.format(basename))
         figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
