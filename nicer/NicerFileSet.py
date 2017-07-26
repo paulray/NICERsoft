@@ -154,7 +154,7 @@ class NicerFileSet:
             reset_rates = nresets/self.etable.meta['EXPOSURE']
 
     def geteventshoots(self):
-        log.info('Getting event undershoot rates')
+        log.info('Getting event shoot rates')
         # Define bins for hkmet histogram
         hkmetbins = np.append(self.hkmet,(self.hkmet[-1]+self.hkmet[1]-self.hkmet[0]))
 
