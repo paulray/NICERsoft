@@ -231,14 +231,15 @@ if args.obsdir is not None:
 
 # Write overshoot and undershoot rates to file for filtering
 if args.writeovershoot:
+    #Writing the rejected events light curve to be written out with the overshoot file
     temptable = etable[np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],etable['EVENT_FLAGS'][:,FLAG_FAST])]
     ratio = np.array(temptable['PHA'],dtype=np.float)/np.array(temptable['PHA_FAST'],dtype=np.float)
     badtable = temptable[np.where(ratio > args.filtratio)[0]]
     hkmetbins = np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0]))
-    
     badlightcurve = np.histogram(badtable['MET'], hkmetbins)[0]
-
     badlightcurve = np.array(badlightcurve)
+    
+    #Writing it out in NicerFileSet
     data.writeovsfile(badlightcurve)
 
 
