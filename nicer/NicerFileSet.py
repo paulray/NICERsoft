@@ -176,7 +176,7 @@ class NicerFileSet:
         #Both under and overshoot
         idx = np.logical_and(self.etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]==True,
                              self.etable['EVENT_FLAGS'][:,FLAG_OVERSHOOT]==True)
-        self.bothshoots, edges = np.histogram(self.etable['MET'][idx],hkmetbins)
+        self.eventbothshoots, edges = np.histogram(self.etable['MET'][idx],hkmetbins)
 
         #Just undershoot
         idx = np.logical_and(self.etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]==True,
@@ -203,17 +203,14 @@ class NicerFileSet:
         ucol = pyfits.Column(name='HK_UNDERSHOOT',array=self.hkundershoots,format='D')
         eocol = pyfits.Column(name='EV_OVERSHOOT',array=self.eventovershoot,format='D')
         eucol = pyfits.Column(name='EV_UNDERSHOOT',array=self.eventundershoot,format='D')
-        bothcol = pyfits.Column(name='EV_BOTH',array=self.bothshoots,format='D')
-        lat = pyfits.Column(name='SAT_LAT',array=self.lat,format='D')
-        lon = pyfits.Column(name='SAT_LON',array=self.lon,format='D')
-        sun = pyfits.Column(name='SUNSHINE',array=self.sun,format='D')
+        bothcol = pyfits.Column(name='EV_BOTH',array=self.eventbothshoots,format='D')
 
         if badlightcurve is not None:
             badcol = pyfits.Column(name='BAD_LC', array=badlightcurve, format='D')
-            ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, eucol, bothcol, lat, lon, sun, badcol], name='HKP')
+            ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, eucol, bothcol, badcol], name='HKP')
             ovhdu.writeto("{0}.ovs".format(self.basename),overwrite=True,checksum=True)
         else:
-            ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, eucol, bothcol, lat, lon, sun], name='HKP')
+            ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, eucol, bothcol], name='HKP')
             ovhdu.writeto("{0}.ovs".format(self.basename),overwrite=True,checksum=True)
         return
 
