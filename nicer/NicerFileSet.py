@@ -85,9 +85,6 @@ class NicerFileSet:
         for fn in self.evfiles:
             log.info('Reading file {0}'.format(fn))
             tlist.append(Table.read(fn,hdu=1))
-            if len(tlist[0]) > 3000000:
-                log.error('There is too much data to handle. Not processing...')
-                sys.exit(3)
         log.info('Concatenating files')
         if len(tlist) == 1:
             self.etable = tlist[0]
