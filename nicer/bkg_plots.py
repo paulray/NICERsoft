@@ -18,13 +18,9 @@ def bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mkta
     ratio = np.array(temptable['PHA'],dtype=np.float)/np.array(temptable['PHA_FAST'],dtype=np.float)
     badtable = temptable[np.where(ratio > args.filtratio)[0]]
     hkmetbins = np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0]))
-    
     badlightcurve = np.histogram(badtable['MET'], hkmetbins)[0]
-    
     badlightcurve = np.array(badlightcurve)
-    
     times, lc, colors = convert_to_elapsed_goodtime(hkmet, badlightcurve, gtitable)
-
     colornames = ['black','green','red','blue','magenta']
     colorlevels = np.arange(len(colornames))
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
