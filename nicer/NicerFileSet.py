@@ -1,7 +1,6 @@
 from __future__ import (print_function, division, unicode_literals, absolute_import)
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
 import argparse
 from astropy import log
 from astropy.table import Table, vstack
@@ -13,6 +12,7 @@ from glob import glob
 from nicer.plotutils import *
 from nicer.fitsutils import *
 from nicer.values import *
+import sys
 
 class NicerFileSet:
     def __init__(self, args):

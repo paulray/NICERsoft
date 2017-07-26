@@ -73,7 +73,7 @@ def structure(etable, num_events):
             rawx[count] = etable['RAWX'][idx][0]
             rawy[count] = etable['RAWY'][idx][0]
         else:
-            print("No counts for det ",detid)
+            log.info("No counts for det {0}".format(detid))
             rawx[count] = -1
             rawy[count] = -1
 
