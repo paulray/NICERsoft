@@ -13,7 +13,7 @@ def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
         overshootrate = shoottable['EVENT_OVERSHOOTS']
         undershootrate = shoottable['EVENT_UNDERSHOOTS']
         bothrate = shoottable['EVENT_BOTHSHOOTS']
-        hkmet = shottable['HKMET']
+        hkmet = shoottable['HKMET']
     else:
         overshootrate = shoottable['HK_OVERSHOOTS']
         undershootrate = shoottable['HK_UNDERSHOOTS']
