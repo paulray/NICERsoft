@@ -1,0 +1,7 @@
+ecol = pyfits.Column(name='STOP',array=self.ecol,format='D')
+chosentimes = Table([self.scol, self.ecol], names = ('Start Met','Stop Met'))
+
+
+HKMET TIME DIFFERENCES
+
+1. They ARE the same length

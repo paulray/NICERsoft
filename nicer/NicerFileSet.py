@@ -126,7 +126,6 @@ class NicerFileSet:
             self.hkovershoots = td['MPU_OVER_COUNT'].sum(axis=1)
             self.hkundershoots = td['MPU_UNDER_COUNT'].sum(axis=1)
             nresets = td['MPU_UNDER_COUNT'].sum(axis=0)
-
             for fn in self.hkfiles[1:]:
                 log.info('Reading '+fn)
                 hdulist = pyfits.open(fn)
@@ -136,15 +135,23 @@ class NicerFileSet:
                 myhkundershoots = mytd['MPU_UNDER_COUNT'].sum(axis=1)
                 # If time axis is bad, skip this MPU.
                 # Should fix this!
-                if not np.all(mymet == self.hkmet):
-                    log.error('TIME axes are not compatible')
+
+                if not np.array_equal(mymet, self.hkmet):
+                    log.error('Time axes are not compatible')
                 else:
                     self.hkovershoots += myhkovershoots
                     self.hkundershoots += myhkundershoots
+
                 myreset = mytd['MPU_UNDER_COUNT'].sum(axis=0)
                 nresets = np.append(nresets,myreset)
             del hdulist
             self.reset_rates = nresets / np.float(self.etable.meta['EXPOSURE'])
+            
+            timecol = pyfits.Column(name='HKTIME',array=self.hkmet, format = 'D')
+            ovscol = pyfits.Column(name = 'HK_OVERSHOOT', array = self.hkovershoots, format = 'D')
+            undcol = pyfits.Column(name = 'HK_UNDERSHOOT',array = self.hkundershoots, format = 'D')
+            
+            self.hkshoottable = Table([self.hkmet, self.hkovershoots, self.hkundershoots],names = ('HKMET', 'HK_OVERSHOOTS', 'HK_UNDERSHOOTS'))
 
         else:
             hkmet = None
@@ -165,20 +172,23 @@ class NicerFileSet:
             #Just overshoot
             etable = get_eventovershoots_ftools(self.ufafiles,workdir=None)
             self.eventovershoots, edges = np.histogram(etable['TIME'],hkmetbins)
+            
+            self.eventshoottable = Table([self.hkmet, self.eventovershoots, self.eventbothshoots],names = ('HKMET', 'EVENT_OVERSHOOT', 'EVENT_BOTHSHOOT'))
             del etable
         else:
             self.eventbothshoots = None
             self.eventovershoots = None
 
-            del etable
         # Don't compute this unless specifically requested, because it can be slow
         if self.args.eventshootrate:
             etable = get_eventundershoots_ftools(self.ufafiles,workdir=None)
             self.eventundershoots, edges = np.histogram(etable['TIME'],hkmetbins)
+            self.eventshoottable = Table([self.hkmet, self.eventovershoots, self.eventundershoots, self.eventbothshoots],names = ('HKMET', 'EVENT_OVERSHOOT', 'EVENT_UNDERSHOOT', 'EVENT_BOTHSHOOT'))
             del etable
+
         else:
             self.eventundershoots = None
-            
+
     def writebkffile(self):
         # Write useful rates  to file for filtering
 

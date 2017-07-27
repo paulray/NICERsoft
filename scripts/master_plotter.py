@@ -135,6 +135,7 @@ else:
     sys.exit()
 
 
+
 #---------------------Options for data filtering / Plotting -------------------
 if not args.sci and not args.eng and not args.map and not args.bkg and not args.interactive:
     log.warning("No specific plot requested, making all")
@@ -290,6 +291,8 @@ if args.applygti is not None:
     etable.meta['EXPOSURE'] = g['DURATION'].sum()
     gtitable = g
 log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
+
+#If you want to correlate over/undershoot data to time, then data.hkshoottable or data.eventshoottable will get you there.
 
 #------------------------------------------------------PLOTTING HAPPENS BELOW HERE ------------------------------------------------------
 # Background plots are diagnostics for background rates and filtering
