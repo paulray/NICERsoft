@@ -449,7 +449,8 @@ def plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate):
     colorlevels = np.arange(len(colornames))
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
 
-    plot.scatter(etime, overshoot, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='+')
+    plot.scatter(etime, overshoot, c=np.fmod(cc,len(colornames)), cmap=cmap,
+        norm=norm, marker='+',label='Overshoot rate')
     if bothrate is not None:
         etime, both, cc = convert_to_elapsed_goodtime(hkmet, bothrate, gtitable)
         plot.scatter(etime, both, color = 'c', marker='.', label='Both Under and Over Flags')
@@ -531,13 +532,13 @@ def plot_angles(mktable, gtitable):
 
 #--------------------------POINTING---------------------------------------------
 def plot_pointing(mktable, gtitable):
-    time, pointing, colors = convert_to_elapsed_goodtime(mktable['TIME'], mktable['ANG_DIST'], gtitable)
+    time, pointing, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['ANG_DIST'], gtitable)
 
     colornames = ['black','green','red','blue','magenta']
     colorlevels = np.arange(len(colornames))
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
 
-    plot.scatter(time, pointing, c = colors, cmap = cmap,marker = '+', label='Pointing Offset')
+    plot.scatter(time, pointing, c = np.fmod(cc,len(colornames)), cmap = cmap,marker = '+', label='Pointing Offset')
     plot.legend(loc = 2)
     plot.ylabel('Angle (deg)')
     plot.yscale('log')
@@ -547,14 +548,14 @@ def plot_pointing(mktable, gtitable):
     return
 #--------------------------LAT / LON---------------------------------------------
 def plot_latlon(mktable, gtitable):
-    time, lat, colors = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LAT'], gtitable)
-    time, lon, colors = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)
+    time, lat, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LAT'], gtitable)
+    time, lon, cc2 = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)
 
     colornames = ['black','green','red','blue','magenta']
     colorlevels = np.arange(len(colornames))
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
 
-    plot.scatter(time, lat, c = colors, cmap = cmap,marker = '^', label='Latitude')
+    plot.scatter(time, lat, c = np.fmod(cc,len(colornames)), cmap = cmap,marker = '^', label='Latitude')
     #plot.scatter(time, lon, c = colors, cmap = cmap, marker = '_', label = 'Longitude')
     plot.legend(loc = 2)
     plot.ylim((-60.0,60.0))

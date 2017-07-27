@@ -8,7 +8,7 @@ from nicer.plotutils import *
 from nicer.fitsutils import *
 
 def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
-    
+
     if args.eventshootrate:
         overshootrate = shoottable['EVENT_OVERSHOOTS']
         undershootrate = shoottable['EVENT_UNDERSHOOTS']
@@ -17,6 +17,7 @@ def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
     else:
         overshootrate = shoottable['HK_OVERSHOOTS']
         undershootrate = shoottable['HK_UNDERSHOOTS']
+        bothrate = None
         hkmet = shoottable['HKMET']
 
     figure = plt.figure(figsize = (8.5, 11), facecolor = 'white')
@@ -33,8 +34,8 @@ def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
     badlightcurve = np.histogram(badtable['TIME'], hkmetbins)[0]
     badlightcurve = np.array(badlightcurve,dtype=np.float)
     # Really should convolve in GTI segments!
-    kernel = np.ones(32)/32.0
-    badlightcurve = np.convolve(badlightcurve,kernel,mode='same')
+    #kernel = np.ones(32)/32.0
+    #badlightcurve = np.convolve(badlightcurve,kernel,mode='same')
 
     times, lc, cc = convert_to_elapsed_goodtime(hkmet, badlightcurve, gtitable)
     colornames = ['black','green','red','blue','magenta']
@@ -42,7 +43,7 @@ def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
 
     plot.scatter(times, lc, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='+')
-    plot.yscale('log')
+    #plot.yscale('log')
     plot.ylim(ymin=0.1)
     #plt.legend(handles = [lc], loc = 2)
     plt.annotate('Ratio-rejected event light curve', xy=(0.03, 0.85), xycoords='axes fraction')
