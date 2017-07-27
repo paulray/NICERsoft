@@ -173,7 +173,7 @@ class NicerFileSet:
             etable = get_eventovershoots_ftools(self.ufafiles,workdir=None)
             self.eventovershoots, edges = np.histogram(etable['TIME'],hkmetbins)
             
-            self.eventshoottable = Table([self.hkmet, self.eventovershoots, self.eventbothshoots],names = ('HKMET', 'EVENT_OVERSHOOT', 'EVENT_BOTHSHOOT'))
+            self.eventshoottable = Table([self.hkmet, self.eventovershoots, self.eventbothshoots],names = ('HKMET', 'EVENT_OVERSHOOTS', 'EVENT_BOTHSHOOTS'))
             del etable
         else:
             self.eventbothshoots = None
@@ -183,7 +183,7 @@ class NicerFileSet:
         if self.args.eventshootrate:
             etable = get_eventundershoots_ftools(self.ufafiles,workdir=None)
             self.eventundershoots, edges = np.histogram(etable['TIME'],hkmetbins)
-            self.eventshoottable = Table([self.hkmet, self.eventovershoots, self.eventundershoots, self.eventbothshoots],names = ('HKMET', 'EVENT_OVERSHOOT', 'EVENT_UNDERSHOOT', 'EVENT_BOTHSHOOT'))
+            self.eventshoottable = Table([self.hkmet, self.eventovershoots, self.eventundershoots, self.eventbothshoots],names = ('HKMET', 'EVENT_OVERSHOOTS', 'EVENT_UNDERSHOOTS', 'EVENT_BOTHSHOOTS'))
             del etable
 
         else:
