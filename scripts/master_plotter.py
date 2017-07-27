@@ -302,9 +302,9 @@ if args.bkg:
     else:
         if eventovershoots is not None:
 
-            figure4 = bkg_plots(etable, eventovershoots, gtitable, args, hkmet, eventundershoots, mktable, eventbothshoots)
+            figure4 = bkg_plots(etable, data, eventovershoots, gtitable, args, hkmet, eventundershoots, mktable, eventbothshoots)
         else:
-            figure4 = bkg_plots(etable, hkovershoots, gtitable, args, hkmet, hkundershoots, mktable, eventbothshoots)
+            figure4 = bkg_plots(etable, data, hkovershoots, gtitable, args, hkmet, hkundershoots, mktable, eventbothshoots)
         figure4.set_size_inches(16,12)
         if args.save:
             log.info('Writing bkg plot {0}'.format(basename))

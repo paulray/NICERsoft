@@ -5,8 +5,9 @@ import matplotlib.gridspec as gridspec
 from astropy import log
 
 from nicer.plotutils import *
+from nicer.fitsutils import *
 
-def bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mktable, bothrate):
+def bkg_plots(etable, data, overshootrate, gtitable, args, hkmet, undershootrate, mktable, bothrate):
     figure = plt.figure(figsize = (8.5, 11), facecolor = 'white')
     bkg_grid = gridspec.GridSpec(25,4)
 
@@ -14,12 +15,16 @@ def bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mkta
     log.info('Building Rejected Event Light curve')
     plt.subplot(bkg_grid[1:5,:4])
 
-    temptable = etable[np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],etable['EVENT_FLAGS'][:,FLAG_FAST])]
-    ratio = np.array(temptable['PHA'],dtype=np.float)/np.array(temptable['PHA_FAST'],dtype=np.float)
-    badtable = temptable[np.where(ratio > args.filtratio)[0]]
     hkmetbins = np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0]))
-    badlightcurve = np.histogram(badtable['MET'], hkmetbins)[0]
-    badlightcurve = np.array(badlightcurve)
+
+    # Extract bad ratio events and bin onto hkmet bins
+    badtable = get_badratioevents_ftools(data.ufafiles,workdir=None)
+    badlightcurve = np.histogram(badtable['TIME'], hkmetbins)[0]
+    badlightcurve = np.array(badlightcurve,dtype=np.float)
+    # Really should convolve in GTI segments!
+    kernel = np.ones(32)/32.0
+    badlightcurve = np.convolve(badlightcurve,kernel,mode='same')
+
     times, lc, cc = convert_to_elapsed_goodtime(hkmet, badlightcurve, gtitable)
     colornames = ['black','green','red','blue','magenta']
     colorlevels = np.arange(len(colornames))
