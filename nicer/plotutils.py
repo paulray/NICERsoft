@@ -182,7 +182,7 @@ def plot_slowfast(etable,args):
     colors = np.array(['k']*len(ratio))
     idx = np.where(ratio>ratio_cut)[0]
     colors[idx] = 'r'
-    log.info('Plotting the points')
+    log.debug('Plotting the points')
     plot.scatter(etable['PI']*PI_TO_KEV,ratio, s=.4, c = colors)
     x = np.arange(min(etable['PI']),max(etable['PI']))
     phax = np.ones_like(x)*ratio_cut

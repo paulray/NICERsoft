@@ -215,13 +215,13 @@ if args.guessobj and args.obsdir:
 
 #Getting over/undershoot rate from event data.
 if args.eventshootrate:
-    eventovershoot = data.eventovershoot
-    eventundershoot = data.eventundershoot
+    eventovershoots = data.eventovershoots
+    eventundershoots = data.eventundershoots
     eventbothshoots = data.eventbothshoots
 else:
     eventbothshoots = None
-    eventundershoot = None
-    eventovershoot = None
+    eventundershoots = None
+    eventovershoots = None
 
 if args.obsdir is not None:
     hkovershoots = data.hkovershoots
@@ -300,9 +300,9 @@ if args.bkg:
     if hkmet is None:
         log.error("Can't make background plots without MPU HKP files")
     else:
-        if eventovershoot is not None:
+        if eventovershoots is not None:
 
-            figure4 = bkg_plots(etable, eventovershoot, gtitable, args, hkmet, eventundershoot, mktable, eventbothshoots)
+            figure4 = bkg_plots(etable, eventovershoots, gtitable, args, hkmet, eventundershoots, mktable, eventbothshoots)
         else:
             figure4 = bkg_plots(etable, hkovershoots, gtitable, args, hkmet, hkundershoots, mktable, eventbothshoots)
         figure4.set_size_inches(16,12)
@@ -337,8 +337,8 @@ if args.sci:
 # Map plot is overshoot and undershoot rates on maps
 if args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
-    if eventovershoot is not None:
-        figure3 = cartography(hkmet, eventovershoot, args, eventundershoot, filttable, mktable)
+    if eventovershoots is not None:
+        figure3 = cartography(hkmet, eventovershoots, args, eventundershoots, filttable, mktable)
     else:
         figure3 = cartography(hkmet, hkovershoots, args, hkundershoots, filttable, mktable)
 
