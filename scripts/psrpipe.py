@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(description = "Process NICER pulsar data.  Outp
 parser.add_argument("indirs", help="Input directories to process", nargs='+')
 parser.add_argument("--emin", help="Minimum energy to include (keV)", type=float, default=0.4)
 parser.add_argument("--emax", help="Maximum energy to include (kev)", type=float, default=8.0)
-parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
+#parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("--maxovershoot",help="Select data where overshoot rate is below this limit (default: no filter)",
     type=float,default=-1)
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
@@ -59,7 +59,7 @@ for obsdir in args.indirs:
 
     log.info('Making initial QL plots')
     cmd = ["master_plotter.py", "--save", "--filtall",
-           "--writebkf", "--eventshootrate", 
+           "--writebkf", "--eventshootrate",
            "--guessobj", "--lclog", "--useftools",
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--sci", "--eng", "--bkg", "--obsdir", obsdir,
@@ -157,14 +157,15 @@ for obsdir in args.indirs:
     # Build selection expression for niextract-events
     evfilt_expr = 'PI={0}:{1},EVENT_FLAGS==bx1x000'.format(
         int(args.emin*KEV_TO_PI), int(args.emax*KEV_TO_PI))
-    if args.mask is not None:
-        for detid in args.mask:
-            evfilt_expr += ",DET_ID!={0}".format(detid)
 
     cmd = ["niextract-events", "filename=@{0}[{1}]".format(evlistname,evfilt_expr),
         "eventsout={0}".format(filteredname), "timefile={0}".format(gtiname_merged),
         "gti=gti", "clobber=yes"]
     runcmd(cmd)
+
+    #if args.mask is not None:
+    #    for detid in args.mask:
+    #        evfilt_expr += "DET_ID!={0}".format(detid)
 
     ## Now apply the good GTI to remove SAA and slew time ranges
 

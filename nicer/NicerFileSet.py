@@ -165,13 +165,18 @@ class NicerFileSet:
             #Just overshoot
             etable = get_eventovershoots_ftools(self.ufafiles,workdir=None)
             self.eventovershoots, edges = np.histogram(etable['TIME'],hkmetbins)
+            del etable
+        else:
+            self.eventbothshoots = None
+            self.eventovershoots = None
 
         # Don't compute this unless specifically requested, because it can be slow
         if self.args.eventshootrate:
             etable = get_eventundershoots_ftools(self.ufafiles,workdir=None)
             self.eventundershoots, edges = np.histogram(etable['TIME'],hkmetbins)
-
-        del etable
+            del etable
+        else:
+            self.eventundershoots = None
 
     def writebkffile(self):
         # Write useful rates  to file for filtering

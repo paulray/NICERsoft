@@ -26,7 +26,8 @@ def bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mkta
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
 
     plot.scatter(times, lc, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='+')
-
+    plot.yscale('log')
+    plot.ylim(ymin=0.1)
     #plt.legend(handles = [lc], loc = 2)
     plt.annotate('Ratio-rejected event light curve', xy=(0.03, 0.85), xycoords='axes fraction')
 
