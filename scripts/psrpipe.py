@@ -59,7 +59,7 @@ for obsdir in args.indirs:
 
     log.info('Making initial QL plots')
     cmd = ["master_plotter.py", "--save", "--filtall",
-           "--writeovershoot",
+           "--writebkf",
            "--guessobj", "--lclog", "--useftools",
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--sci", "--eng", "--bkg", "--obsdir", obsdir,
@@ -89,15 +89,14 @@ for obsdir in args.indirs:
     attfile = glob(path.join(obsdir,'auxil/ni*.att'))[0]
     log.info('ATT HK File: {0}'.format(attfile))
 
-    #  Get OVS hk files
-    ovsfile = path.join(pipedir,basename)+'_prefilt.ovs'
-    log.info('OVS HK File: {0}'.format(ovsfile))
+    #  Get BKF file for filtering based on background indicators
+    bkffile = path.join(pipedir,basename)+'_prefilt.bkf'
+    log.info('BKF File: {0}'.format(bkffile))
 
     #  Get MPU hk files
     hkfiles = glob(path.join(obsdir,'xti/hk/ni*.hk'))
     hkfiles.sort()
     log.info('MPU HK Files: {0}'.format("\n" + "    \n".join(hkfiles)))
-
 
     # Create GTI from .mkf file
     if args.ultraclean:
@@ -124,9 +123,9 @@ for obsdir in args.indirs:
 
     # Create GTI from overshoot file
     if args.maxovershoot > 0:
-        gtiname3 = path.join(pipedir,'ovs.gti')
-        ovs_expr = 'EV_OVERSHOOT.lt.{0}'.format(args.maxovershoot)
-        cmd = ["maketime", ovsfile, gtiname3, 'expr={0}'.format(ovs_expr),
+        gtiname3 = path.join(pipedir,'bkf.gti')
+        bkf_expr = 'EV_OVERSHOOT.lt.{0}'.format(args.maxovershoot)
+        cmd = ["maketime", bkffile, gtiname3, 'expr={0}'.format(bkf_expr),
             "compact=no", "time=TIME", "prefr=0", "postfr=0", "clobber=yes"]
         runcmd(cmd)
         if len(Table.read(gtiname3,hdu=1))==0:

@@ -20,13 +20,13 @@ def bkg_plots(etable, overshootrate, gtitable, args, hkmet, undershootrate, mkta
     hkmetbins = np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0]))
     badlightcurve = np.histogram(badtable['MET'], hkmetbins)[0]
     badlightcurve = np.array(badlightcurve)
-    times, lc, colors = convert_to_elapsed_goodtime(hkmet, badlightcurve, gtitable)
+    times, lc, cc = convert_to_elapsed_goodtime(hkmet, badlightcurve, gtitable)
     colornames = ['black','green','red','blue','magenta']
     colorlevels = np.arange(len(colornames))
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
-    
-    plot.scatter(times, lc, c=colors, cmap=cmap, norm=norm, marker='+')
-    
+
+    plot.scatter(times, lc, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='+')
+
     #plt.legend(handles = [lc], loc = 2)
     plt.annotate('Ratio-rejected event light curve', xy=(0.03, 0.85), xycoords='axes fraction')
 

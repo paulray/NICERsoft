@@ -56,7 +56,7 @@ parser.add_argument("--sps", help="Path to SPS HK file (_apid0260.hk)",default=N
 parser.add_argument("--powspec",help = "Display power spectrum (replaces ratio plot)", action = 'store_true')
 parser.add_argument("--pslog", help = "make power spectrum log axis", action = "store_true")
 parser.add_argument("--writeps", help = "write out power spectrum", action = "store_true")
-parser.add_argument("--writeovershoot",help="Write summed overshoot rates to FITS file", action='store_true')
+parser.add_argument("--writebkf",help="Write useful rates for background filtering to FITS file", action='store_true')
 parser.add_argument("--applygti",help="Read GTI from provided FITS file", default=None)
 parser.add_argument("--eventshootrate",help="Gets over/undershoot rates from the events", action='store_true')
 parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = 'store_true')
@@ -231,23 +231,10 @@ if args.obsdir is not None:
     reset_rates = data.reset_rates
 
 # Write overshoot and undershoot rates to file for filtering
-if args.writeovershoot:
-    #Writing the rejected events light curve to be written out with the overshoot file
-    temptable = etable[np.logical_and(etable['EVENT_FLAGS'][:,FLAG_SLOW],etable['EVENT_FLAGS'][:,FLAG_FAST])]
-    ratio = np.array(temptable['PHA'],dtype=np.float)/np.array(temptable['PHA_FAST'],dtype=np.float)
-    badtable = temptable[np.where(ratio > args.filtratio)[0]]
-    hkmetbins = np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0]))
-    badlightcurve = np.histogram(badtable['MET'], hkmetbins)[0]
-    
-    badlightcurve = np.array(badlightcurve)
-    
-    #Writing it out in NicerFileSet
-    data.writeovsfile(badlightcurve)
+if args.writebkf:
+    data.writebkffile()
 
-    del temptable, ratio
-
-
-if np.logical_and(args.readovs is not None, args.writeovershoot == True):
+if np.logical_and(args.readovs is not None, args.writebkf == True):
     ovsfile = "{0}.ovs".format(basename)
     ovstable = Table.read(ovsfile,hdu=1)
     print(ovstable)
