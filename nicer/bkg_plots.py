@@ -10,8 +10,8 @@ from nicer.fitsutils import *
 def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
     
     if args.eventshootrate:
-        overshootrate = shoottable['EVENT_OVERSHOOTS']
-        undershootrate = shoottable['EVENT_UNDERSHOOTS']
+        overshootrate = shoottable['EVENT_OVERSHOOT']
+        undershootrate = shoottable['EVENT_UNDERSHOOT']
         bothrate = shoottable['EVENT_BOTHSHOOT']
     else:
         overshootrate = shoottable['HK_OVERSHOOTS']
