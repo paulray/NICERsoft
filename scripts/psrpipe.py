@@ -15,10 +15,12 @@ from nicer.values import *
 
 parser = argparse.ArgumentParser(description = "Process NICER pulsar data.  Output will be written in current working directory.")
 parser.add_argument("indirs", help="Input directories to process", nargs='+')
-parser.add_argument("--emin", help="Minimum energy to include (keV)", type=float, default=0.4)
-parser.add_argument("--emax", help="Maximum energy to include (kev)", type=float, default=8.0)
+parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.4)", type=float, default=0.4)
+parser.add_argument("--emax", help="Maximum energy to include (kev, default=8.0)", type=float, default=8.0)
 #parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("--maxovershoot",help="Select data where overshoot rate is below this limit (default: no filter)",
+    type=float,default=-1)
+parser.add_argument("--badcut",help="Select data where bad ratio event rate is below this limit (default: no filter)",
     type=float,default=-1)
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
     default=None)
@@ -132,13 +134,24 @@ for obsdir in args.indirs:
             log.error('No good time left after filtering!')
             sys.exit(0)
 
+    # Create GTI from overshoot file
+    if args.badcut > 0:
+        gtiname3 = path.join(pipedir,'bkf.gti')
+        bkf_expr = 'BAD_RATIO.lt.{0}'.format(args.badcut)
+        cmd = ["maketime", bkffile, gtiname3, 'expr={0}'.format(bkf_expr),
+            "compact=no", "time=TIME", "prefr=0", "postfr=0", "clobber=yes"]
+        runcmd(cmd)
+        if len(Table.read(gtiname3,hdu=1))==0:
+            log.error('No good time left after filtering!')
+            sys.exit(0)
+
     gtiname_merged = path.join(pipedir,"tot.gti")
     try:
         os.remove(gtiname_merged)
     except:
         pass
 
-    if args.maxovershoot > 0:
+    if args.maxovershoot > 0 or args.badcut>0:
         cmd = ["mgtime", "{0},{1},{2}".format(gtiname1,gtiname2,gtiname3), gtiname_merged, "AND"]
     else:
         cmd = ["mgtime", "{0},{1}".format(gtiname1,gtiname2), gtiname_merged, "AND"]
