@@ -226,8 +226,6 @@ else:
 if args.obsdir is not None:
     hkovershoots = data.hkovershoots
     hkundershoots = data.hkundershoots
-    eventbothshoots = data.eventbothshoots
-
     reset_rates = data.reset_rates
 
 # Write overshoot and undershoot rates to file for filtering
@@ -238,8 +236,6 @@ if np.logical_and(args.readovs is not None, args.writebkf == True):
     ovsfile = "{0}.ovs".format(basename)
     ovstable = Table.read(ovsfile,hdu=1)
     print(ovstable)
-
-
 
 #---------------------------------------------Filting all the data as necessary!---------------------------------------------------------------
 log.info('Filtering...')
@@ -294,6 +290,7 @@ if args.applygti is not None:
     etable.meta['EXPOSURE'] = g['DURATION'].sum()
     gtitable = g
 log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
+
 #------------------------------------------------------PLOTTING HAPPENS BELOW HERE ------------------------------------------------------
 # Background plots are diagnostics for background rates and filtering
 if args.bkg:
