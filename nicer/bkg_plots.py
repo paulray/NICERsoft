@@ -7,7 +7,17 @@ from astropy import log
 from nicer.plotutils import *
 from nicer.fitsutils import *
 
-def bkg_plots(etable, data, overshootrate, gtitable, args, hkmet, undershootrate, mktable, bothrate):
+def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
+    
+    if args.eventshootrate:
+        overshootrate = shoottable['EVENT_OVERSHOOTS']
+        undershootrate = shoottable['EVENT_UNDERSHOOTS']
+        bothrate = shoottable['EVENT_BOTHSHOOT']
+    else:
+        overshootrate = shoottable['HK_OVERSHOOTS']
+        undershootrate = shoottable['HK_UNDERSHOOTS']
+        hkmet = shoottable['HKMET']
+
     figure = plt.figure(figsize = (8.5, 11), facecolor = 'white')
     bkg_grid = gridspec.GridSpec(25,4)
 
