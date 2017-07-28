@@ -92,7 +92,7 @@ for obsdir in args.indirs:
     runcmd(cmd)
     if len(Table.read(gtiname1,hdu=1))==0:
         log.error('No good time left after filtering!')
-        break
+        continue
 
     # Create GTI from attitude data
     gtiname2 = path.join(pipedir,'att.gti')
@@ -102,7 +102,7 @@ for obsdir in args.indirs:
     runcmd(cmd)
     if len(Table.read(gtiname2,hdu=1))==0:
         log.error('No good time left after filtering!')
-        break
+        continue
 
     gtiname_merged = path.join(pipedir,"tot.gti")
     try:
