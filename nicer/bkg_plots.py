@@ -30,7 +30,10 @@ def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
     hkmetbins = np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0]))
 
     # Extract bad ratio events and bin onto hkmet bins
-    badtable = get_badratioevents_ftools(data.ufafiles,workdir=None)
+    if len(data.ufafiles) == 0:
+        badtable = get_badratioevents_ftools(data.evfiles,workdir=None)
+    else:
+        badtable = get_badratioevents_ftools(data.ufafiles,workdir=None)
     badlightcurve = np.histogram(badtable['TIME'], hkmetbins)[0]
     badlightcurve = np.array(badlightcurve,dtype=np.float)
 
