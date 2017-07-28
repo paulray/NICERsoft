@@ -58,7 +58,7 @@ for obsdir in args.indirs:
 
     log.info('Making initial QL plots')
     cmd = ["master_plotter.py", "--save", "--filtall",
-           "--writebkf", 
+           "--writebkf",
            "--guessobj", "--lclog", "--useftools",
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--sci", "--eng", "--map", "--bkg", "--obsdir", obsdir,
@@ -92,7 +92,7 @@ for obsdir in args.indirs:
     runcmd(cmd)
     if len(Table.read(gtiname1,hdu=1))==0:
         log.error('No good time left after filtering!')
-        sys.exit(0)
+        break
 
     # Create GTI from attitude data
     gtiname2 = path.join(pipedir,'att.gti')
@@ -102,7 +102,7 @@ for obsdir in args.indirs:
     runcmd(cmd)
     if len(Table.read(gtiname2,hdu=1))==0:
         log.error('No good time left after filtering!')
-        sys.exit(0)
+        break
 
     gtiname_merged = path.join(pipedir,"tot.gti")
     try:
