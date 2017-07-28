@@ -13,11 +13,11 @@ from astropy.table import Table
 
 from nicer.values import *
 
-parser = argparse.ArgumentParser(description = "Process NICER pulsar data.  Output will be written in current working directory.")
+parser = argparse.ArgumentParser(description = "Process NICER data.  Output will be written in current working directory.")
 parser.add_argument("indirs", help="Input directories to process", nargs='+')
 parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.4)", type=float, default=0.4)
 parser.add_argument("--emax", help="Maximum energy to include (kev, default=8.0)", type=float, default=8.0)
-#parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
+parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("--maxovershoot",help="Select data where overshoot rate is below this limit (default: no filter)",
     type=float,default=-1)
 parser.add_argument("--badcut",help="Select data where bad ratio event rate is below this limit (default: no filter)",
@@ -123,7 +123,7 @@ for obsdir in args.indirs:
         log.error('No good time left after filtering!')
         sys.exit(0)
 
-    # Create GTI from overshoot file
+    # Create GTI from overshoot file using overshoot rate
     if args.maxovershoot > 0:
         gtiname3 = path.join(pipedir,'bkf.gti')
         bkf_expr = 'EV_OVERSHOOT.lt.{0}'.format(args.maxovershoot)
@@ -134,7 +134,7 @@ for obsdir in args.indirs:
             log.error('No good time left after filtering!')
             sys.exit(0)
 
-    # Create GTI from overshoot file
+    # Create GTI from overshoot file using bad event lightcurve
     if args.badcut > 0:
         gtiname3 = path.join(pipedir,'bkf.gti')
         bkf_expr = 'BAD_RATIO.lt.{0}'.format(args.badcut)
@@ -157,8 +157,10 @@ for obsdir in args.indirs:
         cmd = ["mgtime", "{0},{1}".format(gtiname1,gtiname2), gtiname_merged, "AND"]
     runcmd(cmd)
 
-    # Extract filtered events and apply merged GTI
+    ###  Extract filtered events and apply merged GTI
+
     filteredname = path.join(pipedir,"cleanfilt.evt")
+    intermediatename = path.join(pipedir,"intermediate.evt")
 
     # Build input file for niextract-events
     evlistname=path.join(pipedir,'evfiles.txt')
@@ -172,23 +174,28 @@ for obsdir in args.indirs:
         int(args.emin*KEV_TO_PI), int(args.emax*KEV_TO_PI))
 
     cmd = ["niextract-events", "filename=@{0}[{1}]".format(evlistname,evfilt_expr),
-        "eventsout={0}".format(filteredname), "timefile={0}".format(gtiname_merged),
+        "eventsout={0}".format(intermediatename), "timefile={0}".format(gtiname_merged),
         "gti=gti", "clobber=yes"]
     runcmd(cmd)
 
-    #if args.mask is not None:
-    #    for detid in args.mask:
-    #        evfilt_expr += "DET_ID!={0}".format(detid)
 
-    ## Now apply the good GTI to remove SAA and slew time ranges
-
-    # Add phases and plot, if requested
+    ### Final step filters and masked detector and does ratio filter
     maxratio = 1.4
     if args.ultraclean:
         maxratio=1.14
+    evfilt_expr = '((float)PHA/(float)PHA_FAST > {0})'.format(maxratio)
+    if args.mask is not None:
+        for detid in args.mask:
+            evfilt_expr += ".and.(DET_ID!={0})".format(detid)
+    cmd = ["ftcopy", intermediatename, filteredname,
+        "clobber=yes", "history=yes"]
+    runcmd(cmd)
+    # Remove intermediate file
+    os.remove(intermediatename)
+
+    # Add phases and plot, if requested
     cmd = ["master_plotter.py", "--save", "--filtratio", "{0}".format(maxratio),
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
-#           "--applygti", gtiname_merged,
            "--orb", path.join(pipedir,path.basename(orbfile)),
            "--sci", filteredname,
            "--basename", path.join(pipedir,basename)]
@@ -196,42 +203,3 @@ for obsdir in args.indirs:
         cmd.append("--par")
         cmd.append("{0}".format(args.par))
     runcmd(cmd)
-
-
-"""
-OLD METHOD:
-    # Build input file for ftmerge
-    evlistname=path.join(pipedir,'evfiles.txt')
-    fout = file(evlistname,'w')
-    evfilt_expr = '(PI>{0}).and.(PI<{1}).and.(EVENT_FLAGS==bx1x000)'.format(
-        args.emin*KEV_TO_PI, args.emax*KEV_TO_PI)
-    if args.mask is not None:
-        for detid in args.mask:
-            evfilt_expr += ".and.(DET_ID!={0})".format(detid)
-    for en in evfiles:
-        print('{0}[{1}]'.format(en,evfilt_expr),file=fout)
-    fout.close()
-
-    # Run ftmerge
-    mergedname = path.join(pipedir,"merged.evt")
-    cmd = ["ftmerge", "@{0}".format(evlistname), "outfile={0}".format(mergedname),
-        "clobber=yes"]
-    runcmd(cmd)
-
-    gtiname_merged = path.join(pipedir,"tot.gti")
-    try:
-        os.remove(gtiname_merged)
-    except:
-        pass
-    cmd = ["mgtime", "{0},{1},{2}+2".format(gtiname1,gtiname2,mergedname), gtiname_merged, "AND"]
-    runcmd(cmd)
-
-
-    ## Now apply the good GTI to remove SAA and slew time ranges
-    #### SHOULD REPLACE THIS WITH niextract-events, which updates GTI as well
-    #### Then we would not need to applygti in the master_plotter call later
-    filteredname = path.join(pipedir,"clean.evt")
-    cmd = ["fltime", mergedname, gtiname_merged, filteredname, "copyall=yes", "clobber=yes"]
-    runcmd(cmd)
-
-"""
