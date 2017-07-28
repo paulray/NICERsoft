@@ -64,6 +64,9 @@ class NicerFileSet:
             self.etable = filtallandmerge_ftools(self.evfiles,workdir=None)
         else:
             self.etable = self.createetable()
+        if len(self.etable) == 0:
+            log.error("No events in etable! Aborting")
+            sys.exit(0)
         self.sortmet()
         self.makebasename()
 
