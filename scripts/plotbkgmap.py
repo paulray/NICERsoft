@@ -18,6 +18,7 @@ from nicer.latloninterp import LatLonInterp
 
 parser = argparse.ArgumentParser(description="Plot background info on a map")
 parser.add_argument("bkffiles", help="Name of bkf files to process", nargs='+')
+parser.add_argument("--column", help="Which bkf column to plot", default="EV_OVERSHOOT")
 args = parser.parse_args()
 
 log.info('Getting SAA data')
@@ -39,7 +40,7 @@ map.drawcoastlines()
 
 for bk in args.bkffiles:
     bkftable = Table.read(bk,hdu=1)
-    overshootrate = bkftable['EV_OVERSHOOT']
+    overshootrate = bkftable[args.column]
     sc = map.scatter(bkftable['LON'], bkftable['LAT'],c=overshootrate,
         norm=LogNorm(vmin=10.0,vmax=1000.0),cmap='jet')
 
@@ -47,6 +48,6 @@ map.plot(saa_lon,saa_lat,'r',lw=2)
 map.plot(nph_lon,nph_lat,color='orange',linestyle='-')
 map.plot(sph_lon,sph_lat,'orange',linestyle='-')
 cbar = map.colorbar(sc, location='bottom',pad='5%')
-plot.title('Overshoot Rate')
+plot.title(args.column)
 
 plot.show()
