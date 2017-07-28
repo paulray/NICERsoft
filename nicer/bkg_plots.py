@@ -33,19 +33,24 @@ def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
     badtable = get_badratioevents_ftools(data.ufafiles,workdir=None)
     badlightcurve = np.histogram(badtable['TIME'], hkmetbins)[0]
     badlightcurve = np.array(badlightcurve,dtype=np.float)
-    # Really should convolve in GTI segments!
-    #kernel = np.ones(32)/32.0
-    #badlightcurve = np.convolve(badlightcurve,kernel,mode='same')
 
-    times, lc, cc = convert_to_elapsed_goodtime(hkmet, badlightcurve, gtitable)
     colornames = ['black','green','red','blue','magenta']
     colorlevels = np.arange(len(colornames))
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
 
-    plot.scatter(times, lc, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='+')
-    #plot.yscale('log')
-    plot.ylim(ymin=0.1)
+    times, lc, cc = convert_to_elapsed_goodtime(hkmet, badlightcurve, gtitable)
+    plot.scatter(times, lc, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='.')
+
+    # Really should convolve in GTI segments!
+    kernel = np.ones(32)/32.0
+    badsmooth = np.convolve(badlightcurve,kernel,mode='same')
+    times, lc, cc = convert_to_elapsed_goodtime(hkmet, badsmooth, gtitable)
+    plot.plot(times, lc)
+
+    plot.yscale('symlog',linthreshy=5.0)
+    plot.ylim(ymax=100.0)
     #plt.legend(handles = [lc], loc = 2)
+    plot.grid(True)
     plt.annotate('Ratio-rejected event light curve', xy=(0.03, 0.85), xycoords='axes fraction')
 
     #Overshoot rate plot -- use --lclog to make it a log y axis
@@ -76,7 +81,7 @@ def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
 
 
     figure.suptitle('Object: {0} at {1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS'].replace('T', ' at ')),
-                    fontsize=18)
+                    fontsize=16)
     #plt.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .95, hspace = .95)
     plt.tight_layout()
     return figure

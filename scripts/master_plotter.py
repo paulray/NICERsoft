@@ -324,6 +324,9 @@ if args.eng:
 # Science plot is light curve, spectrum, pulse profile, and PHA ratio plot (or poweer spectrum)
 if args.sci:
     # Make science plots using filtered events
+    if len(filttable) == 0:
+        log.error('No events left in filtered table! Aborting!')
+        sys.exit(3)
     figure2 = sci_plots(filttable, gtitable, args)
     figure2.set_size_inches(16,12)
     if args.save:

@@ -458,9 +458,7 @@ def plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate):
     plot.ylabel('Overshoot rate')
     plot.grid(True)
 
-    if args.lclog:
-        plot.yscale('log')
-        plot.ylim(ymin=1.0)
+    plot.yscale('symlog',linthreshy=10.0)
     return
 
 def plot_SAA(mktable, gtitable, overshootrate):

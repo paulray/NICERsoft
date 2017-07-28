@@ -170,7 +170,7 @@ for obsdir in args.indirs:
     fout.close()
 
     # Build selection expression for niextract-events
-    evfilt_expr = 'PI={0}:{1},EVENT_FLAGS==bx1x000'.format(
+    evfilt_expr = 'PI={0}:{1},EVENT_FLAGS=bx1x000'.format(
         int(args.emin*KEV_TO_PI), int(args.emax*KEV_TO_PI))
 
     cmd = ["niextract-events", "filename=@{0}[{1}]".format(evlistname,evfilt_expr),
@@ -183,11 +183,11 @@ for obsdir in args.indirs:
     maxratio = 1.4
     if args.ultraclean:
         maxratio=1.14
-    evfilt_expr = '((float)PHA/(float)PHA_FAST > {0})'.format(maxratio)
+    evfilt_expr = '((float)PHA/(float)PHA_FAST < {0})'.format(maxratio)
     if args.mask is not None:
         for detid in args.mask:
             evfilt_expr += ".and.(DET_ID!={0})".format(detid)
-    cmd = ["ftcopy", intermediatename, filteredname,
+    cmd = ["ftcopy", "{0}[{1}]".format(intermediatename,evfilt_expr), filteredname,
         "clobber=yes", "history=yes"]
     runcmd(cmd)
     # Remove intermediate file
