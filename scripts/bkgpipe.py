@@ -58,8 +58,8 @@ for obsdir in args.indirs:
 
     log.info('Making initial QL plots')
     cmd = ["master_plotter.py", "--save", "--filtall",
-           "--writebkf",
-           "--guessobj", "--lclog", "--useftools",
+           "--writebkf", 
+           "--guessobj", "--useftools",
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--sci", "--eng", "--map", "--bkg", "--obsdir", obsdir,
            "--basename", path.join(pipedir,basename)+'_prefilt']
