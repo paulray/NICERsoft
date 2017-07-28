@@ -58,7 +58,7 @@ for obsdir in args.indirs:
 
     log.info('Making initial QL plots')
     cmd = ["master_plotter.py", "--save", "--filtall",
-           "--writebkf", 
+           "--writebkf",
            "--guessobj", "--useftools",
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--sci", "--eng", "--map", "--bkg", "--obsdir", obsdir,
@@ -83,9 +83,9 @@ for obsdir in args.indirs:
 
     # Create GTI from .mkf file
     if args.ultraclean:
-        mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0).and.(SUNSHINE.eq.0)'
+        mkf_expr='(ANG_DIST.lt.0.01).and.(ELV>30.0).and.(SUNSHINE.eq.0)'
     else:
-        mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0)'
+        mkf_expr='(ANG_DIST.lt.0.01).and.(ELV>30.0)'
     gtiname1 = path.join(pipedir,'mkf.gti')
     cmd = ["maketime", mkfile, gtiname1, 'expr={0}'.format(mkf_expr),
         "compact=no", "time=TIME",  "prefr=0", "postfr=0", "clobber=yes"]
