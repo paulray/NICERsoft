@@ -12,6 +12,7 @@ from glob import glob
 from nicer.plotutils import *
 from nicer.fitsutils import *
 from nicer.values import *
+from nicer.latloninterp import LatLonInterp
 import sys
 
 class NicerFileSet:
@@ -53,6 +54,9 @@ class NicerFileSet:
         # Get name of filter (.mkf) file
         self.mkfile = glob(path.join(args.obsdir,'auxil/ni*.mkf*'))[0]
         self.mktable = Table.read(self.mkfile,hdu=1)
+
+        # Make lat, lon interpolater from mktable
+        self.llinterp = LatLonInterp(self.mktable['TIME'], self.mktable['SAT_LAT'], self.mktable['SAT_LON'])
 
         #Compiling Event Data
         self.getgti()
@@ -146,11 +150,11 @@ class NicerFileSet:
                 nresets = np.append(nresets,myreset)
             del hdulist
             self.reset_rates = nresets / np.float(self.etable.meta['EXPOSURE'])
-            
+
             timecol = pyfits.Column(name='HKTIME',array=self.hkmet, format = 'D')
             ovscol = pyfits.Column(name = 'HK_OVERSHOOT', array = self.hkovershoots, format = 'D')
             undcol = pyfits.Column(name = 'HK_UNDERSHOOT',array = self.hkundershoots, format = 'D')
-            
+
             self.hkshoottable = Table([self.hkmet, self.hkovershoots, self.hkundershoots],names = ('HKMET', 'HK_OVERSHOOTS', 'HK_UNDERSHOOTS'))
 
         else:
@@ -172,7 +176,7 @@ class NicerFileSet:
             #Just overshoot
             etable = get_eventovershoots_ftools(self.ufafiles,workdir=None)
             self.eventovershoots, edges = np.histogram(etable['TIME'],hkmetbins)
-            
+
             self.eventshoottable = Table([self.hkmet, self.eventovershoots, self.eventbothshoots],names = ('HKMET', 'EVENT_OVERSHOOTS', 'EVENT_BOTHSHOOTS'))
             del etable
         else:
@@ -211,7 +215,12 @@ class NicerFileSet:
         bothcol = pyfits.Column(name='EV_BOTH',array=self.eventbothshoots,format='D')
         badcol = pyfits.Column(name='BAD_RATIO', array=badlightcurve, format='D')
 
-        ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, bothcol, badcol], name='HKP')
+        lat, lon = self.llinterp.latlon(self.hkmet)
+        latcol = pyfits.Column(name='LAT', array=lat, format='D')
+        loncol = pyfits.Column(name='LON', array=lon, format='D')
+
+        ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, bothcol,
+            badcol,latcol,loncol], name='HKP')
         ovhdu.header['TIMESYS'] = self.etable.meta['TIMESYS']
         ovhdu.header['TIMEREF'] = self.etable.meta['TIMEREF']
         ovhdu.header['MJDREFI'] = self.etable.meta['MJDREFI']

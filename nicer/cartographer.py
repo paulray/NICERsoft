@@ -38,11 +38,10 @@ def cartography(hkmet, overshootrate, args, undershootrate, etable, mktable):
 
     #Creating the plots and figure
     log.info('plotting map')
-    fig = plot.figure(figsize = (9,12), facecolor = 'white')
-    mapper = gridspec.GridSpec(19,4)
+    fig = plot.figure(figsize = (11,8), facecolor = 'white')
 
     #fig, ax = plot.subplots(figsize=(16,9))
-    overshoot = plot.subplot(mapper[1:10,0:4])
+    overshoot = plot.subplot(2,1,1)
 
     map = Basemap(projection='cyl', resolution = 'l',  llcrnrlon=-180, llcrnrlat=-61,
     urcrnrlon=180, urcrnrlat=61, lat_0 = 0, lon_0 = 0)
@@ -57,7 +56,7 @@ def cartography(hkmet, overshootrate, args, undershootrate, etable, mktable):
     plot.title('Overshoot Rate')
     #cbar.set_label('Overshoot Rate')
 
-    undershoot = plot.subplot(mapper[10:19,0:4])
+    undershoot = plot.subplot(2,1,2)
 
     map = Basemap(projection='cyl', resolution = 'l', llcrnrlon=-180, llcrnrlat=-61,
     urcrnrlon=180, urcrnrlat=61,lat_0 = 0, lon_0 = 0)
