@@ -38,11 +38,17 @@ map = Basemap(projection='cyl', resolution = 'l',  llcrnrlon=-180, llcrnrlat=-61
 urcrnrlon=180, urcrnrlat=61, lat_0 = 0, lon_0 = 0)
 map.drawcoastlines()
 
+if args.column == 'BAD_RATIO':
+    vmin = 0.1
+    vmax = 100.0
+else:
+    vmin = 5.0
+    vmax = 1000.0
 for bk in args.bkffiles:
     bkftable = Table.read(bk,hdu=1)
     overshootrate = bkftable[args.column]
     sc = map.scatter(bkftable['LON'], bkftable['LAT'],c=overshootrate,
-        norm=LogNorm(vmin=10.0,vmax=1000.0),cmap='jet')
+                     norm=LogNorm(vmin=vmin,vmax=vmax),cmap='jet',s=2.0)
 
 map.plot(saa_lon,saa_lat,'r',lw=2)
 map.plot(nph_lon,nph_lat,color='orange',linestyle='-')
