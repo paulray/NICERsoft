@@ -171,10 +171,14 @@ class NicerFileSet:
 
         if self.args.eventshootrate or self.args.writebkf:
             #Both under and overshoot
-            etable = get_eventbothshoots_ftools(self.ufafiles,workdir=None)
+            if len(self.ufafiles) == 0:
+                filelist = self.evfiles
+            else:
+                filelist = self.ufafiles
+            etable = get_eventbothshoots_ftools(filelist,workdir=None)
             self.eventbothshoots, edges = np.histogram(etable['TIME'],hkmetbins)
             #Just overshoot
-            etable = get_eventovershoots_ftools(self.ufafiles,workdir=None)
+            etable = get_eventovershoots_ftools(filelist,workdir=None)
             self.eventovershoots, edges = np.histogram(etable['TIME'],hkmetbins)
 
             self.eventshoottable = Table([self.hkmet, self.eventovershoots, self.eventbothshoots],names = ('HKMET', 'EVENT_OVERSHOOTS', 'EVENT_BOTHSHOOTS'))
@@ -185,7 +189,7 @@ class NicerFileSet:
 
         # Don't compute this unless specifically requested, because it can be slow
         if self.args.eventshootrate:
-            etable = get_eventundershoots_ftools(self.ufafiles,workdir=None)
+            etable = get_eventundershoots_ftools(filelist,workdir=None)
             self.eventundershoots, edges = np.histogram(etable['TIME'],hkmetbins)
             self.eventshoottable = Table([self.hkmet, self.eventovershoots, self.eventundershoots, self.eventbothshoots],names = ('HKMET', 'EVENT_OVERSHOOTS', 'EVENT_UNDERSHOOTS', 'EVENT_BOTHSHOOTS'))
             del etable
@@ -200,7 +204,10 @@ class NicerFileSet:
         hkmetbins = np.append(self.hkmet,(self.hkmet[-1]+self.hkmet[1]-self.hkmet[0]))
 
         # Extract bad ratio events and bin onto hkmet bins
-        badtable = get_badratioevents_ftools(self.ufafiles,workdir=None)
+        if len(self.ufafiles) == 0:
+            badtable = get_badratioevents_ftools(self.evfiles,workdir=None)
+        else:
+            badtable = get_badratioevents_ftools(self.ufafiles,workdir=None)
         badlightcurve = np.histogram(badtable['TIME'], hkmetbins)[0]
         badlightcurve = np.array(badlightcurve,dtype=np.float)
         # Really should convolve in GTI segments!
