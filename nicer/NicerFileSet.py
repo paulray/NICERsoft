@@ -25,7 +25,7 @@ class NicerFileSet:
         self.evfiles.sort()
         if len(self.evfiles) == 0:
             log.error("No event files found!")
-            sys.exit(1)
+            raise Exception('No event files found!')
         log.info('Found clean event files: {0}'.format("\n" + "    \n".join(self.evfiles)))
 
         self.ufafiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu?_ufa.evt*'))
@@ -66,7 +66,7 @@ class NicerFileSet:
             self.etable = self.createetable()
         if len(self.etable) == 0:
             log.error("No events in etable! Aborting")
-            sys.exit(0)
+            raise Exception('No events in etable!')
         self.sortmet()
         self.makebasename()
 
