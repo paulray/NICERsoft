@@ -18,6 +18,7 @@ parser.add_argument("indirs", help="Input directories to process", nargs='+')
 parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.4)", type=float, default=0.4)
 parser.add_argument("--emax", help="Maximum energy to include (kev, default=8.0)", type=float, default=8.0)
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
+parser.add_argument("--filtpolar",help="Filter polar horn regions from data",action='store_true')
 parser.add_argument("--maxovershoot",help="Select data where overshoot rate is below this limit (default: no filter)",
     type=float,default=-1)
 parser.add_argument("--badcut",help="Select data where bad ratio event rate is below this limit (default: no filter)",
@@ -101,10 +102,16 @@ for obsdir in args.indirs:
     log.info('MPU HK Files: {0}'.format("\n" + "    \n".join(hkfiles)))
 
     # Create GTI from .mkf file
+    # Not filtering on SAA for now since it is computed from an old map
     if args.ultraclean:
-        mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0).and.(SUNSHINE.eq.0)'
+        mkf_expr='(ANG_DIST.lt.0.01).and.(ELV>30.0).and.(SUNSHINE.eq.0)'
     else:
-        mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0)'
+        mkf_expr='(ANG_DIST.lt.0.01).and.(ELV>30.0)'
+    saafile = path.join(datadir,'saa.reg')
+    mkf_expr += '.and.regfilter({0},SAT_LON,SAT_LAT)'.format(saafile)
+    if args.filtpolar:
+        phfile = path.join(datadir,'polarhorns.reg')
+        mkf_expr += '.and.regfilter({0},SAT_LON,SAT_LAT)'.format(phfile)
     gtiname1 = path.join(pipedir,'mkf.gti')
     cmd = ["maketime", mkfile, gtiname1, 'expr={0}'.format(mkf_expr),
         "compact=no", "time=TIME",  "prefr=0", "postfr=0", "clobber=yes"]
