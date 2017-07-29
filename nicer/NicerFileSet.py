@@ -1,5 +1,4 @@
 from __future__ import (print_function, division, unicode_literals, absolute_import)
-import matplotlib.pyplot as plt
 import numpy as np
 import argparse
 from astropy import log
@@ -84,7 +83,10 @@ class NicerFileSet:
             gtitable = g
 
         #Compiling HK Data
-        self.hkshootrate()
+        if args.extraphkshootrate:
+            self.quickhkshootrate()
+        else:
+            self.hkshootrate()
         self.geteventshoots()
 
     def createetable(self):
@@ -120,6 +122,35 @@ class NicerFileSet:
         if self.args.object is not None:
             self.etable.meta['OBJECT'] = self.args.object
 
+    def quickhkshootrate(self):
+        'Compute HK shoot rates from a single MPU*7 instead of trying to sum all MPUs. This avoids errors when time axes are not compatible'
+        log.info('Getting HKP quick overshoot and undershoot rates from one MPU')
+        if len(self.hkfiles) > 0:
+            log.info('Reading '+self.hkfiles[4])
+            hdulist = pyfits.open(self.hkfiles[4])
+            td = hdulist[1].data
+            self.hkmet = td['TIME']
+            log.info("HK MET Range {0} to {1} (Span = {2:.1f} seconds)".format(self.hkmet.min(),
+                self.hkmet.max(),self.hkmet.max()-self.hkmet.min()))
+            # Only read one MPU so multiply by 7 to extrapolate to full rates
+            self.hkovershoots = td['MPU_OVER_COUNT'].sum(axis=1)*7
+            self.hkundershoots = td['MPU_UNDER_COUNT'].sum(axis=1)*7
+            nresets = td['MPU_UNDER_COUNT'].sum(axis=0)*7
+            del hdulist
+            self.reset_rates = nresets / np.float(self.etable.meta['EXPOSURE'])
+
+            timecol = pyfits.Column(name='HKTIME',array=self.hkmet, format = 'D')
+            ovscol = pyfits.Column(name = 'HK_OVERSHOOT', array = self.hkovershoots, format = 'D')
+            undcol = pyfits.Column(name = 'HK_UNDERSHOOT',array = self.hkundershoots, format = 'D')
+
+            self.hkshoottable = Table([self.hkmet, self.hkovershoots, self.hkundershoots],names = ('HKMET', 'HK_OVERSHOOTS', 'HK_UNDERSHOOTS'))
+        else:
+            hkmet = None
+            hkovershoots = None
+            hkundershoots = None
+            nresets = calc_nresets(self.etable, IDS)
+            reset_rates = nresets/self.etable.meta['EXPOSURE']
+        
     def hkshootrate(self):
         # getting the overshoot and undershoot rate from HK files.  Times are hkmet
         log.info('Getting HKP overshoot and undershoot rates')
