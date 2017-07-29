@@ -106,11 +106,12 @@ for obsdir in args.indirs:
     # Create GTI from .mkf file
     # Not filtering on SAA for now since it is computed from an old map
     if args.ultraclean:
-        mkf_expr='(ANG_DIST.lt.0.01).and.(ELV>30.0).and.(SUNSHINE.eq.0)'
+        mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0).and.(SUNSHINE.eq.0)'
     else:
-        mkf_expr='(ANG_DIST.lt.0.01).and.(ELV>30.0)'
-    saafile = path.join(datadir,'saa.reg')
-    mkf_expr += '.and.regfilter("{0}",SAT_LON,SAT_LAT)'.format(saafile)
+        mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0)'
+    # SAA region file not working because it crosses the prime meridian
+    #saafile = path.join(datadir,'saa.reg')
+    #mkf_expr += '.and.regfilter("{0}",SAT_LON,SAT_LAT)'.format(saafile)
     if args.filtpolar:
         phfile = path.join(datadir,'polarhorns.reg')
         mkf_expr += '.and.regfilter("{0}",SAT_LON,SAT_LAT)'.format(phfile)

@@ -2,6 +2,8 @@
 from __future__ import print_function, division
 import numpy as np
 
+## WARNING: The SAA .reg file created is buggy because it crosses lon=0
+## It needs to be split into two regions
 saacols = np.loadtxt('saa_lonlat.txt')
 # For .reg file need to convert lon to [0,360)
 lon = saacols[:,0]
