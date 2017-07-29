@@ -45,6 +45,6 @@ map.plot(saa_lon,saa_lat,'r',lw=2)
 map.plot(nph_lon,nph_lat,color='orange',linestyle='-')
 map.plot(sph_lon,sph_lat,'orange',linestyle='-')
 cbar = map.colorbar(sc, location='bottom',pad='5%')
-plot.title(args.column)
+plot.title("Map")
 
 plot.show()
