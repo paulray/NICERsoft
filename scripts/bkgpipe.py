@@ -12,10 +12,11 @@ import shutil
 from astropy.table import Table
 
 from nicer.values import *
+from nicer.NicerFileSet import *
 
 parser = argparse.ArgumentParser(description = "Process NICER background data.  Output will be written in current working directory.")
 parser.add_argument("indirs", help="Input directories to process", nargs='+')
-parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.4)",
+parser.add_argument("--emin", help="Minimum energy to include (keV, default=2.0)",
     type=float, default=0.5)
 parser.add_argument("--emax", help="Maximum energy to include (kev, default=8.0)",
     type=float, default=8.0)
@@ -56,22 +57,31 @@ for obsdir in args.indirs:
     if not os.path.exists(pipedir):
         os.makedirs(pipedir)
 
-    log.info('Making initial QL plots')
-    cmd = ["master_plotter.py", "--save", "--filtall",
-           "--writebkf",
-           "--guessobj", "--useftools",
-           "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
-           "--sci", "--eng", "--map", "--bkg", "--obsdir", obsdir,
-           "--basename", path.join(pipedir,basename)+'_prefilt']
-    # I don't think this mask is applied to the  .bkf data generated, but it should be
-    if args.mask is not None:
-        cmd.append(["--mask"].append(["{0}".format(m) for m in args.mask]))
-    runcmd(cmd)
+    # log.info('Making initial QL plots')
+    # cmd = ["master_plotter.py", "--save", "--filtall",
+    #        "--writebkf",
+    #        "--guessobj", "--useftools",
+    #        "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
+    #        "--sci", "--eng", "--map", "--bkg", "--obsdir", obsdir,
+    #        "--basename", path.join(pipedir,basename)+'_prefilt']
+    # # I don't think this mask is applied to the  .bkf data generated, but it should be
+    # if args.mask is not None:
+    #     cmd.append(["--mask"].append(["{0}".format(m) for m in args.mask]))
+    # runcmd(cmd)
 
-
-    # Get filter file
-    mkfile = glob(path.join(obsdir,'auxil/ni*.mkf'))[0]
-    log.info('MKF File: {0}'.format(mkfile))
+    args.obsdir = obsdir
+    args.orb = None
+    args.sps = None
+    args.useftools = True
+    args.applygti = None
+    args.extraphkshootrate = True
+    args.eventshootrate = False
+    args.writebkf = True
+    args.object = None
+    args.basename = path.join(pipedir,basename)+'_prefilt'
+    args.filtall = True
+    nfs = NicerFileSet(args)
+    nfs.writebkffile()
 
     #  Get ATT hk files
     attfile = glob(path.join(obsdir,'auxil/ni*.att'))[0]
@@ -87,7 +97,7 @@ for obsdir in args.indirs:
     else:
         mkf_expr='(ANG_DIST.lt.0.01).and.(ELV>30.0)'
     gtiname1 = path.join(pipedir,'mkf.gti')
-    cmd = ["maketime", mkfile, gtiname1, 'expr={0}'.format(mkf_expr),
+    cmd = ["maketime", nfs.mkfile, gtiname1, 'expr={0}'.format(mkf_expr),
         "compact=no", "time=TIME",  "prefr=0", "postfr=0", "clobber=yes"]
     runcmd(cmd)
     if len(Table.read(gtiname1,hdu=1))==0:
