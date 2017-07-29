@@ -135,9 +135,10 @@ class NicerFileSet:
             # Only read one MPU so multiply by 7 to extrapolate to full rates
             self.hkovershoots = td['MPU_OVER_COUNT'].sum(axis=1)*7
             self.hkundershoots = td['MPU_UNDER_COUNT'].sum(axis=1)*7
-            nresets = td['MPU_UNDER_COUNT'].sum(axis=0)*7
+            # Here we don't get reset rates for all MPUS
+            nresets = td['MPU_UNDER_COUNT'].sum(axis=0)
             del hdulist
-            self.reset_rates = nresets / np.float(self.etable.meta['EXPOSURE'])
+            self.reset_rates = None
 
             timecol = pyfits.Column(name='HKTIME',array=self.hkmet, format = 'D')
             ovscol = pyfits.Column(name = 'HK_OVERSHOOT', array = self.hkovershoots, format = 'D')
@@ -150,7 +151,7 @@ class NicerFileSet:
             hkundershoots = None
             nresets = calc_nresets(self.etable, IDS)
             reset_rates = nresets/self.etable.meta['EXPOSURE']
-        
+
     def hkshootrate(self):
         # getting the overshoot and undershoot rate from HK files.  Times are hkmet
         log.info('Getting HKP overshoot and undershoot rates')

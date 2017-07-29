@@ -42,9 +42,10 @@ def eng_plots(etable, args, reset_rates, filttable):
     #plot.figtext(0.02, 0.9, etable.meta['FILT_STR'], fontsize=10)
     #average = "Mean events per detector is {0:.2f}".format(num_events.mean())
     #ext1 = plot.figtext(.02, .9, average, fontsize = 12.5)
-    plot.figtext(.02, .8,
-      "Mean reset rate is {0:.2f}/s".format(reset_rates.mean()),
-      fontsize = 12.5)
+    if reset_rates is not None:
+        plot.figtext(.02, .8,
+            "Mean reset rate is {0:.2f}/s".format(reset_rates.mean()),
+            fontsize = 12.5)
     if args.mask:
         plot.figtext(.07, .81, 'IDS {0} are masked'.format(args.mask), fontsize=10)
 

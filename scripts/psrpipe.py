@@ -42,6 +42,7 @@ os.environ['HEADASPROMPT'] = '/dev/null'
 def runcmd(cmd):
     # CMD should be a list of strings since it is not processed by a shell
     log.info('CMD: '+" ".join(cmd))
+    log.info(cmd)
     check_call(cmd,env=os.environ)
 
 for obsdir in args.indirs:
@@ -61,15 +62,16 @@ for obsdir in args.indirs:
         os.makedirs(pipedir)
 
     log.info('Making initial QL plots')
-    cmd = ["master_plotter.py", "--save", "--filtall",
-           "--writebkf", "--eventshootrate",
-           "--guessobj", "--lclog", "--useftools",
+    cmd = ["master_plotter.py", "--save", "--filtall", "--lcbinsize", "4.0",
+           "--guessobj", "--lclog", "--useftools", "--extraphkshootrate",
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
-           "--sci", "--eng", "--bkg", "--obsdir", obsdir,
+           "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
            "--basename", path.join(pipedir,basename)+'_prefilt']
     if args.par is not None:
         cmd.append("--par")
         cmd.append("{0}".format(args.par))
+    if (args.maxovershoot>0) or (args.badcut>0):
+        cmd.append("--writebkf")
     runcmd(cmd)
 
 
@@ -108,12 +110,14 @@ for obsdir in args.indirs:
     else:
         mkf_expr='(ANG_DIST.lt.0.01).and.(ELV>30.0)'
     saafile = path.join(datadir,'saa.reg')
-    mkf_expr += '.and.regfilter({0},SAT_LON,SAT_LAT)'.format(saafile)
+    mkf_expr += '.and.regfilter("{0}",SAT_LON,SAT_LAT)'.format(saafile)
     if args.filtpolar:
         phfile = path.join(datadir,'polarhorns.reg')
-        mkf_expr += '.and.regfilter({0},SAT_LON,SAT_LAT)'.format(phfile)
+        mkf_expr += '.and.regfilter("{0}",SAT_LON,SAT_LAT)'.format(phfile)
     gtiname1 = path.join(pipedir,'mkf.gti')
-    cmd = ["maketime", mkfile, gtiname1, 'expr={0}'.format(mkf_expr),
+    cmd = ["pset", "maketime", "expr={0}".format(mkf_expr)]
+    runcmd(cmd)
+    cmd = ["maketime", "infile={0}".format(mkfile), "outfile={0}".format(gtiname1),
         "compact=no", "time=TIME",  "prefr=0", "postfr=0", "clobber=yes"]
     runcmd(cmd)
     if len(Table.read(gtiname1,hdu=1))==0:
@@ -123,7 +127,8 @@ for obsdir in args.indirs:
     # Create GTI from attitude data
     gtiname2 = path.join(pipedir,'att.gti')
     att_expr = '(MODE.eq.1).and.(SUBMODE_AZ.eq.2).and.(SUBMODE_EL.eq.2)'
-    cmd = ["maketime", attfile, gtiname2, 'expr={0}'.format(att_expr),
+    cmd = ["maketime", "infile={0}".format(attfile), "outfile={0}".format(gtiname2),
+        'expr={0}'.format(att_expr),
         "compact=no", "time=TIME", "prefr=0", "postfr=0", "clobber=yes"]
     runcmd(cmd)
     if len(Table.read(gtiname2,hdu=1))==0:
@@ -204,7 +209,7 @@ for obsdir in args.indirs:
     cmd = ["master_plotter.py", "--save", "--filtratio", "{0}".format(maxratio),
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--orb", path.join(pipedir,path.basename(orbfile)),
-           "--sci", filteredname,
+           "--sci", filteredname, "--lcbinsize", "4.0",
            "--basename", path.join(pipedir,basename)]
     if args.par is not None:
         cmd.append("--par")

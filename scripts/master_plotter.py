@@ -58,6 +58,7 @@ parser.add_argument("--pslog", help = "make power spectrum log axis", action = "
 parser.add_argument("--writeps", help = "write out power spectrum", action = "store_true")
 parser.add_argument("--writebkf",help="Write useful rates for background filtering to FITS file", action='store_true')
 parser.add_argument("--applygti",help="Read GTI from provided FITS file", default=None)
+parser.add_argument("--extraphkshootrate",help="Compute HK shoot rates from a single MPU", action='store_true')
 parser.add_argument("--eventshootrate",help="Gets over/undershoot rates from the events", action='store_true')
 parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = 'store_true')
 parser.add_argument("--readovs", help = "Filters events with overshoot > input number", nargs = '*', type = float, default = None)
