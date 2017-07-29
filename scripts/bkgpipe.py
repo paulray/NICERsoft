@@ -80,8 +80,13 @@ for obsdir in args.indirs:
     args.object = None
     args.basename = path.join(pipedir,basename)+'_prefilt'
     args.filtall = True
-    nfs = NicerFileSet(args)
-    nfs.writebkffile()
+    try:
+        nfs = NicerFileSet(args)
+        nfs.writebkffile()
+    except:
+        log.error('NicerFileSet failed for some reason on {0}'.format(obsdir))
+        continue
+                
 
     #  Get ATT hk files
     attfile = glob(path.join(obsdir,'auxil/ni*.att'))[0]
