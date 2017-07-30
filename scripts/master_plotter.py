@@ -342,9 +342,11 @@ if args.sci:
 if args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
     if eventovershoots is not None:
-        figure3 = cartography(hkmet, eventovershoots, args, eventundershoots, filttable, mktable)
+        figure3 = cartography(hkmet, eventovershoots, args, eventundershoots,
+            filttable, mktable, gtitable)
     else:
-        figure3 = cartography(hkmet, hkovershoots, args, hkundershoots, filttable, mktable)
+        figure3 = cartography(hkmet, hkovershoots, args, hkundershoots,
+            filttable, mktable, gtitable)
 
     if args.save:
         log.info('Writing MAP {0}'.format(basename))

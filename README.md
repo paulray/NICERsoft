@@ -1,5 +1,6 @@
 # NICERsoft
-Analysis software for the NICER mission
+User-contributed analysis tools for the NICER mission. This is separate from the
+NICER-team-developed tools that are part of the HEASoft distribution.
 
 This repo is for sharing NICER analysis codes, mostly written in Python, and frequently based on PINT for timing calculations.
 
@@ -15,9 +16,6 @@ NOTES:
 
 * Dependencies on PINT are OK
 
-* Need to be able to generate analytic template profiles from photon data
+* Executable scripts go in the scripts directory
 
-* Need to be able to generate TOAs from a template and photon data, either with
-phases already assigned or assigning them using PINT
-
-test
+* Scripts in any language (Python, PERL, bash, tcsh, etc...) are OK to contribute!

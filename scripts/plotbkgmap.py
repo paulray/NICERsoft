@@ -43,16 +43,16 @@ if args.column == 'BAD_RATIO':
     vmax = 100.0
 else:
     vmin = 5.0
-    vmax = 1000.0
+    vmax = 100.0
 for bk in args.bkffiles:
     bkftable = Table.read(bk,hdu=1)
     overshootrate = bkftable[args.column]
     sc = map.scatter(bkftable['LON'], bkftable['LAT'],c=overshootrate,
                      norm=LogNorm(vmin=vmin,vmax=vmax),cmap='jet',s=2.0)
 
-map.plot(saa_lon,saa_lat,'r',lw=2)
-map.plot(nph_lon,nph_lat,color='orange',linestyle='-')
-map.plot(sph_lon,sph_lat,'orange',linestyle='-')
+map.plot(saa_lon,saa_lat,'grey',lw=2)
+map.plot(nph_lon,nph_lat,color='k',linestyle='-')
+map.plot(sph_lon,sph_lat,'k',linestyle='-')
 cbar = map.colorbar(sc, location='bottom',pad='5%')
 plot.title(args.column)
 

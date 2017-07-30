@@ -121,6 +121,12 @@ def light_curve(etable, startmet, stopmet, binsize):
     # Chop off last bin edge, which is only for computing histogram, not plotting
     return bins[:-1], sums
 
+def gti_colormap():
+    colornames = ['black','green','red','blue','magenta','orange','red','gray']
+    colorlevels = np.arange(len(colornames))
+    cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+    return colornames, cmap, norm
+
 def plot_light_curve(etable, lclog, gtitable, binsize=1.0, noplot=False):
    #'Compute binned light curve of events and return mean rate,plots light curve'
     #EDGE CASE FOR FIRST INSTANCE
@@ -140,9 +146,7 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0, noplot=False):
     rate = sums/binsize
     mean_rate = rate.mean()
     if not noplot:
-        colornames = ['black','green','red','blue','magenta']
-        colorlevels = np.arange(len(colornames))
-        cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+        colornames, cmap, norm = gti_colormap()
         plot.scatter(bins, rate, c=np.fmod(cc,len(colornames)), cmap=cmap,norm=norm,marker='+', label='Light Curve')
         label = 'Mean Rate: {0:.3f} c/s'.format(mean_rate)
         # Plot line at mean counts per bin
@@ -445,15 +449,13 @@ def convert_to_elapsed_goodtime(mets, vals, gtitable):
 def plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate):
 
     etime, overshoot, cc = convert_to_elapsed_goodtime(hkmet, overshootrate, gtitable)
-    colornames = ['black','green','red','blue','magenta']
-    colorlevels = np.arange(len(colornames))
-    cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+    colornames, cmap, norm = gti_colormap()
 
     plot.scatter(etime, overshoot, c=np.fmod(cc,len(colornames)), cmap=cmap,
         norm=norm, marker='+',label='Overshoot rate')
     if bothrate is not None:
         etime, both, cc = convert_to_elapsed_goodtime(hkmet, bothrate, gtitable)
-        plot.scatter(etime, both, color = 'c', marker='.', label='Both Under and Over Flags')
+        plot.scatter(etime, both, color='c', marker='.', label='Both Under and Over Flags')
         plot.legend(loc = 2)
     plot.ylabel('Overshoot rate')
     plot.grid(True)
@@ -465,10 +467,7 @@ def plot_SAA(mktable, gtitable, overshootrate):
     time, insaa, colors = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAA'], gtitable)
     time = np.delete(time, np.where(insaa == 0))
     insaa = np.delete(insaa, np.where(insaa == 0))
-    colornames = ['black','green','red','blue','magenta']
-    colorlevels = np.arange(len(colornames))
-    cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
-    insaa[np.where(insaa == 1)] = max(overshootrate) + 100
+    insaa[np.where(insaa == 1)] = max(overshootrate)
     plot.scatter(time, insaa, color = 'y', label = 'In the SAA',marker = '_')
     plot.legend(loc = 2)
     return
@@ -478,11 +477,10 @@ def plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable):
 
     etime, undershoot, cc = convert_to_elapsed_goodtime(hkmet, undershootrate, gtitable)
 
-    colornames = ['black','green','red','blue','magenta']
-    colorlevels = np.arange(len(colornames))
-    cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+    colornames, cmap, norm = gti_colormap()
 
-    plot.scatter(etime, undershoot, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='+')
+    plot.scatter(etime, undershoot, c=np.fmod(cc,len(colornames)), cmap=cmap,
+        norm=norm, marker='+')
 
     # Add sunshine
     sunmet = mktable['TIME']
@@ -492,7 +490,8 @@ def plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable):
     # Delete the 0 values so they don't plot
     sunt=np.delete(sunt,sidx)
     suny=np.delete(suny,sidx)
-    plot.scatter(sunt,suny*undershoot.max(), color = 'y', label = 'Sunshine', marker = '_')
+    plot.scatter(sunt,suny*undershoot.max()+1, color='y', label='Sunshine',
+        marker = '_')
     plot.legend(loc = 2)
 
     plot.ylabel('Undershoot rate')
@@ -532,11 +531,10 @@ def plot_angles(mktable, gtitable):
 def plot_pointing(mktable, gtitable):
     time, pointing, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['ANG_DIST'], gtitable)
 
-    colornames = ['black','green','red','blue','magenta']
-    colorlevels = np.arange(len(colornames))
-    cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+    colornames, cmap, norm = gti_colormap()
 
-    plot.scatter(time, pointing, c = np.fmod(cc,len(colornames)), cmap = cmap,marker = '+', label='Pointing Offset')
+    plot.scatter(time, pointing, c = np.fmod(cc,len(colornames)), cmap = cmap,
+        norm=norm, marker = '+', label='Pointing Offset')
     plot.legend(loc = 2)
     plot.ylabel('Angle (deg)')
     plot.yscale('log')
@@ -547,13 +545,12 @@ def plot_pointing(mktable, gtitable):
 #--------------------------LAT / LON---------------------------------------------
 def plot_latlon(mktable, gtitable):
     time, lat, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LAT'], gtitable)
-    time, lon, cc2 = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)
+    #time, lon, cc2 = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)
 
-    colornames = ['black','green','red','blue','magenta']
-    colorlevels = np.arange(len(colornames))
-    cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+    colornames, cmap, norm = gti_colormap()
 
-    plot.scatter(time, lat, c = np.fmod(cc,len(colornames)), cmap = cmap,marker = '^', label='Latitude')
+    plot.scatter(time, lat, c=np.fmod(cc,len(colornames)), norm=norm,
+        cmap=cmap, marker='^', label='Latitude')
     #plot.scatter(time, lon, c = colors, cmap = cmap, marker = '_', label = 'Longitude')
     plot.legend(loc = 2)
     plot.ylim((-60.0,60.0))

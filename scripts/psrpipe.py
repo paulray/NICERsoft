@@ -104,14 +104,13 @@ for obsdir in args.indirs:
     log.info('MPU HK Files: {0}'.format("\n" + "    \n".join(hkfiles)))
 
     # Create GTI from .mkf file
-    # Not filtering on SAA for now since it is computed from an old map
+    # Not filtering on (SAA.eq.0) for now since it is computed from an old map
     if args.ultraclean:
-        mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0).and.(SUNSHINE.eq.0)'
+        mkf_expr='(ANG_DIST.lt.0.01).and.(ELV>30.0).and.(SUNSHINE.eq.0)'
     else:
-        mkf_expr='(SAA.eq.0).and.(ANG_DIST.lt.0.01).and.(ELV>30.0)'
-    # SAA region file not working because it crosses the prime meridian
-    #saafile = path.join(datadir,'saa.reg')
-    #mkf_expr += '.and.regfilter("{0}",SAT_LON,SAT_LAT)'.format(saafile)
+        mkf_expr='(ANG_DIST.lt.0.01).and.(ELV>30.0)'
+    saafile = path.join(datadir,'saa.reg')
+    mkf_expr += '.and.regfilter("{0}",SAT_LON,SAT_LAT)'.format(saafile)
     if args.filtpolar:
         phfile = path.join(datadir,'polarhorns.reg')
         mkf_expr += '.and.regfilter("{0}",SAT_LON,SAT_LAT)'.format(phfile)
@@ -206,13 +205,28 @@ for obsdir in args.indirs:
     # Remove intermediate file
     os.remove(intermediatename)
 
-    # Add phases and plot, if requested
-    cmd = ["master_plotter.py", "--save", "--filtratio", "{0}".format(maxratio),
-           "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
+    # Mke final clean plot
+    cmd = ["master_plotter.py", "--save",
            "--orb", path.join(pipedir,path.basename(orbfile)),
            "--sci", filteredname, "--lcbinsize", "4.0",
            "--basename", path.join(pipedir,basename)]
     if args.par is not None:
         cmd.append("--par")
         cmd.append("{0}".format(args.par))
+    runcmd(cmd)
+
+    # Add phases
+    if args.par is not None:
+        cmd = ["photonphase", "--orb", orbfile, "--plot", "--plotfile",
+            plotfile, "--planets", "--addphase", filteredname, args.par]
+        runcmd(cmd)
+
+    # Extract simple PHA file and light curve
+    phafile = path.splitext(filteredname)[0] + ".pha"
+    lcfile = path.splitext(filteredname)[0] + ".lc"
+    cmd = ["extractor", filteredname, "eventsout=none", "imgfile=none",
+        "phafile={0}".format(phafile), "fitsbinlc={0}".format(lcfile),
+        "binlc=1.0", "regionfile=none", "timefile=none",
+        "xcolf=RAWX", "ycolf=RAWY", "tcol=TIME", "ecol=PI", "xcolh=RAWX",
+        "ycolh=RAWY", "gti=gti"]
     runcmd(cmd)
