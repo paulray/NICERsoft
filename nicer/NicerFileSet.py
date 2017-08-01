@@ -82,6 +82,13 @@ class NicerFileSet:
             self.etable.meta['EXPOSURE'] = g['DURATION'].sum()
             self.gtitable = g
 
+        if args.gtirows is not None:
+            log.info('Apply gti rows {}'.format(args.gtirows))
+            g = self.gtitable[args.gtirows]
+            print(g)
+            self.etable = apply_gti(self.etable,g)
+            self.gtitable = g
+
         #Compiling HK Data
         if args.extraphkshootrate:
             self.quickhkshootrate()
