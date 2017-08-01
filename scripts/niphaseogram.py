@@ -28,8 +28,8 @@ parser=OptionParser(usage=" %prog [options] [FT1_FILENAME]",
                                         description=desc)
 parser.add_option("-n","--ntoa",type="int",default=60,help="Number of TOAs to produce between TSTART and TSTOP.")
 parser.add_option("-b","--nbins",type="int",default=32,help="Number of bins in each profile.")
-parser.add_option("-e","--emin",type="float",default=100.0,help="Minimum energy to include.")
-parser.add_option("-x","--emax",type="float",default=300000.0,help="Maximum energy to include.")
+parser.add_option("-e","--emin",type="float",default=0.3,help="Minimum energy to include.")
+parser.add_option("-x","--emax",type="float",default=12.0,help="Maximum energy to include.")
 parser.add_option("-o","--outfile",type="string",default=None,help="File name for plot file.  Type comes from extension.")
 parser.add_option("-r","--radio",type="string",default=None,help="Radio profile to overplot.")
 parser.add_option("-w","--weights",type="string",default=None,help="FITS column to use as photon weight.")
@@ -58,7 +58,7 @@ try:
     TIMEZERO = float(evhdr['TIMEZERO'])
 except KeyError:
     TIMEZERO = float(evhdr['TIMEZERI']) + float(evhdr['TIMEZERF'])
-log.info("# TIMEZERO = ",TIMEZERO)
+log.info("# TIMEZERO = {0}".format(TIMEZERO))
 try:
     MJDREF = float(evhdr['MJDREF'])
 except KeyError:
@@ -70,9 +70,11 @@ except KeyError:
             float(evhdr['MJDREFF'].replace('D','E'))
     else:
         MJDREF = float(evhdr['MJDREFI']) + float(evhdr['MJDREFF'])
-log.info("# MJDREF = ",MJDREF)
+log.info("# MJDREF = {0}".format(MJDREF))
 mjds_tt = evdat.field('TIME')/86400.0 + MJDREF + TIMEZERO
-mjds = numpy.array([clockcorr.tt2utc(t) for t in mjds_tt])
+evtimes = Time(mjds_tt,format='mjd',scale='tt')
+mjds = evtimes.utc.mjd
+log.info('Evtimes {0}'.format(evtimes[:10]))
 phases = evdat.field('PULSE_PHASE')
 if options.weights is not None:
     weights = evdat.field(options.weights)
@@ -85,17 +87,20 @@ phases = phases[idx]
 log.info("Energy cuts left %d out of %d events." % (len(mjds),len(mjds_tt)))
 
 TSTART = float(evhdr['TSTART'])
+TSTARTtime = Time(TSTART/86400.0 + MJDREF + TIMEZERO,format='mjd',scale='tt')
 TSTOP = float(evhdr['TSTOP'])
+TSTOPtime = Time(TSTOP/86400.0 + MJDREF + TIMEZERO,format='mjd',scale='tt')
 
 # Compute MJDSTART and MJDSTOP in MJD(UTC)
-MJDSTART = clockcorr.tt2utc(TSTART/86400.0 + MJDREF + TIMEZERO)
-MJDSTOP = clockcorr.tt2utc(TSTOP/86400.0 + MJDREF + TIMEZERO)
+MJDSTART = TSTARTtime.utc.mjd
+MJDSTOP = TSTOPtime.utc.mjd
 
 if options.tmin !=0:
     MJDSTART = options.tmin
 
 # Compute observation duration for each TOA
 toadur = (MJDSTOP-MJDSTART)/options.ntoa
+log.info('MJDSTART {0}, MJDSTOP {1}, toadur {2}'.format(MJDSTART,MJDSTOP,toadur))
 
 mjdstarts = MJDSTART + toadur*numpy.arange(options.ntoa,dtype=numpy.float_)
 mjdstops = mjdstarts + toadur
@@ -176,6 +181,7 @@ ax2.errorbar(pbins,py,yerr=pe,linestyle='None',capsize=0.0,ecolor='k')
 pylab.ylabel('Photons')
 pylab.setp(ax2.get_xticklabels(), visible=False)
 pylab.ylim(ymin=0.0)
+pylab.xlim((0.0,2.0))
 #ax2.set_xticks(numpy.arange(20.0)/10.0)
 ax2.minorticks_on()
 #pylab.xlabel('Pulse Phase')
