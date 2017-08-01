@@ -77,10 +77,10 @@ class NicerFileSet:
             g = g[np.where(g['DURATION']>16.0)]
             log.info('Applying external GTI')
             print(g)
-            etable = apply_gti(etable,g)
+            self.etable = apply_gti(self.etable,g)
             # Replacing this GTI does not work. It needs to be ANDed with the existing GTI
-            etable.meta['EXPOSURE'] = g['DURATION'].sum()
-            gtitable = g
+            self.etable.meta['EXPOSURE'] = g['DURATION'].sum()
+            self.gtitable = g
 
         #Compiling HK Data
         if args.extraphkshootrate:
