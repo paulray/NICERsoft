@@ -25,7 +25,7 @@ def filtallandmerge_ftools(evfiles,workdir=None):
 
     # Build input file for ftmerge
     evlistname=path.join(tmpdir,'evfiles.txt')
-    fout = file(evlistname,'w')
+    fout = open(evlistname,'w')
     evfilt_expr = '(PI>30).and.(EVENT_FLAGS==bx1x000)'
     for en in evfiles:
         print('{0}[{1}]'.format(en,evfilt_expr),file=fout)
@@ -54,7 +54,7 @@ def get_eventovershoots_ftools(evfiles,workdir=None):
 
     # Build input file for ftmerge
     evlistname=path.join(tmpdir,'evfiles.txt')
-    fout = file(evlistname,'w')
+    fout = open(evlistname,'w')
     evfilt_expr = '(EVENT_FLAGS==bxxx010)'
     for en in evfiles:
         print('{0}[{1}]'.format(en,evfilt_expr),file=fout)
@@ -83,7 +83,7 @@ def get_eventundershoots_ftools(evfiles,workdir=None):
 
     # Build input file for ftmerge
     evlistname=path.join(tmpdir,'evfiles.txt')
-    fout = file(evlistname,'w')
+    fout = open(evlistname,'w')
     evfilt_expr = '(EVENT_FLAGS==bxxx001)'
     for en in evfiles:
         print('{0}[{1}]'.format(en,evfilt_expr),file=fout)
@@ -113,7 +113,7 @@ def get_eventbothshoots_ftools(evfiles,workdir=None):
 
     # Build input file for ftmerge
     evlistname=path.join(tmpdir,'evfiles.txt')
-    fout = file(evlistname,'w')
+    fout = open(evlistname,'w')
     evfilt_expr = '(EVENT_FLAGS==bxxx011)'
     for en in evfiles:
         print('{0}[{1}]'.format(en,evfilt_expr),file=fout)
@@ -142,7 +142,7 @@ def get_badratioevents_ftools(evfiles,workdir=None):
 
     # Build input file for ftmerge
     evlistname=path.join(tmpdir,'evfiles.txt')
-    fout = file(evlistname,'w')
+    fout = open(evlistname,'w')
     # Here I use 1.4 regardless of the value used for filtering good events
     # so that there is minimal chance on contamination by a bright source
     evfilt_expr = '(EVENT_FLAGS==bx11000).and.((float)PHA/(float)PHA_FAST > 1.4)'
