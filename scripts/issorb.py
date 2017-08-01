@@ -4,7 +4,7 @@ import numpy as np
 import astropy.units as u
 from astropy.time import Time
 import matplotlib.pyplot as plt
-from astropy.coordinates import SkyCoord, get_sun, get_moon, ICRS
+from astropy.coordinates import SkyCoord, get_sun, get_moon, ICRS, Angle
 from astropy.coordinates.name_resolve import get_icrs_coordinates
 from pyorbital import tlefile
 import argparse
@@ -22,6 +22,8 @@ platform = 'ISS (ZARYA)'
 
 parser = argparse.ArgumentParser(description="Compute ISS orbit geometry vs time")
 parser.add_argument("sourcename",help="Source name to look up coordinates")
+parser.add_argument("-ra ",  dest='ra', help="Source RA  [default: lookup]", default=None)
+parser.add_argument("-dec", dest='dec',help="Source DEC [default: lookup]", default=None)
 args = parser.parse_args()
 
 # Set up two TLEs so we can compute the precession rate from the
@@ -77,7 +79,10 @@ print("Current DOY = {0}".format(np.int(doy_now)))
 print("StarboardPoleRA (now) = {0:.3f}".format(StarboardPoleRA(now)))
 print("PortPoleRA (now) = {0:.3f}".format(PortPoleRA(now)))
 
-SourcePos = get_icrs_coordinates(args.sourcename)
+if args.ra is None or args.dec is None:
+    SourcePos = get_icrs_coordinates(args.sourcename)
+else:
+    SourcePos = ICRS(ra=Angle(args.ra),dec=Angle(args.dec))
 print("\nSource: {0} at {1}, {2}".format(args.sourcename,SourcePos.ra, SourcePos.dec))
 print("Separation from Starboard Pole = {0:.3f}".format(SourcePos.separation(StarboardPoleCoord(now))))
 print("Separation from Port Pole = {0:.3f}".format(SourcePos.separation(PortPoleCoord(now))))
