@@ -22,7 +22,7 @@ from pint.observatory.nicer_obs import NICERObs
 from pint.observatory.rxte_obs import RXTEObs
 import pint.toa, pint.models
 from pint.eventstats import hmw, hm, h2sig
-from astropy.time import Time
+from astropy.time import Time, TimeDelta
 #from os.path import exists
 #from nicer.toabinner import TOABinner,UniformLogBinner
 #from nicer.toagen import UnbinnedTOAGenerator
@@ -60,6 +60,15 @@ args = parser.parse_args()
 modelin = pint.models.get_model(args.parname)
 log.info(str(modelin))
 
+# check for consistency between ephemeris and options
+if (not args.planets) and (
+    'SolarSystemShapiro' in modelin.components.keys()):
+    log.error(
+            "Ephemeris specifies Shapiro delay calculation.  Removing it.")
+    components = modelin.components
+    components.pop('SolarSystemShapiro')
+    modelin.setup_components(components.values())
+
 # Load Template objects
 primitives,norms = prim_io(args.templatename)
 template = LCTemplate(primitives,norms)
@@ -72,6 +81,7 @@ hdr = pyfits.getheader(args.eventname,ext=1)
 
 log.info('Event file TELESCOPE = {0}, INSTRUMENT = {1}'.format(hdr['TELESCOP'],
     hdr['INSTRUME']))
+
 if hdr['TELESCOP'] == 'NICER':
     # Instantiate NICERObs once so it gets added to the observatory registry
     if args.orbfile is not None:
@@ -106,7 +116,7 @@ mjds = ts.get_mjds()
 print(mjds.min(),mjds.max())
 
 # Compute model phase for each TOA
-phss = modelin.phase(ts.table)[1]
+phss = modelin.phase(ts.table)[1].value # discard units
 # ensure all postive
 phases = np.where(phss < 0.0, phss + 1.0, phss)
 mjds = ts.get_mjds()
@@ -121,40 +131,35 @@ if args.plot:
 lcf = lcfitters.LCFitter(template,phases)
 dphi,dphierr = lcf.fit_position()
 
-print(lcf)
+# find MJD closest to center of observation and turn it into a TOA
+argmid = np.searchsorted(mjds,0.5*(mjds.min()+mjds.max()))
+tmid = ts.table['tdb'][argmid]
+tplus = tmid + TimeDelta(1*u.s,scale='tdb')
+toamid = pint.toa.TOA(tmid)
+toaplus = pint.toa.TOA(tplus)
+toas = pint.toa.TOAs(toalist=[toamid,toaplus])
+toas.compute_TDBs()
+toas.compute_posvels(ephem=args.ephem,planets=args.planets)
+phsi,phsf = modelin.phase(toas.table)
+fbary = (phsi[1]-phsi[0]) + (phsf[1]-phsf[0])
+fbary._unit = u.Hz
+tfinal = tmid + TimeDelta((-(dphi+phsf[0].value)/fbary),scale='tdb')
 
-print(dphi,dphierr)
-
+# get exposure information
+try:
+    f = pyfits.open(args.eventname)
+    exposure = f[1].header['exposure']
+    f.close()
+except:
+    exposure = 0
 
 # Use PINT's TOA writer to save the TOA
+nsrc = lcf.template.norm()*len(lcf.phases)
+nbkg = (1-lcf.template.norm())*len(lcf.phases)
+toafinal = pint.toa.TOA(tfinal,
+        nsrc='%.2f'%nsrc,nbkg='%.2f'%nbkg,exposure='%.2f'%exposure)
+toas = pint.toa.TOAs(toalist=[toafinal])
+toas.table['error'][:] = dphierr/fbary*1e6
+toas.write_TOA_file(sys.stdout,name='nicer',format='tempo2')
 
 
-
-### JUNK BELOW HERE
-sys.exit()
-# poly = Polyco(polyconame,recalc_polycos=options.recalc_polycos)
-# data = PhaseData(ft1name,poly,use_weights=(options.weights is not None),we_col_name=options.weights,wmin=options.wmin,emin=options.emin,emax=options.emax)
-# if options.addphase: data.write_phase()
-
-primitives,norms = prim_io(args.template)
-template = LCTemplate(primitives,norms)
-if args.weights is not None:
-    logl = np.log(1+data.weights*(template(data.ph)-1)).sum()
-else: logl = np.log(template(data.ph)).sum()
-print('Total log likelihood:  %.2f'%(logl))
-
-tg = UnbinnedTOAGenerator(data,poly,template,plot_stem=options.plot,good_ephemeris=(not options.blind))
-
-if args.uniform_sigma:
-    binner = UniformLogBinner(args.ntoa,data,template)
-else:
-    binner = TOABinner(args.ntoa,data)
-
-toas,err_toas,tim_strings = tg.get_toas(binner)
-
-if args.output is not None:
-    f = open(args.output,'w')
-    f.write('\n'.join(tim_strings))
-    f.close()
-    print('Wrote TOAs to %s'%(args.output))
-else: print('\n'.join(tim_strings))
