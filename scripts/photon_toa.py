@@ -88,7 +88,11 @@ if hdr['TELESCOP'] == 'NICER':
         log.info('Setting up NICER observatory')
         NICERObs(name='NICER',FPorbname=args.orbfile,tt2tdb_mode='none')
     # Read event file and return list of TOA objects
-    tl  = load_NICER_TOAs(args.eventname)
+    try:
+        tl  = load_NICER_TOAs(args.eventname)
+    except KeyError:
+        log.error('Failed to load NICER TOAs. Make sure orbit file is specified on command line!')
+        raise
 elif hdr['TELESCOP'] == 'XTE':
     # Instantiate RXTEObs once so it gets added to the observatory registry
     if args.orbfile is not None:
@@ -158,8 +162,7 @@ nsrc = lcf.template.norm()*len(lcf.phases)
 nbkg = (1-lcf.template.norm())*len(lcf.phases)
 toafinal = pint.toa.TOA(tfinal,
         nsrc='%.2f'%nsrc,nbkg='%.2f'%nbkg,exposure='%.2f'%exposure)
+log.info("Src rate = {0} c/s, Bkg rate = {1} c/s".format(nsrc/exposure, nbkg/exposure))
 toas = pint.toa.TOAs(toalist=[toafinal])
 toas.table['error'][:] = dphierr/fbary*1e6
 toas.write_TOA_file(sys.stdout,name='nicer',format='tempo2')
-
-
