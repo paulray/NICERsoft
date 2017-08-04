@@ -182,6 +182,8 @@ for obsdir in args.indirs:
     fout.close()
 
     # Build selection expression for niextract-events
+    # Select events with PI in the selected range, require SLOW trigger (FAST optional)
+    # and filter all undershoot, overshoot, and force trigger events
     evfilt_expr = 'PI={0}:{1},EVENT_FLAGS=bx1x000'.format(
         int(args.emin*KEV_TO_PI), int(args.emax*KEV_TO_PI))
 
@@ -195,7 +197,10 @@ for obsdir in args.indirs:
     maxratio = 1.4
     if args.ultraclean:
         maxratio=1.14
-    evfilt_expr = '((float)PHA/(float)PHA_FAST < {0})'.format(maxratio)
+    # Select SLOW-only events OR SLOW+FAST events with ratio<threshold
+    evfilt_expr = '((EVENT_FLAGS==bx10000).or.((EVENT_FLAGS==bx11000).and.((float)PHA/(float)PHA_FAST < {0})))'.format(maxratio)
+    # This is the old filter that cuts out all SLOW-only events. Usually not what you want!
+    # evfilt_expr = '((float)PHA/(float)PHA_FAST < {0})'.format(maxratio)
     if args.mask is not None:
         for detid in args.mask:
             evfilt_expr += ".and.(DET_ID!={0})".format(detid)
@@ -203,7 +208,7 @@ for obsdir in args.indirs:
         "clobber=yes", "history=yes"]
     runcmd(cmd)
     # Remove intermediate file
-    os.remove(intermediatename)
+    # os.remove(intermediatename)
 
     # Mke final clean plot
     cmd = ["master_plotter.py", "--save",
