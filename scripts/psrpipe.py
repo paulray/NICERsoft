@@ -12,13 +12,34 @@ import shutil
 from astropy.table import Table
 
 from nicer.values import *
+desc = """
+Pipeline process NICER data.
 
-parser = argparse.ArgumentParser(description = "Process NICER data.  Output will be written in current working directory.")
+Output will be written in current working directory in directories that end in '_pipe'.
+
+Several diagnostic plots are produced, and the following data processing steps are run:
+* Select good times according to the following:
+  * (ANG_DIST.lt.0.01).and.(ELV>30.0)
+  * (MODE.eq.1).and.(SUBMODE_AZ.eq.2).and.(SUBMODE_EL.eq.2)
+  * SAT_LAT, SAT_LONG not in SAA or polar horn regions specified by region files
+  * If --ultraclean is specified then also filter on SUNSHINE.eq.0
+Optionally, you can filter on overshoot rate or rate of bad ratio events
+
+* Select events according to:
+  * EVENT_FLAGS=bx1x000 (SLOW-only or SLOW+FAST events)
+  * PI in the specified range (default is 0.4-8.0 keV)
+  * Remove events from any DET_ID specified by the --mask parameter
+
+ The final output is 'cleanfilt.evt' and extracted PHA and lightcurve FITS
+ files produced by extrator. The event file will have a PULSE_PHASE column
+ computed using PINT if the --par file is specified on the command line.
+"""
+parser = argparse.ArgumentParser(description = desc)
 parser.add_argument("indirs", help="Input directories to process", nargs='+')
 parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.4)", type=float, default=0.4)
 parser.add_argument("--emax", help="Maximum energy to include (kev, default=8.0)", type=float, default=8.0)
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
-parser.add_argument("--filtpolar",help="Filter polar horn regions from data",action='store_true')
+parser.add_argument("--nofiltpolar",help="Disable filtering polar horn regions from data",default=False,action='store_true')
 parser.add_argument("--maxovershoot",help="Select data where overshoot rate is below this limit (default: no filter)",
     type=float,default=-1)
 parser.add_argument("--badcut",help="Select data where bad ratio event rate is below this limit (default: no filter)",
@@ -111,7 +132,7 @@ for obsdir in args.indirs:
         mkf_expr='(ANG_DIST.lt.0.01).and.(ELV>30.0)'
     saafile = path.join(datadir,'saa.reg')
     mkf_expr += '.and.regfilter("{0}",SAT_LON,SAT_LAT)'.format(saafile)
-    if args.filtpolar:
+    if not args.nofiltpolar:
         phfile = path.join(datadir,'polarhorns.reg')
         mkf_expr += '.and.regfilter("{0}",SAT_LON,SAT_LAT)'.format(phfile)
     gtiname1 = path.join(pipedir,'mkf.gti')
