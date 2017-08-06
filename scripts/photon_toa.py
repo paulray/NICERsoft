@@ -23,11 +23,9 @@ from pint.observatory.rxte_obs import RXTEObs
 import pint.toa, pint.models
 from pint.eventstats import hmw, hm, h2sig
 from astropy.time import Time, TimeDelta
-#from os.path import exists
-#from nicer.toabinner import TOABinner,UniformLogBinner
-#from nicer.toagen import UnbinnedTOAGenerator
 from pint.templates.lctemplate import LCTemplate,prim_io
 from pint.templates import lcfitters
+import cPickle
 
 desc="""Generate TOAs from photon event data."""
 
@@ -40,18 +38,8 @@ parser.add_argument("--planets",help="Use planetary Shapiro delay in calculation
 parser.add_argument("--ephem",help="Planetary ephemeris to use (default=DE421)", default="DE421")
 parser.add_argument("--plot",help="Show phaseogram plot.", action='store_true', default=False)
 parser.add_argument("--plotfile",help="Output figure file name (default=None)", default=None)
-#parser.add_argument("--ntoa","-n",type=int,default=10,help="Number of TOAs to produce between TSTART and TSTOP.")
-# parser.add_argument("-b","--nbins",type=int,default=32,help="Number of bins in each profile.")
-# parser.add_argument("-e","--emin",type=float,default=0.0,help="Minimum energy to include.")
-# parser.add_argument("-x","--emax",type=float,default=300000.0,help="Maximum energy to include.")
-# parser.add_argument("-p","--plot",default=None,help="Set to base name of files to generate likelihood surface plots for each TOA.")
-# parser.add_argument("--wmin",type=float,default=0.0,help="Minimum weight value to include.")
-# parser.add_argument("--wmax",type=float,default=1.0,help="Maximum weight value to include.")
-# parser.add_argument("-t","--template",default=None,help="File name containing template (LCTemplate compatible)")
-# parser.add_argument("-w","--weights",default=None,help="Specify column of FT1 file to use as weights for TOA computation")
-# parser.add_argument("-u","--uniform_sigma",action="store_true",default=False,help="Instead of fixed time bins, make a TOA each time the H-test gets to a sufficient sigma.")
-# parser.add_argument("--blind",action="store_true",default=False,help="Force blind search for TOAs rather than tracking.")
-# parser.add_argument("-o","--output",default=None,help="File for output of .tim file.  Otherwise output to STDOUT.")
+parser.add_argument("--fitbg",help="Fit an overall background level (e.g. for changing particle background level (default=False).",action='store_true',default=False)
+parser.add_argument("--unbinned",help="Fit position with unbinned likelihood.  Don't use for large data sets. (default=False)",action='store_true',default=False)
 
 ## Parse arguments
 args = parser.parse_args()
@@ -70,8 +58,11 @@ if (not args.planets) and (
     modelin.setup_components(components.values())
 
 # Load Template objects
-primitives,norms = prim_io(args.templatename)
-template = LCTemplate(primitives,norms)
+try:
+    template = cPickle.load(file(args.templatename))
+except:
+    primitives,norms = prim_io(args.templatename)
+    template = LCTemplate(primitives,norms)
 print(template)
 
 # Load photons as PINT toas, and weights, if specified
@@ -133,7 +124,11 @@ if args.plot:
 # the TOA based on a reference event near the middle of the span.
 # Build the TOA as a PINT TOA() object
 lcf = lcfitters.LCFitter(template,phases)
-dphi,dphierr = lcf.fit_position()
+if args.fitbg:
+    for i in xrange(2):
+        lcf.fit_position(unbinned=False)
+        lcf.fit_background(unbinned=False)
+dphi,dphierr = lcf.fit_position(unbinned=args.unbinned)
 
 # find MJD closest to center of observation and turn it into a TOA
 argmid = np.searchsorted(mjds,0.5*(mjds.min()+mjds.max()))
