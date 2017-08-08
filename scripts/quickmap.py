@@ -26,6 +26,7 @@ args = parser.parse_args()
 log.info('Getting SAA data')
 saa_lon, saa_lat = np.loadtxt(path.join(datadir,'saa_lonlat.txt'),unpack=True)
 nph_lon, nph_lat = np.loadtxt(path.join(datadir,'nph_lonlat.txt'),unpack=True)
+neph_lon, neph_lat = np.loadtxt(path.join(datadir,'neph_lonlat.txt'),unpack=True)
 sph_lon, sph_lat = np.loadtxt(path.join(datadir,'sph_lonlat.txt'),unpack=True)
 
 bkftable = Table.read(args.bkffiles[0],hdu=1)
@@ -81,6 +82,7 @@ sc = map.scatter(goodlon, goodlat,c=np.fmod(cc,len(colornames)),s=2.0,cmap=cmap,
 
 map.plot(saa_lon,saa_lat,'r',lw=2)
 map.plot(nph_lon,nph_lat,color='orange',linestyle='-')
+map.plot(neph_lon,neph_lat,color='orange',linestyle='-')
 map.plot(sph_lon,sph_lat,'orange',linestyle='-')
 cbar = map.colorbar(sc, location='bottom',pad='5%')
 plot.title("Map")

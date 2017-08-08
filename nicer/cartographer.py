@@ -21,6 +21,7 @@ def cartography(hkmet, overshootrate, args, undershootrate, etable, mktable, gti
     log.info('Getting SAA data')
     saa_lon, saa_lat = np.loadtxt(path.join(datadir,'saa_lonlat.txt'),unpack=True)
     nph_lon, nph_lat = np.loadtxt(path.join(datadir,'nph_lonlat.txt'),unpack=True)
+    neph_lon, neph_lat = np.loadtxt(path.join(datadir,'neph_lonlat.txt'),unpack=True)
     sph_lon, sph_lat = np.loadtxt(path.join(datadir,'sph_lonlat.txt'),unpack=True)
 
 
@@ -53,6 +54,7 @@ def cartography(hkmet, overshootrate, args, undershootrate, etable, mktable, gti
     #sctest2 = map.scatter(mktable['SAT_LON'], mktable['SAT_LAT'],c=np.ones(len(mktable['SAT_LON']))*100.0,norm=LogNorm(vmin=10.0,vmax=1000.0),cmap='jet',alpha=0.5)
     map.plot(saa_lon,saa_lat,'r',lw=2)
     map.plot(nph_lon,nph_lat,color='orange',linestyle='-')
+    map.plot(neph_lon,neph_lat,color='orange',linestyle='-')
     map.plot(sph_lon,sph_lat,'orange',linestyle='-')
     cbar = map.colorbar(sc, location='bottom',pad='5%')
     plot.ylabel('Overshoot Rate')
@@ -67,6 +69,7 @@ def cartography(hkmet, overshootrate, args, undershootrate, etable, mktable, gti
         norm=LogNorm(vmin=10.0,vmax=1000.0), cmap='jet')
     map.plot(saa_lon,saa_lat,'r',lw=2)
     map.plot(nph_lon,nph_lat,color='orange',marker='o',markersize=2,linestyle='-')
+    map.plot(neph_lon,neph_lat,color='orange',marker='o',markersize=2,linestyle='-')
     map.plot(sph_lon,sph_lat,'orange',marker='o',markersize=5,linestyle='-')
     cbar = map.colorbar(sc, location='bottom',pad='5%')
     plot.ylabel('Undershoot Rate')
@@ -85,6 +88,7 @@ def cartography(hkmet, overshootrate, args, undershootrate, etable, mktable, gti
         norm=norm)
     map.plot(saa_lon,saa_lat,'r',lw=2)
     map.plot(nph_lon,nph_lat,color='orange',marker='o',markersize=5,linestyle='-')
+    map.plot(neph_lon,neph_lat,color='orange',marker='o',markersize=5,linestyle='-')
     map.plot(sph_lon,sph_lat,'orange',marker='o',markersize=5,linestyle='-')
     plot.ylabel('GTI Colors')
 

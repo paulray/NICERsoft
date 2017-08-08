@@ -38,6 +38,7 @@ else:
 
 saa_lon, saa_lat = np.loadtxt(path.join(datadir,'saa_lonlat.txt'),unpack=True)
 nph_lon, nph_lat = np.loadtxt(path.join(datadir,'nph_lonlat.txt'),unpack=True)
+neph_lon, neph_lat = np.loadtxt(path.join(datadir,'neph_lonlat.txt'),unpack=True)
 sph_lon, sph_lat = np.loadtxt(path.join(datadir,'sph_lonlat.txt'),unpack=True)
 fig, (ax1, ax2) = plt.subplots(2,1,figsize=(8.5,11))
 map1 = Basemap(projection='cyl', resolution = 'l',
@@ -45,6 +46,7 @@ map1 = Basemap(projection='cyl', resolution = 'l',
 map1.drawcoastlines()
 map1.plot(saa_lon,saa_lat,'k',lw=2,linestyle='--')
 map1.plot(nph_lon,nph_lat,color='orange',marker='o',markersize=10.0,linestyle='-')
+map1.plot(neph_lon,neph_lat,color='orange',marker='o',markersize=10.0,linestyle='-')
 map1.plot(sph_lon,sph_lat,'orange',marker='o',markersize=10.0,linestyle='-')
 
 map2 = Basemap(projection='cyl', resolution = 'l',
@@ -52,6 +54,7 @@ map2 = Basemap(projection='cyl', resolution = 'l',
 map2.drawcoastlines()
 map2.plot(saa_lon,saa_lat,'k',lw=2,linestyle='--')
 map2.plot(nph_lon,nph_lat,color='orange',marker='o',markersize=10.0,linestyle='-')
+map2.plot(neph_lon,neph_lat,color='orange',marker='o',markersize=10.0,linestyle='-')
 map2.plot(sph_lon,sph_lat,'orange',marker='o',markersize=10.0,linestyle='-')
 
 #fig2, ax3 = plt.subplots()
