@@ -122,7 +122,7 @@ def light_curve(etable, startmet, stopmet, binsize):
     return bins[:-1], sums
 
 def gti_colormap():
-    colornames = ['black','green','red','blue','magenta','orange','red','gray']
+    colornames = ['black','green','red','blue','magenta','orange','cyan','yellow','gray']
     colorlevels = np.arange(len(colornames))
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
     return colornames, cmap, norm
@@ -390,7 +390,7 @@ def pulse_profile(ax, etable, args):
     ax.hist(phases, bins = 32)
     ax.text(0.1, 0.1, 'H = {0:.2f}'.format(h), transform=ax.transAxes)
 
-    np.savetxt('{0}.phases'.format(args.basename),np.transpose([etable['MET'], etable['PI'],phases]))
+    #np.savetxt('{0}.phases'.format(args.basename),np.transpose([etable['MET'], etable['PI'],phases]))
 
     plot.ylabel('Counts')
     plot.xlabel('Pulse Phase')

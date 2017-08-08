@@ -18,9 +18,8 @@ from nicer.mcc import MCC
 #from nicer.sps import SPS
 from nicer.latloninterp import LatLonInterp
 
-parser = argparse.ArgumentParser(description="Plot points on a map")
-parser.add_argument("bkffiles", help="Name of bkf files to process", nargs='+')
-parser.add_argument("--column", help="Which bkf column to plot", default="EV_OVERSHOOT")
+parser = argparse.ArgumentParser(description="Plot points on a map, filtering by tot.gti")
+parser.add_argument("bkffiles", help="Name of bkf (or mkf) files to process", nargs='+')
 args = parser.parse_args()
 
 log.info('Getting SAA data')
@@ -69,9 +68,7 @@ lon = bkftable['SAT_LON']
 lon[lon>180] -= 360.0
 lat = bkftable['SAT_LAT']
 
-colornames = ['black','green','red','blue','magenta']
-colorlevels = np.arange(len(colornames))
-cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+colornames, cmap, norm = gti_colormap()
 
 etime, goodlon, cc = convert_to_elapsed_goodtime(bkftable['TIME'], lon, gtitable)
 etime, goodlat, cc = convert_to_elapsed_goodtime(bkftable['TIME'], lat, gtitable)

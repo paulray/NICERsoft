@@ -88,6 +88,10 @@ for obsdir in args.indirs:
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
            "--basename", path.join(pipedir,basename)+'_prefilt']
+    if args.mask is not None:
+        cmd.append("--mask")
+        for detid in args.mask:
+            cmd.append("{0}".format(detid))
     if args.par is not None:
         cmd.append("--par")
         cmd.append("{0}".format(args.par))
@@ -110,6 +114,8 @@ for obsdir in args.indirs:
     # Get filter file
     mkfile = glob(path.join(obsdir,'auxil/ni*.mkf'))[0]
     log.info('MKF File: {0}'.format(mkfile))
+    # Copy orbit file to results dir for pulsar analysis
+    shutil.copy(mkfile,pipedir)
 
     #  Get ATT hk files
     attfile = glob(path.join(obsdir,'auxil/ni*.att'))[0]
