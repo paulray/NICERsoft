@@ -70,4 +70,4 @@ except:
 nsrc = lcf.template.norm()*len(lcf.phases)
 nbkg = (1-lcf.template.norm())*len(lcf.phases)
 log.info("Exposure = {0:.2f} s, Nsrc = {1}, Nbkg = {2}".format(exposure,nsrc,nbkg))
-log.info("Src rate = {0:.2f} c/s, Bkg rate = {1:.2f} c/s".format(nsrc/exposure, nbkg/exposure))
+log.info("Src rate = {0:.3f} c/s, Bkg rate = {1:.3f} c/s".format(nsrc/exposure, nbkg/exposure))
