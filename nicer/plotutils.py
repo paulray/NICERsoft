@@ -386,6 +386,7 @@ def pulse_profile(ax, etable, args):
     mjds = ts.get_mjds()
 
     h = hm(phases)
+    log.info("H = {0} from {1} phases".format(h,len(phases)))
     ax.hist(phases, bins = 32)
     ax.text(0.1, 0.1, 'H = {0:.2f}'.format(h), transform=ax.transAxes)
 

@@ -54,6 +54,10 @@ for ef in args.evfiles:
                 eminbest=emin
                 emaxbest=emax
 
+
+    print("Final Htest = {0}".format(hbest))
+    print("Best emin {0} emax {1}".format(eminbest,emaxbest))
+
     fig,ax = plt.subplots()
     ax.hist(phasesinitial, bins = 32)
     idx = np.where(np.logical_and(etable['PI']*PI_TO_KEV>eminbest,
@@ -64,9 +68,5 @@ for ef in args.evfiles:
     ax.set_ylabel('Counts')
     ax.set_xlabel('Pulse Phase')
     ax.set_title('Pulse Profile')
-
-    print("Final Htest = {0}".format(hbest))
-    print("Best emin {0} emax {1}".format(eminbest,emaxbest))
-
 
     plt.show()
