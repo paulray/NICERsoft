@@ -24,6 +24,7 @@ args = parser.parse_args()
 log.info('Getting SAA data')
 saa_lon, saa_lat = np.loadtxt(path.join(datadir,'saa_lonlat.txt'),unpack=True)
 nph_lon, nph_lat = np.loadtxt(path.join(datadir,'nph_lonlat.txt'),unpack=True)
+neph_lon, neph_lat = np.loadtxt(path.join(datadir,'neph_lonlat.txt'),unpack=True)
 sph_lon, sph_lat = np.loadtxt(path.join(datadir,'sph_lonlat.txt'),unpack=True)
 
 
@@ -50,9 +51,10 @@ for bk in args.bkffiles:
     sc = map.scatter(bkftable['LON'], bkftable['LAT'],c=overshootrate,
                      norm=LogNorm(vmin=vmin,vmax=vmax),cmap='jet',s=2.0)
 
-map.plot(saa_lon,saa_lat,'grey',lw=2)
-map.plot(nph_lon,nph_lat,color='k',linestyle='-')
-map.plot(sph_lon,sph_lat,'k',linestyle='-')
+map.plot(saa_lon,saa_lat,color='k',linestyle='dashed')
+map.plot(nph_lon,nph_lat,color='k',linestyle='dotted')
+map.plot(neph_lon,neph_lat,color='k',linestyle='dotted')
+map.plot(sph_lon,sph_lat,color='k',linestyle='dotted')
 cbar = map.colorbar(sc, location='bottom',pad='5%')
 plot.title(args.column)
 

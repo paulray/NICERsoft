@@ -2,8 +2,7 @@
 from __future__ import print_function, division
 import numpy as np
 
-## WARNING: The SAA .reg file created is buggy because it crosses lon=0
-## It needs to be split into two regions
+# SAA, whcih includes the SouthWest Polar Horn region
 saacols = np.loadtxt('saa_lonlat.txt')
 # For .reg file need to convert lon to [0,360)
 lon = saacols[:,0]
@@ -18,6 +17,8 @@ print(")",file=outfile)
 outfile.close()
 
 outfile = file('polarhorns.reg','w')
+
+## Northern Polar Horn
 nphcols = np.loadtxt('nph_lonlat.txt')
 # For .reg file need to convert lon to [0,360)
 lon = nphcols[:,0]
@@ -29,6 +30,19 @@ coordstring = ", ".join(["{0}".format(x) for x in nphcols.flatten()])
 print(coordstring,file=outfile,end="")
 print(")",file=outfile)
 
+# North-Eastern Polar Horn
+nephcols = np.loadtxt('neph_lonlat.txt')
+# For .reg file need to convert lon to [0,360)
+lon = nephcols[:,0]
+lon[lon<0]+= 360.0
+nephcols[:,0] = lon
+
+print("-polygon(",file=outfile,end="")
+coordstring = ", ".join(["{0}".format(x) for x in nephcols.flatten()])
+print(coordstring,file=outfile,end="")
+print(")",file=outfile)
+
+# Southern Polar Horn
 sphcols = np.loadtxt('sph_lonlat.txt')
 # For .reg file need to convert lon to [0,360)
 lon = sphcols[:,0]
