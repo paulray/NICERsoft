@@ -13,8 +13,6 @@ from optparse import OptionParser
 import numpy as np
 import pylab
 import astropy.io.fits as pyfits
-import fftfit
-import psr_utils
 import scipy.stats
 import datetime
 import matplotlib.pyplot as plt
@@ -132,6 +130,7 @@ ax2.minorticks_on()
 # Add radio profile
 if options.radio is not None:
     x,y = np.loadtxt(options.radio,unpack=True)
+    #import psr_utils
     #x = np.arange(len(y))/len(y)
     #y = psr_utils.fft_rotate(y,0.2498*len(x))
     #y=y-y[20:50].mean()
