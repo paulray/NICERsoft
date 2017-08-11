@@ -272,7 +272,7 @@ if __name__ == '__main__':
             dname = os.path.dirname(out)
             if len(dname) > 0 and not os.path.exists(dname):
                 raise IOError('Specified directory %s does not exist!'%(os.path.dirname(out)))
-            prof = option.prof
+            prof = options.prof
         else:
             prof = 'itemplate'
         intf.write_template(prof+'.gauss')

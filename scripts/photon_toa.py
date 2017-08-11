@@ -34,7 +34,6 @@ parser.add_argument("eventname",help="FITS file to read events from")
 parser.add_argument("templatename",help="Name of file to read template from")
 parser.add_argument("parname",help="Timing model file name")
 parser.add_argument("--orbfile",help="Name of orbit file", default=None)
-parser.add_argument("--planets",help="Use planetary Shapiro delay in calculations (default=False)", default=False, action="store_true")
 parser.add_argument("--ephem",help="Planetary ephemeris to use (default=DE421)", default="DE421")
 parser.add_argument("--plot",help="Show phaseogram plot.", action='store_true', default=False)
 parser.add_argument("--plotfile",help="Output figure file name (default=None)", default=None)
@@ -49,13 +48,8 @@ modelin = pint.models.get_model(args.parname)
 log.info(str(modelin))
 
 # check for consistency between ephemeris and options
-if (not args.planets) and (
-    'SolarSystemShapiro' in modelin.components.keys()):
-    log.error(
-            "Ephemeris specifies Shapiro delay calculation.  Removing it.")
-    components = modelin.components
-    components.pop('SolarSystemShapiro')
-    modelin.setup_components(components.values())
+if 'SolarSystemShapiro' in modelin.components.keys():
+    planets=True
 
 # Load Template objects
 try:
@@ -104,7 +98,7 @@ else:
 ts = pint.toa.TOAs(toalist=tl)
 ts.filename = args.eventname
 ts.compute_TDBs()
-ts.compute_posvels(ephem=args.ephem,planets=args.planets)
+ts.compute_posvels(ephem=args.ephem,planets=planets)
 
 print(ts.get_summary())
 mjds = ts.get_mjds()
@@ -129,6 +123,7 @@ if args.fitbg:
         lcf.fit_position(unbinned=False)
         lcf.fit_background(unbinned=False)
 dphi,dphierr = lcf.fit_position(unbinned=args.unbinned)
+log.info('Measured phase shift dphi={0}, dphierr={1}'.format(dphi,dphierr))
 
 # find MJD closest to center of observation and turn it into a TOA
 argmid = np.searchsorted(mjds,0.5*(mjds.min()+mjds.max()))
@@ -138,11 +133,13 @@ toamid = pint.toa.TOA(tmid)
 toaplus = pint.toa.TOA(tplus)
 toas = pint.toa.TOAs(toalist=[toamid,toaplus])
 toas.compute_TDBs()
-toas.compute_posvels(ephem=args.ephem,planets=args.planets)
+toas.compute_posvels(ephem=args.ephem,planets=planets)
 phsi,phsf = modelin.phase(toas.table)
 fbary = (phsi[1]-phsi[0]) + (phsf[1]-phsf[0])
 fbary._unit = u.Hz
-tfinal = tmid + TimeDelta((-(dphi+phsf[0].value)/fbary),scale='tdb')
+# First delta is to get time of phase 0.0 of initial model
+# Second term corrects for the measured phase offset to align with template
+tfinal = tmid + TimeDelta(-phsf[0].value/fbary,scale='tdb') + TimeDelta(dphi/fbary,scale='tdb')
 
 # get exposure information
 try:
@@ -156,7 +153,7 @@ except:
 nsrc = lcf.template.norm()*len(lcf.phases)
 nbkg = (1-lcf.template.norm())*len(lcf.phases)
 toafinal = pint.toa.TOA(tfinal,
-        nsrc='%.2f'%nsrc,nbkg='%.2f'%nbkg,exposure='%.2f'%exposure)
+        nsrc='%.2f'%nsrc,nbkg='%.2f'%nbkg,exposure='%.2f'%exposure,dphi='%.5f'%dphi)
 log.info("Src rate = {0} c/s, Bkg rate = {1} c/s".format(nsrc/exposure, nbkg/exposure))
 toas = pint.toa.TOAs(toalist=[toafinal])
 toas.table['error'][:] = dphierr/fbary*1e6
