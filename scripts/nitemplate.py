@@ -192,10 +192,11 @@ class InteractiveFitter(object):
             print 'Must do fit first!'; return
         self.fitter.write_template(outfile)
 
-    def write_profile(self,outfile,nbin,integral=True):
+    def write_profile(self,outfile,nbin,integral=True,suppress_bg=True):
         if not hasattr(self,'fitter'):
             print 'Must do fit first!'; return
-        self.template.write_template(outfile)
+        self.fitter.template.write_profile(outfile,nbin,integral=integral,
+                suppress_bg=suppress_bg)
 
 
 if __name__ == '__main__':
@@ -276,8 +277,8 @@ if __name__ == '__main__':
         else:
             prof = 'itemplate'
         intf.write_template(prof+'.gauss')
+        intf.write_profile(prof+'.prof',options.nprofbins)
         cPickle.dump(intf.fitter.template,file(prof+'.pickle','w'),
                 protocol=2)
-        intf.fitter.template.write_profile(prof+'.prof',options.nprofbins)
 
     print 'Goodbye!'
