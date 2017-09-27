@@ -36,8 +36,8 @@ Optionally, you can filter on overshoot rate or rate of bad ratio events
 """
 parser = argparse.ArgumentParser(description = desc)
 parser.add_argument("indirs", help="Input directories to process", nargs='+')
-parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.4)", type=float, default=0.4)
-parser.add_argument("--emax", help="Maximum energy to include (kev, default=8.0)", type=float, default=8.0)
+parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.25)", type=float, default=0.2)
+parser.add_argument("--emax", help="Maximum energy to include (kev, default=12.0)", type=float, default=12.0)
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("--nofiltpolar",help="Disable filtering polar horn regions from data",default=False,action='store_true')
 parser.add_argument("--maxovershoot",help="Select data where overshoot rate is below this limit (default: no filter)",
@@ -216,7 +216,7 @@ for obsdir in args.indirs:
 
     cmd = ["niextract-events", "filename=@{0}[{1}]".format(evlistname,evfilt_expr),
         "eventsout={0}".format(intermediatename), "timefile={0}".format(gtiname_merged),
-        "gti=gti", "clobber=yes"]
+        "gti=GTI", "clobber=yes"]
     runcmd(cmd)
 
 
@@ -261,5 +261,5 @@ for obsdir in args.indirs:
         "phafile={0}".format(phafile), "fitsbinlc={0}".format(lcfile),
         "binlc=1.0", "regionfile=none", "timefile=none",
         "xcolf=RAWX", "ycolf=RAWY", "tcol=TIME", "ecol=PI", "xcolh=RAWX",
-        "ycolh=RAWY", "gti=gti"]
+        "ycolh=RAWY", "gti=GTI"]
     runcmd(cmd)
