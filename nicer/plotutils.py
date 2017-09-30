@@ -229,8 +229,9 @@ def calc_pi(etable, calfile):
 
 def plot_energy_spec(etable):
     'plots the energy spectrum of PI'
-    plot.hist(etable['PI']*PI_TO_KEV, bins=200, range=(0.0,15.0),
-        histtype='step',log=False)
+    bb = np.concatenate((np.arange(0.0,2.0,0.02),np.arange(2.0,15.0,0.1)))
+    plot.hist(etable['PI']*PI_TO_KEV, bins=bb,
+        histtype='step',log=False,normed=True)
     plot.yscale('log')
     plot.xscale('log')
     plot.xlim((0.1,20.0))

@@ -26,7 +26,7 @@ def filtallandmerge_ftools(evfiles,workdir=None):
     # Build input file for ftmerge
     evlistname=path.join(tmpdir,'evfiles.txt')
     fout = open(evlistname,'w')
-    evfilt_expr = '(PI>30).and.(EVENT_FLAGS==bx1x000)'
+    evfilt_expr = '(PI>20).and.(EVENT_FLAGS==bx1x000)'
     for en in evfiles:
         print('{0}[{1}]'.format(en,evfilt_expr),file=fout)
     fout.close()

@@ -39,7 +39,7 @@ for ef in args.evfiles:
     print("Initial Htest = {0}".format(hbest))
 
 
-    emins = np.arange(0.4,4.0,0.1)
+    emins = np.arange(0.25,4.0,0.025)
     for emin in emins:
         emaxs = np.arange(emin,12.0,0.1)
         for emax in emaxs:
