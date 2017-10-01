@@ -62,7 +62,6 @@ parser.add_argument("--extraphkshootrate",help="Compute HK shoot rates from a si
 parser.add_argument("--eventshootrate",help="Gets over/undershoot rates from the events", action='store_true')
 parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = 'store_true')
 parser.add_argument("--readovs", help = "Filters events with overshoot > input number", nargs = '*', type = float, default = None)
-parser.add_argument("--andrea",help = "Help out Andrea!!!", action = 'store_true')
 parser.add_argument("--gtirows",help="Select GTI rows", nargs = '*', type=int, default=None)
 args = parser.parse_args()
 
@@ -152,10 +151,6 @@ if args.filtall:
     args.filtundershoot=True
     args.filtratio=1.4
 
-if args.andrea:
-    args.sci = True
-    args.eng = True
-    args.bkg = True
 #--------------------Editing / Filtering the event data Options-----------------
 # Hack to trim first chunk of data
 if args.tskip > 0.0:

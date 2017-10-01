@@ -46,7 +46,7 @@ parser.add_argument("--badcut",help="Select data where bad ratio event rate is b
     type=float,default=-1)
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
     default=None)
-parser.add_argument("--ultraclean", help="Apply ultraclean background filters", action='store_true')
+parser.add_argument("--dark", help="Apply SUNSHINE=0 filter to get only data in Earth shadow", action='store_true')
 parser.add_argument("--par", help="Par file to use for phases")
 args = parser.parse_args()
 
@@ -83,8 +83,8 @@ for obsdir in args.indirs:
         os.makedirs(pipedir)
 
     log.info('Making initial QL plots')
-    cmd = ["master_plotter.py", "--save", "--filtall", "--lcbinsize", "4.0",
-           "--guessobj", "--lclog", "--useftools", "--extraphkshootrate",
+    cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0",
+           "--lclog", "--useftools", "--extraphkshootrate", "--writebkf",
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
            "--basename", path.join(pipedir,basename)+'_prefilt']
@@ -130,38 +130,25 @@ for obsdir in args.indirs:
     hkfiles.sort()
     log.info('MPU HK Files: {0}'.format("\n" + "    \n".join(hkfiles)))
 
-    # Create GTI from .mkf file
-    # Not filtering on (SAA.eq.0) for now since it is computed from an old map
-    if args.ultraclean:
-        mkf_expr='(ANG_DIST.lt.0.01).and.(ELV>30.0).and.(SUNSHINE.eq.0)'
-    else:
-        mkf_expr='(ANG_DIST.lt.0.01).and.(ELV>30.0)'
-    saafile = path.join(datadir,'saa.reg')
-    mkf_expr += '.and.regfilter("{0}",SAT_LON,SAT_LAT)'.format(saafile)
+    # Create any additional GTIs beyond what nimaketime does...
+    extragtis="NONE"
     if not args.nofiltpolar:
+        saafile = path.join(datadir,'saa.reg')
+        mkf_expr = 'regfilter("{0}",SAT_LON,SAT_LAT)'.format(saafile)
         phfile = path.join(datadir,'polarhorns.reg')
         mkf_expr += '.and.regfilter("{0}",SAT_LON,SAT_LAT)'.format(phfile)
-    gtiname1 = path.join(pipedir,'mkf.gti')
-    cmd = ["pset", "maketime", "expr={0}".format(mkf_expr)]
-    runcmd(cmd)
-    cmd = ["maketime", "infile={0}".format(mkfile), "outfile={0}".format(gtiname1),
-        "compact=no", "time=TIME",  "prefr=0", "postfr=0", "clobber=yes"]
-    runcmd(cmd)
-    if len(Table.read(gtiname1,hdu=1))==0:
-        log.error('No good time left after filtering!')
-        continue
+        gtiname2 = path.join(pipedir,'extra.gti')
+        cmd = ["pset", "maketime", "expr={0}".format(mkf_expr)]
+        runcmd(cmd)
+        cmd = ["maketime", "infile={0}".format(mkfile), "outfile={0}".format(gtiname2),
+            "compact=no", "time=TIME",  "prefr=0", "postfr=0", "clobber=yes"]
+        runcmd(cmd)
+        if len(Table.read(gtiname2,hdu=1))==0:
+            log.error('No good time left after filtering!')
+            continue
+        extragtis = gtiname2
 
-    # Create GTI from attitude data
-    gtiname2 = path.join(pipedir,'att.gti')
-    att_expr = '(MODE.eq.1).and.(SUBMODE_AZ.eq.2).and.(SUBMODE_EL.eq.2)'
-    cmd = ["maketime", "infile={0}".format(attfile), "outfile={0}".format(gtiname2),
-        'expr={0}'.format(att_expr),
-        "compact=no", "time=TIME", "prefr=0", "postfr=0", "clobber=yes"]
-    runcmd(cmd)
-    if len(Table.read(gtiname2,hdu=1))==0:
-        log.error('No good time left after filtering!')
-        continue
-
+    gtiname3 = None
     # Create GTI from overshoot file using overshoot rate
     if args.maxovershoot > 0:
         gtiname3 = path.join(pipedir,'bkf.gti')
@@ -183,18 +170,29 @@ for obsdir in args.indirs:
         if len(Table.read(gtiname3,hdu=1))==0:
             log.error('No good time left after filtering!')
             continue
+    # If either of the bkf filters were used, include that GTI
+    # in the extragtis passed to nimaketime
+    if gtiname3 is not None:
+        if extragtis == "NONE":
+            extragtis = gitname3
+        else:
+            extragtis = extragtis + ',{0}'.format(gtiname3)
 
+    # Make final merged GTI using nimaketime
     gtiname_merged = path.join(pipedir,"tot.gti")
-    try:
-        os.remove(gtiname_merged)
-    except:
-        pass
-
-    if args.maxovershoot > 0 or args.badcut>0:
-        cmd = ["mgtime", "{0},{1},{2}".format(gtiname1,gtiname2,gtiname3), gtiname_merged, "AND"]
-    else:
-        cmd = ["mgtime", "{0},{1}".format(gtiname1,gtiname2), gtiname_merged, "AND"]
+    extra_expr="NONE"
+    if args.dark:
+        extra_expr = "(SUNSHINE.eq.0)"
+    cor_string="-"
+    cmd = ["nimaketime",  "infile={0}".format(mkfile),
+        'outfile={0}'.format(gtiname_merged), 'nicersaafilt=YES',
+        'saafilt=NO', 'trackfilt=YES', 'ang_dist=0.015', 'elv=30',
+        'br_earth=40', 'cor_range={0}'.format(cor_string), 'min_fpm=38',
+        'ingtis={0}'.format(extragtis), "clobber=yes",
+        'expr={0}'.format(extra_expr),
+        'outexprfile={0}'.format(path.join(pipedir,"psrpipe_expr.txt"))]
     runcmd(cmd)
+
 
     ###  Extract filtered events and apply merged GTI
 
@@ -219,15 +217,7 @@ for obsdir in args.indirs:
         "gti=GTI", "clobber=yes"]
     runcmd(cmd)
 
-
-    ### Final step filters and masked detector and does ratio filter
-    maxratio = 1.4
-    if args.ultraclean:
-        maxratio=1.14
-    # Select SLOW-only events OR SLOW+FAST events with ratio<threshold
-    evfilt_expr = '((EVENT_FLAGS==bx10000).or.((EVENT_FLAGS==bx11000).and.((float)PHA/(float)PHA_FAST < {0})))'.format(maxratio)
-    # This is the old filter that cuts out all SLOW-only events. Usually not what you want!
-    # evfilt_expr = '((float)PHA/(float)PHA_FAST < {0})'.format(maxratio)
+    evfilt_expr = '(EVENT_FLAGS==bx1x000)'
     if args.mask is not None:
         for detid in args.mask:
             evfilt_expr += ".and.(DET_ID!={0})".format(detid)
@@ -235,13 +225,13 @@ for obsdir in args.indirs:
         "clobber=yes", "history=yes"]
     runcmd(cmd)
     # Remove intermediate file
-    # os.remove(intermediatename)
+    os.remove(intermediatename)
 
     # Mke final clean plot
-    cmd = ["master_plotter.py", "--save",
+    cmd = ["nicerql.py", "--save",
            "--orb", path.join(pipedir,path.basename(orbfile)),
            "--sci", filteredname, "--lcbinsize", "4.0",
-           "--basename", path.join(pipedir,basename)]
+           "--basename", path.join(pipedir,basename)+"_cleanfilt"]
     if args.par is not None:
         cmd.append("--par")
         cmd.append("{0}".format(args.par))

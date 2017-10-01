@@ -446,8 +446,6 @@ def convert_to_elapsed_goodtime(mets, vals, gtitable):
     # Returns the arrays of elapsed times, values, and an array of what segment it is in, used for setting plot colors by GTI segment
     return etimes, goodvals, cc
 
-
-
 def plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate):
 
     etime, overshoot, cc = convert_to_elapsed_goodtime(hkmet, overshootrate, gtitable)

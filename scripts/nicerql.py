@@ -28,7 +28,6 @@ parser = argparse.ArgumentParser(description = "Plot the NICER data nicely.")
 parser.add_argument("infiles", help="Input files", nargs='*', default = None)
 parser.add_argument("--obsdir",help = "Find alllllllll the files!", default = None)
 parser.add_argument("--object", help="Override object name", default=None)
-parser.add_argument("--guessobj", help="Try to guess object from directory name", action="store_true")
 parser.add_argument("--useftools", help="Use FTOOLS for filter and merge", action="store_true")
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("-s", "--save", help = "Save plots to file", action = "store_true")
@@ -62,7 +61,6 @@ parser.add_argument("--extraphkshootrate",help="Compute HK shoot rates from a si
 parser.add_argument("--eventshootrate",help="Gets over/undershoot rates from the events", action='store_true')
 parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = 'store_true')
 parser.add_argument("--readovs", help = "Filters events with overshoot > input number", nargs = '*', type = float, default = None)
-parser.add_argument("--andrea",help = "Help out Andrea!!!", action = 'store_true')
 parser.add_argument("--gtirows",help="Select GTI rows", nargs = '*', type=int, default=None)
 args = parser.parse_args()
 
@@ -152,10 +150,6 @@ if args.filtall:
     args.filtundershoot=True
     args.filtratio=1.4
 
-if args.andrea:
-    args.sci = True
-    args.eng = True
-    args.bkg = True
 #--------------------Editing / Filtering the event data Options-----------------
 # Hack to trim first chunk of data
 if args.tskip > 0.0:
@@ -205,16 +199,6 @@ if gtitable is not None:
         cumtimes.append(cumtime)
         cumtime += mylcduration
     gtitable['CUMTIME'] = np.array(cumtimes)
-
-# Overwrite bad OBJECT name, if requested (early FITS all have OBJECT=Crab)
-if args.guessobj and args.obsdir:
-    # Trim trailing slash, if needed
-    if args.obsdir[-1] == '/':
-        args.obsdir = args.obsdir[:-1]
-    objname = path.basename(args.obsdir)[11:]
-    log.info('Guessing Object name {0}'.format(objname))
-    etable.meta['OBJECT'] = objname
-    etable.meta['OBJECT'] = objname
 
 #Getting over/undershoot rate from event data.
 if args.eventshootrate:
@@ -319,7 +303,7 @@ if args.eng:
     if args.save:
         log.info('Writing eng plot {0}'.format(basename))
         if args.filtall:
-            figure1.savefig('{0}_eng_clean_{1:.1f}-{2:.1f}keV.png'.format(basename,args.emin,args.emax), dpi = 100)
+            figure1.savefig('{0}_eng_{1:.1f}-{2:.1f}keV.png'.format(basename,args.emin,args.emax), dpi = 100)
         else:
             figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
 
@@ -334,7 +318,7 @@ if args.sci:
     if args.save:
         log.info('Writing sci plot {0}'.format(basename))
         if args.filtall:
-            figure2.savefig('{0}_sci_clean_{1:.1f}-{2:.1f}keV.png'.format(basename,args.emin,args.emax), dpi = 100)
+            figure2.savefig('{0}_sci_{1:.1f}-{2:.1f}keV.png'.format(basename,args.emin,args.emax), dpi = 100)
         else:
             figure2.savefig('{0}_sci.png'.format(basename), dpi = 100)
 
