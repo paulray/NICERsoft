@@ -40,6 +40,7 @@ parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.25
 parser.add_argument("--emax", help="Maximum energy to include (kev, default=12.0)", type=float, default=12.0)
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("--nofiltpolar",help="Disable filtering polar horn regions from data",default=False,action='store_true')
+parser.add_argument("--cormin",help="Set minimum cutoff rigidity (COR_SAX) for nimaketime filtering (typical value = 4)",default=None)
 parser.add_argument("--maxovershoot",help="Select data where overshoot rate is below this limit (default: no filter)",
     type=float,default=-1)
 parser.add_argument("--badcut",help="Select data where bad ratio event rate is below this limit (default: no filter)",
@@ -189,6 +190,8 @@ for obsdir in args.indirs:
     if args.dark:
         extra_expr = "(SUNSHINE.eq.0)"
     cor_string="-"
+    if args.cormin is not None:
+        cor_string = "{0}-".format(args.cormin)
     cmd = ["nimaketime",  "infile={0}".format(mkfile),
         'outfile={0}'.format(gtiname_merged), 'nicersaafilt=YES',
         'saafilt=NO', 'trackfilt=YES', 'ang_dist=0.015', 'elv=30',
