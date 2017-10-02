@@ -464,7 +464,7 @@ def plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate):
     return
 
 def plot_SAA(mktable, gtitable, overshootrate):
-    time, insaa, colors = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAA'], gtitable)
+    time, insaa, colors = convert_to_elapsed_goodtime(mktable['TIME'], mktable['NICER_SAA'], gtitable)
     time = np.delete(time, np.where(insaa == 0))
     insaa = np.delete(insaa, np.where(insaa == 0))
     insaa[np.where(insaa == 1)] = max(overshootrate)
