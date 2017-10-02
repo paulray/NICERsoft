@@ -101,6 +101,9 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
         idx = np.where(gtitable['DURATION']>16.0)[0]
         gtitable = gtitable[idx]
         print(gtitable)
+        if len(gtitable) == 0:
+            log.error('No Good Time left! Quitting...')
+            sys.exit(0)
 
         # Change TIME column name to MET to reflect what it really is
         etable.columns['TIME'].name = 'MET'

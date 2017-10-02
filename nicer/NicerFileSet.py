@@ -59,6 +59,9 @@ class NicerFileSet:
 
         #Compiling Event Data
         self.getgti()
+        if len(self.gtitable) == 0:
+            log.error('No Good Time remaining! Quitting...')
+            sys.exit(0)
         if self.args.useftools:
             self.etable = filtallandmerge_ftools(self.ufafiles,workdir=None)
         else:
