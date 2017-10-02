@@ -20,14 +20,14 @@ class NicerFileSet:
         self.args = args
 
         #Getting the names of the event files from obsdir
-        self.evfiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu?_cl.evt*'))
+        self.evfiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu7_cl.evt*'))
         self.evfiles.sort()
         if len(self.evfiles) == 0:
             log.error("No event files found!")
             raise Exception('No event files found!')
         log.info('Found clean event files: {0}'.format("\n" + "    \n".join(self.evfiles)))
 
-        self.ufafiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu?_ufa.evt*'))
+        self.ufafiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu7_ufa.evt*'))
         self.ufafiles.sort()
         log.info('Found unfiltered event files: {0}'.format("\n" + "    \n".join(self.ufafiles)))
 
@@ -60,7 +60,7 @@ class NicerFileSet:
         #Compiling Event Data
         self.getgti()
         if self.args.useftools:
-            self.etable = filtallandmerge_ftools(self.evfiles,workdir=None)
+            self.etable = filtallandmerge_ftools(self.ufafiles,workdir=None)
         else:
             self.etable = self.createetable()
         if len(self.etable) == 0:
@@ -99,7 +99,7 @@ class NicerFileSet:
     def createetable(self):
         log.info('Reading files')
         tlist = []
-        for fn in self.evfiles:
+        for fn in self.ufafiles:
             log.info('Reading file {0}'.format(fn))
             tlist.append(Table.read(fn,hdu=1))
         log.info('Concatenating files')
@@ -283,10 +283,11 @@ class NicerFileSet:
 
     def getgti(self):
             # Read the GTIs from the first event FITS file
-        self.gtitable = Table.read(self.evfiles[0],hdu=2)
+        self.gtitable = Table.read(self.ufafiles[0],hdu=2)
         log.info('Got the good times from GTI')
         self.gtitable['DURATION'] = self.gtitable['STOP']- self.gtitable['START']
         # Only keep GTIs longer than 16 seconds
+        log.info('Discarding GTI shorter than 16 seconds!')
         idx = np.where(self.gtitable['DURATION']>16.0)[0]
         self.gtitable = self.gtitable[idx]
         print(self.gtitable)
