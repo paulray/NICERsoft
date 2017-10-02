@@ -36,7 +36,7 @@ Optionally, you can filter on overshoot rate or rate of bad ratio events
 """
 parser = argparse.ArgumentParser(description = desc)
 parser.add_argument("indirs", help="Input directories to process", nargs='+')
-parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.25)", type=float, default=0.2)
+parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.25)", type=float, default=0.25)
 parser.add_argument("--emax", help="Maximum energy to include (kev, default=12.0)", type=float, default=12.0)
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("--nofiltpolar",help="Disable filtering polar horn regions from data",default=False,action='store_true')
@@ -101,9 +101,14 @@ for obsdir in args.indirs:
 
 
     # Get event filenames (could be just one)
-    evfiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu?_cl.evt'))
+    evfiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_cl.evt'))
     evfiles.sort()
-    log.info('Event Files: {0}'.format("\n" + "    \n".join(evfiles)))
+    log.info('Cleaned Event Files: {0}'.format("\n" + "    \n".join(evfiles)))
+
+    # Get ufa file (unfiltered events)
+    ufafiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_ufa.evt'))
+    ufafiles.sort()
+    log.info('Unfiltered Event Files: {0}'.format("\n" + "    \n".join(evfiles)))
 
     # Get orbit file
     orbfile = glob(path.join(obsdir,'auxil/ni*.orb'))[0]
