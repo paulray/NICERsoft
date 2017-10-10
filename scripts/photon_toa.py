@@ -39,6 +39,7 @@ parser.add_argument("--plot",help="Show phaseogram plot.", action='store_true', 
 parser.add_argument("--plotfile",help="Output figure file name (default=None)", default=None)
 parser.add_argument("--fitbg",help="Fit an overall background level (e.g. for changing particle background level (default=False).",action='store_true',default=False)
 parser.add_argument("--unbinned",help="Fit position with unbinned likelihood.  Don't use for large data sets. (default=False)",action='store_true',default=False)
+parser.add_argument("--fix",help="Adjust times to fix 1.0 second offset in NICER data (default=False)", action='store_true',default=False)
 
 ## Parse arguments
 args = parser.parse_args()
@@ -97,6 +98,8 @@ else:
 # Now convert to TOAs object and compute TDBs and posvels
 ts = pint.toa.TOAs(toalist=tl)
 ts.filename = args.eventname
+if args.fix:
+    ts.adjust_TOAs(TimeDelta(np.ones(len(ts.table))*-1.0*u.s,scale='tt'))
 ts.compute_TDBs()
 ts.compute_posvels(ephem=args.ephem,planets=planets)
 

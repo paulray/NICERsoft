@@ -248,7 +248,7 @@ for obsdir in args.indirs:
     # Add phases
     if args.par is not None:
         plotfile = path.join(pipedir,"phaseogram.png")
-        cmd = ["photonphase", "--orb", orbfile, "--plot", "--plotfile",
+        cmd = ["photonphase", "--fix", "--orb", orbfile, "--plot", "--plotfile",
             plotfile, "--planets", "--addphase", filteredname, args.par]
         runcmd(cmd)
 
