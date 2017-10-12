@@ -49,6 +49,7 @@ parser.add_argument("--obsid", help="Use this as OBSID for directory and filenam
     default=None)
 parser.add_argument("--dark", help="Apply SUNSHINE=0 filter to get only data in Earth shadow", action='store_true')
 parser.add_argument("--par", help="Par file to use for phases")
+parser.add_argument("--outdir", help="Add name to output directories (by default: directories end in '_pipe')", default='pipe')
 args = parser.parse_args()
 
 os.environ['HEADASNOQUERY'] = ' '
@@ -79,7 +80,7 @@ for obsdir in args.indirs:
         basename = path.basename(obsdir)
 
     # Make directory for working files and output
-    pipedir = "{0}_pipe".format(basename)
+    pipedir = "{0}_{1}".format(basename,args.outdir)
     if not os.path.exists(pipedir):
         os.makedirs(pipedir)
 
