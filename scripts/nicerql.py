@@ -37,7 +37,7 @@ parser.add_argument("--bkg", help = "Display background diagnostic plots", actio
 parser.add_argument("--filtswtrig", help = "Filter SW TRIG events", action = "store_true")
 parser.add_argument("--filtovershoot", help = "Filter OVERSHOOT events", action = "store_true")
 parser.add_argument("--filtundershoot", help = "Filter UNDERSHOOT events", action = "store_true")
-parser.add_argument("--filtratio", help="Filter PHA/PHA_FAST ratio (argument is ratio to cut at)", type=float, default=1.4)
+parser.add_argument("--filtratio", help="Filter PI/PI_FAST ratio using trumpet cut", action="store_true")
 parser.add_argument("--filtall", help = "Filter SWTRIG, UNDERSHOOT and OVERSHOOT events", action = "store_true")
 parser.add_argument("--emin", help="Minimum energy (keV) to keep", default=-1.0, type=float)
 parser.add_argument("--emax", help="Minimum energy (keV) to keep", default=-1.0, type=float)
@@ -151,7 +151,7 @@ if args.filtall:
     args.filtswtrig=True
     args.filtovershoot=True
     args.filtundershoot=True
-    args.filtratio=1.4
+    args.filtratio=True
 
 #--------------------Editing / Filtering the event data Options-----------------
 # Hack to trim first chunk of data

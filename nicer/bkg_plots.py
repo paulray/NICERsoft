@@ -37,9 +37,7 @@ def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
     badlightcurve = np.histogram(badtable['TIME'], hkmetbins)[0]
     badlightcurve = np.array(badlightcurve,dtype=np.float)
 
-    colornames = ['black','green','red','blue','magenta']
-    colorlevels = np.arange(len(colornames))
-    cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
+    colornames, cmap, norm = gti_colormap()
 
     times, lc, cc = convert_to_elapsed_goodtime(hkmet, badlightcurve, gtitable)
     plot.scatter(times, lc, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='.')
@@ -80,8 +78,8 @@ def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
 
     #Plot of LAT / Long
     plt.subplot(bkg_grid[21:25,:4])
-    plot_latlon(mktable, gtitable)
-
+    #plot_latlon(mktable, gtitable)
+    plot_cor(mktable, gtitable)
 
     figure.suptitle('Object: {0} at {1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS'].replace('T', ' at ')),
                     fontsize=16)

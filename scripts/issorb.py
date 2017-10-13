@@ -24,6 +24,7 @@ parser = argparse.ArgumentParser(description="Compute ISS orbit geometry vs time
 parser.add_argument("sourcename",help="Source name to look up coordinates")
 parser.add_argument("-ra ",  dest='ra', help="Source RA  [default: lookup]", default=None)
 parser.add_argument("-dec", dest='dec',help="Source DEC [default: lookup]", default=None)
+parser.add_argument("--vis", help="Visibility file from Wayne", default=None)
 args = parser.parse_args()
 
 # Set up two TLEs so we can compute the precession rate from the
@@ -113,6 +114,9 @@ ax.plot(doy2017[idx], moonseps[idx],'o',c='k',label='Moon')
 # Plot orange dot for now
 ax.plot(doy_now,SourcePos.separation(StarboardPoleCoord(now)),'o',label='Today')
 
+if args.vis is not None:
+    doy, fr = np.loadtxt(args.vis,unpack=True)
+ax.plot(doy,fr*100)
 ax.set_title(args.sourcename)
 ax.legend()
 ax.set_xlabel('DOY 2017')

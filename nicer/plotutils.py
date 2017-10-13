@@ -180,24 +180,27 @@ def plot_slowfast(etable,args):
         etable = etable[::downsampfac]
     log.info('Computing ratio')
     # Ratio is SLOW to FAST. Edge events should have ratio bigger than cut
-    ratio = np.array(etable['PHA'],dtype=np.float)/np.array(etable['PHA_FAST'],dtype=np.float)
+    ratio = np.array(etable['PI'],dtype=np.float)/np.array(etable['PI_FAST'],dtype=np.float)
 
-    ratio_cut = args.filtratio
+    fastsig = 250.0
+    fastquart = 4.0e-11
+
+    x = np.array(etable['PI'],dtype=np.float)
+    ratio_cut =  1.0 + (fastsig/10.0)/x + fastquart*x**3
+
     colors = np.array(['k']*len(ratio))
     idx = np.where(ratio>ratio_cut)[0]
     colors[idx] = 'r'
     log.debug('Plotting the points')
     plot.scatter(etable['PI']*PI_TO_KEV,ratio, s=.4, c = colors)
-    x = np.arange(min(etable['PI']),max(etable['PI']))
-    phax = np.ones_like(x)*ratio_cut
 
     if downsampfac is None:
-        plot.title('PHA Slow to Fast Ratio vs Energy')
+        plot.title('PI Slow to Fast Ratio vs Energy')
     else:
-        plot.title('PHA Slow to Fast Ratio vs Energy (SUBSET)')
+        plot.title('PI Slow to Fast Ratio vs Energy (SUBSET)')
     plot.xlabel('Energy')
-    plot.ylabel('PHA Ratio')
-    plot.ylim([min(ratio)-.5,ratio_cut + 1.5])
+    plot.ylabel('PI Ratio')
+    plot.ylim([0.5,2.5])
     fast_str = "# of fast only  : " + str(nfastonly)
     slow_str = "# of slow only  : " + str(nslowonly)
     total =    "# of both       : " + str(nboth)
@@ -206,8 +209,10 @@ def plot_slowfast(etable,args):
     plot.annotate(slow_str, xy=(0.03, 0.8), xycoords='axes fraction')
     plot.annotate(total, xy=(0.03, 0.75), xycoords='axes fraction')
     plot.annotate(bad, xy = (.03, .7), xycoords='axes fraction')
-    plot.annotate("Ratio cut = {0:.2f}".format(ratio_cut),xy=(0.65,0.85),xycoords='axes fraction')
-    plot.plot(x*PI_TO_KEV, phax, 'g--', linewidth = 0.5)
+    #plot.annotate("Ratio cut = {0:.2f}".format(ratio_cut),xy=(0.65,0.85),xycoords='axes fraction')
+    x = np.linspace(min(etable['PI']),max(etable['PI']),100,dtype=np.float)
+    cutline = 1.0 + (fastsig/10.0)/x + fastquart*x**3
+    plot.plot(x*PI_TO_KEV, cutline, 'g--', linewidth = 1.5)
     return
 
 #-------------------------------THIS PLOTS THE ENERGY SPECTRUM------------------
@@ -493,7 +498,7 @@ def plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable):
     plot.scatter(sunt,suny*undershoot.max()+1, color='y', label='Sunshine',
         marker = '_')
     plot.legend(loc = 2)
-
+    plot.grid(True)
     plot.ylabel('Undershoot rate')
     if args.lclog:
         plot.yscale('log')
@@ -558,6 +563,24 @@ def plot_latlon(mktable, gtitable):
     plot.grid(True)
     plot.ylabel('Degrees')
     return
+
+def plot_cor(mktable, gtitable):
+    time, cor, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['COR_SAX'], gtitable)
+    #time, lon, cc2 = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)
+
+    colornames, cmap, norm = gti_colormap()
+
+    plot.scatter(time, cor, c=np.fmod(cc,len(colornames)), norm=norm,
+        cmap=cmap, marker='^', label='COR_SAX')
+    #plot.scatter(time, lon, c = colors, cmap = cmap, marker = '_', label = 'Longitude')
+    plot.legend(loc = 2)
+    plot.ylim((0.0,20.0))
+    plot.axhline(5.0,linestyle='--',color='r')
+    plot.xlabel('Elapsed Time (s)', labelpad = 1)
+    plot.grid(True)
+    plot.ylabel('GeV')
+    return
+
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-------
 def calc_nresets(etable, IDS):
     'Count resets (detector undershoots) for each detector'
@@ -587,4 +610,18 @@ def filt_ratio(etable, ratiocut):
     idx = np.where(np.logical_and(etable['PHA']>0, etable['PHA_FAST']>0))[0]
     ratio[idx] = np.asarray(etable['PHA'][idx],dtype=np.float)/np.asarray(etable['PHA_FAST'][idx],dtype=np.float)
     etable = etable[np.where(ratio < ratiocut)[0]]
+    return etable
+
+def filt_ratio_trumpet(etable):
+    #Filters out the points > filtratio
+    ratio = np.zeros_like(etable['PI'],dtype=np.float)
+    idx = np.where(np.logical_and(etable['PI']>0, etable['PI_FAST']>0))[0]
+    ratio[idx] = np.asarray(etable['PI'][idx],dtype=np.float)/np.asarray(etable['PI_FAST'][idx],dtype=np.float)
+    fastsig = 250.0
+    fastquart = 4.0e-11
+
+    x = np.array(etable['PI'],dtype=np.float)
+    ratio_cut =  1.0 + (fastsig/10.0)/x + fastquart*x**3
+
+    etable = etable[np.where(ratio < ratio_cut)[0]]
     return etable

@@ -20,9 +20,9 @@ def sci_plots(etable, gtitable, args):
         plot_slowfast(etable,args)
 
     # Now, filter out the points above the ratio cut, if requested
-    if args.filtratio > 0:
-        log.info('Applying ratio filter at {0}'.format(args.filtratio))
-        etable = filt_ratio(etable, ratiocut = args.filtratio)
+    if args.filtratio:
+        log.info('Applying ratio filter using trumpet')
+        etable = filt_ratio_trumpet(etable)
 
     #Light Curve
     log.info('Building light curve')

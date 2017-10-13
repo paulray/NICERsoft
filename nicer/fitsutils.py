@@ -143,9 +143,7 @@ def get_badratioevents_ftools(evfiles,workdir=None):
     # Build input file for ftmerge
     evlistname=path.join(tmpdir,'evfiles.txt')
     fout = open(evlistname,'w')
-    # Here I use 1.4 regardless of the value used for filtering good events
-    # so that there is minimal chance on contamination by a bright source
-    evfilt_expr = '(EVENT_FLAGS==bx11000).and.((float)PHA/(float)PHA_FAST > 1.4)'
+    evfilt_expr = '(EVENT_FLAGS==bx11000).and.((float)PI/(float)PI_FAST > (1.0 + 25.0/(float)PI + 4.0E-11*(float)PI**3))'
     for en in evfiles:
         print('{0}[{1}]'.format(en,evfilt_expr),file=fout)
     fout.close()
