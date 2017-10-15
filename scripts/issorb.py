@@ -116,7 +116,13 @@ ax.plot(doy_now,SourcePos.separation(StarboardPoleCoord(now)),'o',label='Today')
 
 if args.vis is not None:
     doy, fr = np.loadtxt(args.vis,unpack=True)
-ax.plot(doy,fr*100)
+    ax1 = ax.twinx()
+    ax1.plot(doy,fr*100,'g-')
+    ax1.set_ylabel('Per Vis',color='g')
+    for t1 in ax1.get_yticklabels():
+        t1.set_color('g')
+    ax1.set_yticks(range(0,110,10))
+
 ax.set_title(args.sourcename)
 ax.legend()
 ax.set_xlabel('DOY 2017')
