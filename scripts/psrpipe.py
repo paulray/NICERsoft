@@ -277,7 +277,7 @@ for obsdir in args.indirs:
 if args.merge & (len(all_evfiles)>1) :
     
     # Make directory for working files and output
-    pipedir = "merged"
+    pipedir = "merged_{0}".format(args.outdir)
     if not os.path.exists(pipedir):
         os.makedirs(pipedir)
     log.info('Merging all ObsIDs into single event file with niextract-event')
