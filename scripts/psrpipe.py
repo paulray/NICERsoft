@@ -303,11 +303,10 @@ if args.merge & (len(all_evfiles)>1) :
     cmd = ["nicerql.py", "--save",
            "--sci", outname, "--lcbinsize", "4.0",
            "--basename", path.splitext(outname)[0]]
-    ## -- NOT TESTED --
     if args.par is not None:
-        cmd.append("--par")
-        cmd.append("{0}".format(args.par))
-    ## ----------------    
+        log.info('The use of par files requires a merged orbit file -- not implemented yet')
+        #cmd.append("--par")
+        #cmd.append("{0}".format(args.par))
     runcmd(cmd)
 
     # Extract simple PHA file and light curve
