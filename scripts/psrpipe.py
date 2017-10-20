@@ -64,8 +64,7 @@ os.environ['HEADASPROMPT'] = '/dev/null'
 #print(os.environ['LD_LIBRARY_PATH'])
 
 
-if args.merge:
-    all_evfiles = []
+all_evfiles = []
 
 def runcmd(cmd):
     # CMD should be a list of strings since it is not processed by a shell
@@ -274,7 +273,7 @@ for obsdir in args.indirs:
 
         
 # Merging all ObsIDs
-if args.merge & (len(all_evfiles)>1) :
+if args.merge and (len(all_evfiles)>1) :
     
     # Make directory for working files and output
     pipedir = "merged_{0}".format(args.outdir)
