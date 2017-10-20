@@ -353,6 +353,7 @@ def pulse_profile(ax, etable, args):
         return
     import pint
     import astropy.io.fits as pyfits
+    from astropy.time import TimeDelta
     import pint.toa, pint.models
     from pint.plot_utils import phaseogram_binned
     from pint.observatory.nicer_obs import NICERObs
@@ -375,6 +376,8 @@ def pulse_profile(ax, etable, args):
         tl.append(pint.toa.TOA(t, obs='NICER'))
 
     ts = pint.toa.TOAs(toalist=tl)
+    log.warning('Applying -1.0s time correction to event time TOAs for pulse phase plot')
+    ts.adjust_TOAs(TimeDelta(np.ones(len(ts.table))*-1.0*u.s,scale='tt'))
     ts.compute_TDBs()
     ts.compute_posvels(ephem='DE421',planets=True)
 
