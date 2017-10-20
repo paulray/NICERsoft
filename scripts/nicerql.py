@@ -62,6 +62,7 @@ parser.add_argument("--eventshootrate",help="Gets over/undershoot rates from the
 parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = 'store_true')
 parser.add_argument("--readovs", help = "Filters events with overshoot > input number", nargs = '*', type = float, default = None)
 parser.add_argument("--gtirows",help="Select GTI rows", nargs = '*', type=int, default=None)
+parser.add_argument("--merge", help="when using a merged file, the OBSID keyword in header is updated (for plotting purposes)", action='store_true')
 args = parser.parse_args()
 
 #------------------------------Getting the data and concatenating------------------------------
@@ -259,6 +260,10 @@ filttable = etable[idx]
 filttable.meta['FILT_STR'] = filt_str
 etable.meta['FILT_STR'] = filt_str
 
+# Replace ObsID keyword (if it is a merged table)
+if args.merge:
+    log.info('Overwriting the header of outfile {0} by "{1}"'.format(path.basename(args.infiles[0]),path.dirname(args.infiles[0])))
+    filttable.meta['OBS_ID'] = path.dirname(basename)
 
 # Add Time column with astropy Time for ease of use and for PINT TOAs
 if args.par is not None:
