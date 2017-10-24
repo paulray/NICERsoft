@@ -283,7 +283,7 @@ if args.merge and (len(all_evfiles)>1) :
 
     ## The list of event files all_evfiles is created in the loop above
     all_evfiles.sort()
-    log.info('Cleaned Event Files to Merge: {0}'.format("\n" + "    \n".join(all_evfiles)))
+    log.info('Cleaned Event Files to Merge: {0}'.format("\n      " + "\n      ".join(all_evfiles)))
 
     # Build input file for niextract-events
     evlistname=path.join(pipedir,'evfiles.txt')
@@ -299,11 +299,11 @@ if args.merge and (len(all_evfiles)>1) :
     runcmd(cmd)
 
     # Make final merged clean plot
-    cmd = ["nicerql.py", "--save",
+    cmd = ["nicerql.py", "--save", "--merge",
            "--sci", outname, "--lcbinsize", "4.0",
            "--basename", path.splitext(outname)[0]]
     if args.par is not None:
-        log.info('The use of par files requires a merged orbit file -- not implemented yet')
+        log.warning('The use of par files requires a merged orbit file -- not implemented yet')
         #cmd.append("--par")
         #cmd.append("{0}".format(args.par))
     runcmd(cmd)
