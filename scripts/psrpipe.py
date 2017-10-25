@@ -206,6 +206,9 @@ for obsdir in args.indirs:
         'outexprfile={0}'.format(path.join(pipedir,"psrpipe_expr.txt"))]
     runcmd(cmd)
 
+    # nimaketime gives an output GTI file with 1 row and START==STOP in the
+    # case where no good time is selected.  This differs from the normal
+    # maketime, which produces a GTI file with no rows in that case
 
     ###  Extract filtered events and apply merged GTI
     filteredname = path.join(pipedir,"cleanfilt.evt")
@@ -271,10 +274,10 @@ for obsdir in args.indirs:
         all_evfiles.append(filteredname)
 
 
-        
+
 # Merging all ObsIDs
 if args.merge and (len(all_evfiles)>1) :
-    
+
     # Make directory for working files and output
     pipedir = "merged_{0}".format(args.outdir)
     if not os.path.exists(pipedir):

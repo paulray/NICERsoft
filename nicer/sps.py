@@ -43,4 +43,4 @@ class SPS:
         y = self.ecef_y(met)
         z = self.ecef_z(met)
         el = EarthLocation.from_geocentric(x,y,z,unit=u.m)
-        return (el.latitude, el.longitude)
+        return (el.lat, el.lon)
