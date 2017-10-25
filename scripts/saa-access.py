@@ -134,5 +134,7 @@ outfile.close()
 map = Basemap(projection='cyl', resolution = 'l',  llcrnrlon=-180, llcrnrlat=-61,
     urcrnrlon=180, urcrnrlat=61, lat_0 = 0, lon_0 = 0)
 map.drawcoastlines()
+map.drawmeridians(np.arange(0,360,15))
+map.drawparallels(np.arange(-90,90,15))
 map.scatter(mylon[in_any],mylat[in_any],s=1.0)
 plt.show()
