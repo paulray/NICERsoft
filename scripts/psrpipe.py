@@ -41,6 +41,7 @@ parser.add_argument("--emax", help="Maximum energy to include (kev, default=12.0
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("--nofiltpolar",help="Disable filtering polar horn regions from data",default=False,action='store_true')
 parser.add_argument("--cormin",help="Set minimum cutoff rigidity (COR_SAX) for nimaketime filtering (typical value = 4)",default=None)
+parser.add_argument("--uocut",help="Apply Teru's undershoot/overshoot parameter space cut",default=False,action='store_true')
 parser.add_argument("--maxovershoot",help="Select data where overshoot rate is below this limit (default: no filter)",
     type=float,default=-1)
 parser.add_argument("--badcut",help="Select data where bad ratio event rate is below this limit (default: no filter)",
@@ -194,6 +195,11 @@ for obsdir in args.indirs:
     extra_expr="NONE"
     if args.dark:
         extra_expr = "(SUNSHINE.eq.0)"
+    if args.uocut:
+        if extra_expr == "NONE":
+            extra_expr = "(TOT_OVER_COUNT<50.0+5.5*(TOT_UNDER_COUNT/1000)**2)"
+        else:
+            extra_expr += ".and.(TOT_OVER_COUNT<50.0+5.5*(TOT_UNDER_COUNT/1000)**2)"
     cor_string="-"
     if args.cormin is not None:
         cor_string = "{0}-".format(args.cormin)

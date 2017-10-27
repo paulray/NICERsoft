@@ -23,6 +23,7 @@ from nicer.values import *
 parser = argparse.ArgumentParser(description = "Plot HKP data on map")
 parser.add_argument("obsdirs", help="Input directories", nargs='+')
 parser.add_argument("--under", help="Plot undershoot instead",action='store_true')
+parser.add_argument("--mc", help="Plot MCILWAIN_L instead",action='store_true')
 args = parser.parse_args()
 
 if args.under:
@@ -35,6 +36,13 @@ else:
     desc = 'Cutoff Rigidity'
     vmin = 1.0
     vmax = 13.0
+
+if args.mc:
+    colname = 'MCILWAIN_L'
+    desc = 'MCILWAIN_L'
+    vmin=-90.0
+    vmax=90
+    
 
 saa_lon, saa_lat = np.loadtxt(path.join(datadir,'saa_lonlat.txt'),unpack=True)
 nph_lon, nph_lat = np.loadtxt(path.join(datadir,'nph_lonlat.txt'),unpack=True)
