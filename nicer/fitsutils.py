@@ -137,7 +137,7 @@ def get_eventbothshoots_ftools(evfiles,workdir=None):
     return etable
 
 def get_badratioevents_ftools(evfiles,workdir=None):
-    'Merges and filters a set of event files, returning an etable with only the UNDERSHOOT-only events'
+    'Merges and filters a set of event files, returning an etable with only the events that are above the PI ratio trumpet'
 
     tmpdir = tempfile.mkdtemp(dir=workdir)
 

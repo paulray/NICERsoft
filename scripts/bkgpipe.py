@@ -20,13 +20,9 @@ parser.add_argument("--emin", help="Minimum energy to include (keV, default=2.0)
     type=float, default=0.5)
 parser.add_argument("--emax", help="Maximum energy to include (kev, default=8.0)",
     type=float, default=8.0)
-parser.add_argument("--nofiltpolar",help="Disable filtering polar horn regions from data",default=False,action='store_true')
+parser.add_argument("--filtpolar",help="Filter polar horn regions from data",default=False,action='store_true')
 parser.add_argument("--cormin",help="Set minimum cutoff rigidity (COR_SAX) for nimaketime filtering (typical value = 4)",default=None)
-parser.add_argument("--uocut",help="Apply Teru's undershoot/overshoot parameter space cut",default=False,action='store_true')
-parser.add_argument("--maxovershoot",help="Select data where overshoot rate is below this limit (default: no filter)",
-    type=float,default=-1)
-parser.add_argument("--badcut",help="Select data where bad ratio event rate is below this limit (default: no filter)",
-    type=float,default=-1)
+parser.add_argument("--dark", help="Apply SUNSHINE=0 filter to get only data in Earth shadow", action='store_true')
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
     default=None)
@@ -72,6 +68,7 @@ for obsdir in args.indirs:
     args.eventshootrate = False
     args.writebkf = True
     args.object = None
+    args.gtirows = None
     args.basename = path.join(pipedir,basename)+'_prefilt'
     args.filtall = True
     try:
@@ -81,6 +78,11 @@ for obsdir in args.indirs:
         log.error('NicerFileSet failed for some reason on {0}'.format(obsdir))
         continue
 
+    # Get filter file
+    mkfile = glob(path.join(obsdir,'auxil/ni*.mkf'))[0]
+    log.info('MKF File: {0}'.format(mkfile))
+    # Copy orbit file to results dir for pulsar analysis
+    shutil.copy(mkfile,pipedir)
 
     #  Get ATT hk files
     attfile = glob(path.join(obsdir,'auxil/ni*.att'))[0]
@@ -92,7 +94,7 @@ for obsdir in args.indirs:
 
     # Create any additional GTIs beyond what nimaketime does...
     extragtis="NONE"
-    if not args.nofiltpolar:
+    if args.filtpolar:
         saafile = path.join(datadir,'saa.reg')
         mkf_expr = 'regfilter("{0}",SAT_LON,SAT_LAT)'.format(saafile)
         phfile = path.join(datadir,'polarhorns.reg')
@@ -109,27 +111,7 @@ for obsdir in args.indirs:
         extragtis = gtiname2
 
     gtiname3 = None
-    # Create GTI from overshoot file using overshoot rate
-    if args.maxovershoot > 0:
-        gtiname3 = path.join(pipedir,'bkf.gti')
-        bkf_expr = 'EV_OVERSHOOT.lt.{0}'.format(args.maxovershoot)
-        cmd = ["maketime", bkffile, gtiname3, 'expr={0}'.format(bkf_expr),
-            "compact=no", "time=TIME", "prefr=0", "postfr=0", "clobber=yes"]
-        runcmd(cmd)
-        if len(Table.read(gtiname3,hdu=1))==0:
-            log.error('No good time left after filtering!')
-            continue
 
-    # Create GTI from overshoot file using bad event lightcurve
-    if args.badcut > 0:
-        gtiname3 = path.join(pipedir,'bkf.gti')
-        bkf_expr = 'BAD_RATIO.lt.{0}'.format(args.badcut)
-        cmd = ["maketime", bkffile, gtiname3, 'expr={0}'.format(bkf_expr),
-            "compact=no", "time=TIME", "prefr=0", "postfr=0", "clobber=yes"]
-        runcmd(cmd)
-        if len(Table.read(gtiname3,hdu=1))==0:
-            log.error('No good time left after filtering!')
-            continue
     # If either of the bkf filters were used, include that GTI
     # in the extragtis passed to nimaketime
     if gtiname3 is not None:
@@ -143,11 +125,6 @@ for obsdir in args.indirs:
     extra_expr="NONE"
     if args.dark:
         extra_expr = "(SUNSHINE.eq.0)"
-    if args.uocut:
-        if extra_expr == "NONE":
-            extra_expr = "((float)TOT_OVER_COUNT<50.0+5.5*((float)TOT_UNDER_COUNT/1000.0)**2)"
-        else:
-            extra_expr += ".and.((float)TOT_OVER_COUNT<50.0+5.5*((float)TOT_UNDER_COUNT/1000.0)**2)"
     cor_string="-"
     if args.cormin is not None:
         cor_string = "{0}-".format(args.cormin)
@@ -163,7 +140,6 @@ for obsdir in args.indirs:
     # nimaketime gives an output GTI file with 1 row and START==STOP in the
     # case where no good time is selected.  This differs from the normal
     # maketime, which produces a GTI file with no rows in that case
-
 
     ### Final step filters and masked detector and does ratio filter
     filteredname = path.join(pipedir,"filtered.bkf")

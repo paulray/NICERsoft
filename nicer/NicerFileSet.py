@@ -260,8 +260,8 @@ class NicerFileSet:
         badlightcurve = np.histogram(badtable['TIME'], hkmetbins)[0]
         badlightcurve = np.array(badlightcurve,dtype=np.float)
         # Really should convolve in GTI segments!
-        kernel = np.ones(32)/32.0
-        badlightcurve = np.convolve(badlightcurve,kernel,mode='same')
+        # kernel = np.ones(32)/32.0
+        # badlightcurve = np.convolve(badlightcurve,kernel,mode='same')
 
         log.info('Writing over/undershoot rates')
         tcol = pyfits.Column(name='TIME',unit='S',array=self.hkmet,format='D')
