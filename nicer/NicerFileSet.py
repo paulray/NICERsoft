@@ -29,7 +29,11 @@ class NicerFileSet:
 
         self.ufafiles = glob(path.join(self.args.obsdir,'xti/event_cl/ni*mpu7_ufa.evt*'))
         self.ufafiles.sort()
-        log.info('Found unfiltered event files: {0}'.format("\n" + "    \n".join(self.ufafiles)))
+        log.info('Found merged unfiltered event files: {0}'.format("\n" + "    \n".join(self.ufafiles)))
+
+        self.uffiles = glob(path.join(self.args.obsdir,'xti/event_uf/ni*mpu*_uf.evt*'))
+        self.uffiles.sort()
+        log.info('Found raw unfiltered event files: {0}'.format("\n" + "    \n".join(self.uffiles)))
 
         # Get name of orbit file from obsdir
         try:
@@ -216,10 +220,10 @@ class NicerFileSet:
 
         if self.args.eventshootrate or self.args.writebkf:
             #Both under and overshoot
-            if len(self.ufafiles) == 0:
+            if len(self.uffiles) == 0:
                 filelist = self.evfiles
             else:
-                filelist = self.ufafiles
+                filelist = self.uffiles
             etable = get_eventbothshoots_ftools(filelist,workdir=None)
             self.eventbothshoots, edges = np.histogram(etable['TIME'],hkmetbins)
             #Just overshoot
