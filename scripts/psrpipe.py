@@ -92,6 +92,7 @@ for obsdir in args.indirs:
     log.info('Making initial QL plots')
     cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0",
            "--lclog", "--useftools", "--extraphkshootrate", "--writebkf",
+           "--eventshootrate",
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
            "--basename", path.join(pipedir,basename)+'_prefilt']
@@ -102,8 +103,8 @@ for obsdir in args.indirs:
     if args.par is not None:
         cmd.append("--par")
         cmd.append("{0}".format(args.par))
-    if (args.maxovershoot>0) or (args.badcut>0):
-        cmd.append("--writebkf")
+#    if (args.maxovershoot>0) or (args.badcut>0):
+#        cmd.append("--writebkf")
     runcmd(cmd)
 
 
