@@ -198,9 +198,9 @@ for obsdir in args.indirs:
         extra_expr = "(SUNSHINE.eq.0)"
     if args.uocut:
         if extra_expr == "NONE":
-            extra_expr = "(TOT_OVER_COUNT<50.0+5.5*(TOT_UNDER_COUNT/1000)**2)"
+            extra_expr = "((float)TOT_OVER_COUNT<50.0+5.5*((float)TOT_UNDER_COUNT/1000.0)**2)"
         else:
-            extra_expr += ".and.(TOT_OVER_COUNT<50.0+5.5*(TOT_UNDER_COUNT/1000)**2)"
+            extra_expr += ".and.((float)TOT_OVER_COUNT<50.0+5.5*((float)TOT_UNDER_COUNT/1000.0)**2)"
     cor_string="-"
     if args.cormin is not None:
         cor_string = "{0}-".format(args.cormin)
