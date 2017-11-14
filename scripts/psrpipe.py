@@ -263,7 +263,7 @@ for obsdir in args.indirs:
     if args.par is not None:
         plotfile = path.join(pipedir,"phaseogram.png")
         cmd = ["photonphase", "--fix", "--orb", orbfile, "--plot", "--plotfile",
-            plotfile, "--planets", "--addphase", filteredname, args.par]
+            plotfile, "--addphase", filteredname, args.par]
         runcmd(cmd)
 
     # Extract simple PHA file and light curve
