@@ -88,8 +88,8 @@ print("\nSource: {0} at {1}, {2}".format(args.sourcename,SourcePos.ra, SourcePos
 print("Separation from Starboard Pole = {0:.3f}".format(SourcePos.separation(StarboardPoleCoord(now))))
 print("Separation from Port Pole = {0:.3f}".format(SourcePos.separation(PortPoleCoord(now))))
 
-# Plot separation from orbit pole for all of 2017
-doy2017 = np.arange(365.0)
+# Plot separation from orbit pole for all of 2017 and beyond
+doy2017 = np.arange(600.0)
 times = doy2017*u.d + Time("2017-01-01T00:00:00",format='isot',scale='utc')
 
 fig, ax = plt.subplots()
