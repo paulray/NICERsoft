@@ -263,6 +263,28 @@ class NicerFileSet:
         # kernel = np.ones(32)/32.0
         # badlightcurve = np.convolve(badlightcurve,kernel,mode='same')
 
+        emin = 13.0
+        b1 = self.etable['PI'] > emin/PI_TO_KEV
+        ehighlc = np.histogram(self.etable['MET'][b1], hkmetbins)[0]
+
+        emax = 0.25
+        b2 = self.etable['PI'] < emax/PI_TO_KEV
+        elowlc = np.histogram(self.etable['MET'][b2], hkmetbins)[0]
+
+        emin = 0.4
+        emax = 2.0
+        b1 = self.etable['PI'] > emin/PI_TO_KEV
+        b2 = self.etable['PI'] < emax/PI_TO_KEV
+        idx = np.where(b1 & b2)[0]
+        esoftlc = np.histogram(self.etable['MET'][idx], hkmetbins)[0]
+
+        emin = 2.0
+        emax = 8.0
+        b1 = self.etable['PI'] > emin/PI_TO_KEV
+        b2 = self.etable['PI'] < emax/PI_TO_KEV
+        idx = np.where(b1 & b2)[0]
+        ehardlc = np.histogram(self.etable['MET'][idx], hkmetbins)[0]
+
         log.info('Writing over/undershoot rates')
         tcol = pyfits.Column(name='TIME',unit='S',array=self.hkmet,format='D')
         ocol = pyfits.Column(name='HK_OVERSHOOT',array=self.hkovershoots,format='D')
@@ -270,13 +292,17 @@ class NicerFileSet:
         eocol = pyfits.Column(name='EV_OVERSHOOT',array=self.eventovershoots,format='D')
         bothcol = pyfits.Column(name='EV_BOTH',array=self.eventbothshoots,format='D')
         badcol = pyfits.Column(name='BAD_RATIO', array=badlightcurve, format='D')
+        ehighcol = pyfits.Column(name='RATEHIGH', array=ehighlc, format='D')
+        elowcol = pyfits.Column(name='RATELOW', array=elowlc, format='D')
+        esoftcol = pyfits.Column(name='RATESOFT', array=esoftlc, format='D')
+        ehardcol = pyfits.Column(name='RATEHARD', array=ehardlc, format='D')
 
         lat, lon = self.llinterp.latlon(self.hkmet)
         latcol = pyfits.Column(name='LAT', array=lat, format='D')
         loncol = pyfits.Column(name='LON', array=lon, format='D')
 
         ovhdu = pyfits.BinTableHDU.from_columns([tcol,ocol,ucol, eocol, bothcol,
-            badcol,latcol,loncol], name='HKP')
+            badcol,ehighcol,elowcol,esoftcol,ehardcol,latcol,loncol], name='HKP')
         ovhdu.header['TIMESYS'] = self.etable.meta['TIMESYS']
         ovhdu.header['TIMEREF'] = self.etable.meta['TIMEREF']
         ovhdu.header['MJDREFI'] = self.etable.meta['MJDREFI']

@@ -16,7 +16,12 @@ from nicer.values import *
 def runcmd(cmd):
     # CMD should be a list of strings since it is not processed by a shell
     log.info('CMD: '+" ".join(cmd))
-    check_call(cmd,env=os.environ)
+    try:
+        check_call(cmd,env=os.environ)
+    except OSError:
+        log.error('Command failed! Did you install and initialize FTOOLS?')
+        raise
+
 
 def filtallandmerge_ftools(evfiles,workdir=None):
     'Merges and filters a set of event files, returning an etable'
