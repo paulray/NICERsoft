@@ -16,7 +16,7 @@ from nicer.NicerFileSet import *
 
 parser = argparse.ArgumentParser(description = "Process NICER background data.  Output will be written in current working directory.")
 parser.add_argument("indirs", help="Input directories to process", nargs='+')
-parser.add_argument("--emin", help="Minimum energy to include (keV, default=2.0)",
+parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.5)",
     type=float, default=0.5)
 parser.add_argument("--emax", help="Maximum energy to include (kev, default=8.0)",
     type=float, default=8.0)
@@ -141,9 +141,15 @@ for obsdir in args.indirs:
     # case where no good time is selected.  This differs from the normal
     # maketime, which produces a GTI file with no rows in that case
 
-    ### Final step filters and masked detector and does ratio filter
+    ### Final step filters the mkf and bkf files using the GTI
     filteredname = path.join(pipedir,"filtered.bkf")
     expr = 'gtifilter("{0}")'.format(gtiname_merged)
     cmd = ["ftcopy", '{0}[{1}]'.format(bkffile,expr), filteredname,
+        "clobber=yes", "history=yes"]
+    runcmd(cmd)
+
+    filteredname = path.join(pipedir,"filtered.mkf")
+    expr = 'gtifilter("{0}")'.format(gtiname_merged)
+    cmd = ["ftcopy", '{0}[{1}]'.format(mkfile,expr), filteredname,
         "clobber=yes", "history=yes"]
     runcmd(cmd)
