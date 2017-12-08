@@ -12,6 +12,7 @@ import shutil
 from astropy.table import Table
 
 from nicer.values import *
+from nicer.plotutils import find_hot_detectors
 desc = """
 Pipeline process NICER data.
 
