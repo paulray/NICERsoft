@@ -18,21 +18,21 @@ def event_counter(etable):
     'Count events by DET_ID'
     IDevents = np.zeros_like(IDS)
 
-    for i, id in enumerate(IDS):
-        IDevents[i] = np.count_nonzero(etable['DET_ID'] == id)
+    for i, det_id in enumerate(IDS):
+        IDevents[i] = np.count_nonzero(etable['DET_ID'] == det_id)
     return IDevents
 
 def hist_use(etable):
-    'Creates array of event count per ID and colors to those > 1 sigma from mean red'
+    'Creates array of event count per ID and colors to those > 2 sigma from mean red'
     # Make array of event counts by DET_ID
     IDevents = event_counter(etable)
+    colors = np.array(['k']*len(IDevents))
 
     # Remove any that have 0 counts and compute std dev
     temp = np.delete(IDevents, np.where(IDevents == 0))
     stdev = np.std(temp)
-    colors = np.array(['k']*len(IDevents))
 
-    # Set points that are off by more that 2 sigma to red
+    # Set points that are off by more than 2 sigma to red
     diff = np.array(IDevents,dtype=np.float)-np.mean(temp)
     idx = np.where(diff>2.0*stdev)[0]
     colors[idx] = 'r'
@@ -232,9 +232,9 @@ def calc_pi(etable, calfile):
     pi = np.array(e_keV/PI_TO_KEV,dtype=np.int)
     return pi
 
-def plot_energy_spec(etable):
+def plot_energy_spec(etable,binscale=1.0):
     'plots the energy spectrum of PI'
-    bb = np.concatenate((np.arange(0.0,2.0,0.02),np.arange(2.0,15.0,0.1)))
+    bb = np.concatenate((np.arange(0.0,2.0,0.02*binscale),np.arange(2.0,15.0,0.1*binscale)))
     plot.hist(etable['PI']*PI_TO_KEV, bins=bb,
         histtype='step',log=False,normed=True)
     plot.yscale('log')

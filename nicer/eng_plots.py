@@ -7,7 +7,7 @@ import argparse
 from nicer.plotutils import *
 from nicer.values import *
 
-def eng_plots(etable, args, reset_rates, filttable):
+def eng_plots(etable, args, reset_rates, filttable, gtitable):
     #GRID SET UP
     figure1 = plot.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,6)
@@ -32,6 +32,21 @@ def eng_plots(etable, args, reset_rates, filttable):
     if reset_rates is not None:
         plot_resetrate(IDS, reset_rates)
 
+    # Hot detector
+    num_events, colors = hist_use(filttable)
+    max_id = IDS[np.where(num_events == num_events.max())[0]][0]
+    log.info('max_id {0}'.format(max_id))
+    # Plot spectrum and lightcurve of hottest detector
+    plot.subplot(sci_grid[:1,:2])
+    idx = np.where(filttable['DET_ID']==max_id)[0]
+    plot_energy_spec(filttable[idx],binscale=4.0)
+    plot.title('PI Spectrum of DET_ID {0}'.format(max_id))
+    plot.subplot(sci_grid[1:2,:2])
+    meanrate, a = plot_light_curve(filttable[idx], args.lclog, gtitable, binsize=args.lcbinsize)
+    plot.title('Light Curve of DET_ID {0}'.format(max_id))
+    plot.xlabel('Time (s)')
+
+
     #Making the plot all nice and stuff
     plot.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .7, hspace = .8)
 
@@ -43,10 +58,10 @@ def eng_plots(etable, args, reset_rates, filttable):
     #average = "Mean events per detector is {0:.2f}".format(num_events.mean())
     #ext1 = plot.figtext(.02, .9, average, fontsize = 12.5)
     if reset_rates is not None:
-        plot.figtext(.02, .8,
+        plot.figtext(.42, .87,
             "Mean reset rate is {0:.2f}/s".format(reset_rates.mean()),
             fontsize = 12.5)
     if args.mask:
-        plot.figtext(.07, .81, 'IDS {0} are masked'.format(args.mask), fontsize=10)
+        plot.figtext(.55, .05, 'IDS {0} are masked'.format(args.mask), fontsize=10)
 
     return figure1

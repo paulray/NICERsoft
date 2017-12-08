@@ -10,6 +10,7 @@ from astropy import log
 from astropy.table import Table, vstack
 import astropy.io.fits as pyfits
 import astropy.units as u
+from astropy.stats import mad_std, sigma_clipped_stats
 from astropy.time import Time
 from os import path
 from nicer.values import *
@@ -169,10 +170,12 @@ if args.tskip > 0.0:
 
 #filtering out chosen IDS
 if args.mask is not None:
-    log.info('Masking IDS')
-    for id in args.mask:
-        etable = etable[np.where(etable['DET_ID'] != id)]
-        # If there are no PI columns, add them with approximate calibration
+    if args.mask[0] >= 0:
+        log.info('Masking IDS {0}'.format(args.mask))
+        for id in args.mask:
+            etable = etable[np.where(etable['DET_ID'] != id)]
+
+# If there are no PI columns, add them with approximate calibration
 if args.pi or not ('PI' in etable.colnames):
     log.info('Adding PI')
     calfile = path.join(datadir,'gaincal_linear.txt')
@@ -260,6 +263,22 @@ filttable = etable[idx]
 filttable.meta['FILT_STR'] = filt_str
 etable.meta['FILT_STR'] = filt_str
 
+if args.mask is not None and args.mask[0] < 0:
+    log.info('Auto-masking detectors')
+    # Compute which detectors to mask on the fly
+    det_events = event_counter(filttable)
+    # Remove detector with no events
+    #temp_events = np.delete(det_events, np.where(det_events == 0))
+    stats = sigma_clipped_stats(det_events,iters=3,sigma_lower=3,sigma_upper=3)
+    bad_dets = IDS[det_events > stats[0]+2.6*stats[2]]
+    log.info('{0}'.format(det_events))
+    log.info('Mean {0}, std {1}'.format(stats[0],stats[2]))
+    if len(bad_dets) > 0:
+        log.info('Found hot detectors {0}. Masking them...'.format(bad_dets))
+        for id in args.mask:
+            etable = etable[np.where(etable['DET_ID'] != id)]
+
+
 # Replace ObsID keyword (if it is a merged table)
 if args.merge:
     log.info('Overwriting the header of outfile {0} by "{1}"'.format(path.basename(args.infiles[0]),path.dirname(args.infiles[0])))
@@ -306,7 +325,7 @@ if args.bkg:
 
 # Engineering plots are reset rates, count rates by detector, and deadtime
 if args.eng:
-    figure1 = eng_plots(etable, args, reset_rates, filttable)
+    figure1 = eng_plots(etable, args, reset_rates, filttable, gtitable)
     figure1.set_size_inches(16,12)
     if args.save:
         log.info('Writing eng plot {0}'.format(basename))

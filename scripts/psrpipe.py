@@ -252,7 +252,7 @@ for obsdir in args.indirs:
     # Make final clean plot
     cmd = ["nicerql.py", "--save",
            "--orb", path.join(pipedir,path.basename(orbfile)),
-           "--sci", filteredname, "--lcbinsize", "4.0",
+           "--sci", "--eng", filteredname, "--lcbinsize", "4.0",
            "--basename", path.join(pipedir,basename)+"_cleanfilt"]
     if args.par is not None:
         cmd.append("--par")
