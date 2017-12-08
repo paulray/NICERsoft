@@ -23,6 +23,19 @@ def event_counter(etable):
         IDevents[i] = np.count_nonzero(etable['DET_ID'] == det_id)
     return IDevents
 
+def find_hot_detectors(etable):
+    # Compute which detectors to mask on the fly
+    det_events = event_counter(etable)
+    # Remove detector with no events
+    #temp_events = np.delete(det_events, np.where(det_events == 0))
+    stats = sigma_clipped_stats(det_events,iters=3,sigma_lower=3,sigma_upper=3)
+    bad_dets = IDS[det_events > stats[0]+3.0*stats[2]]
+    log.info('Detector Count Mean {0}, std {1}'.format(stats[0],stats[2]))
+    if len(bad_dets) > 0:
+        log.warning('!!! Found hot detectors {0}'.format(bad_dets))
+        return bad_dets
+    return None
+
 def hist_use(etable):
     'Creates array of event count per ID and colors hot detectors red'
     # Make array of event counts by DET_ID
@@ -47,18 +60,6 @@ def hist_use(etable):
 
     return IDevents, colors
 
-def find_hot_detectors(etable):
-    # Compute which detectors to mask on the fly
-    det_events = event_counter(etable)
-    # Remove detector with no events
-    #temp_events = np.delete(det_events, np.where(det_events == 0))
-    stats = sigma_clipped_stats(det_events,iters=3,sigma_lower=3,sigma_upper=3)
-    bad_dets = IDS[det_events > stats[0]+3.0*stats[2]]
-    log.info('Detector Count Mean {0}, std {1}'.format(stats[0],stats[2]))
-    if len(bad_dets) > 0:
-        log.warning('!!! Found hot detectors {0}'.format(bad_dets))
-        return bad_dets
-    return None
 
 
 def plot_total_count_hist(etable, ax_rate, ax_counts):

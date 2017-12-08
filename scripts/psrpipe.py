@@ -258,6 +258,9 @@ for obsdir in args.indirs:
             evfilt_expr += ".and.(DET_ID!={0})".format(detid)
     # Filter any automatically identified hot detectors
     if bad_dets is not None:
+        fout = file("bad_dets.txt","w")
+        print("{0}".format(bad_dets),file=fout)
+        fout.close()
         for detid in bad_dets:
             evfilt_expr += ".and.(DET_ID!={0})".format(detid)
 
