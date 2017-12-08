@@ -11,6 +11,7 @@ from nicer.values import *
 from os import path
 from astropy.table import Table, vstack
 from astropy.coordinates import SkyCoord
+from astropy.stats import mad_std, sigma_clipped_stats
 import astropy.io.fits as pyfits
 import astropy.units as u
 #------------------------THIS MAKES THE TOTAL COUNT HISTOGRAM---------------------------
@@ -23,21 +24,41 @@ def event_counter(etable):
     return IDevents
 
 def hist_use(etable):
-    'Creates array of event count per ID and colors to those > 2 sigma from mean red'
+    'Creates array of event count per ID and colors hot detectors red'
     # Make array of event counts by DET_ID
     IDevents = event_counter(etable)
     colors = np.array(['k']*len(IDevents))
 
+    # Color using auto identified hot detectors
+    bad_dets = find_hot_detectors(etable)
+    if bad_dets is not None:
+        for i, det_id in enumerate(IDS):
+            if det_id in bad_dets:
+                colors[i] = 'r'
+
     # Remove any that have 0 counts and compute std dev
-    temp = np.delete(IDevents, np.where(IDevents == 0))
-    stdev = np.std(temp)
+    #temp = np.delete(IDevents, np.where(IDevents == 0))
+    #stdev = np.std(temp)
 
     # Set points that are off by more than 2 sigma to red
-    diff = np.array(IDevents,dtype=np.float)-np.mean(temp)
-    idx = np.where(diff>2.0*stdev)[0]
-    colors[idx] = 'r'
+    #diff = np.array(IDevents,dtype=np.float)-np.mean(temp)
+    #idx = np.where(diff>2.0*stdev)[0]
+    #colors[idx] = 'r'
 
     return IDevents, colors
+
+def find_hot_detectors(etable):
+    # Compute which detectors to mask on the fly
+    det_events = event_counter(etable)
+    # Remove detector with no events
+    #temp_events = np.delete(det_events, np.where(det_events == 0))
+    stats = sigma_clipped_stats(det_events,iters=3,sigma_lower=3,sigma_upper=3)
+    bad_dets = IDS[det_events > stats[0]+3.0*stats[2]]
+    log.info('Detector Count Mean {0}, std {1}'.format(stats[0],stats[2]))
+    if len(bad_dets) > 0:
+        log.warning('!!! Found hot detectors {0}'.format(bad_dets))
+        return bad_dets
+    return None
 
 
 def plot_total_count_hist(etable, ax_rate, ax_counts):
@@ -236,7 +257,7 @@ def plot_energy_spec(etable,binscale=1.0):
     'plots the energy spectrum of PI'
     bb = np.concatenate((np.arange(0.0,2.0,0.02*binscale),np.arange(2.0,15.0,0.1*binscale)))
     plot.hist(etable['PI']*PI_TO_KEV, bins=bb,
-        histtype='step',log=False,normed=True)
+        histtype='step',log=False,density=False)
     plot.yscale('log')
     plot.xscale('log')
     plot.xlim((0.1,20.0))

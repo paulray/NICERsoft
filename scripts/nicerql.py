@@ -80,7 +80,7 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
     else:
         #Creating the data table for each separate file
         if args.useftools:
-            etable = filtandmerge(args.infiles,workdir=None)
+            etable = filtallandmerge_ftools(args.infiles,workdir=None)
         else:
             log.info('Reading files')
             tlist = []
@@ -265,17 +265,10 @@ etable.meta['FILT_STR'] = filt_str
 
 if args.mask is not None and args.mask[0] < 0:
     log.info('Auto-masking detectors')
-    # Compute which detectors to mask on the fly
-    det_events = event_counter(filttable)
-    # Remove detector with no events
-    #temp_events = np.delete(det_events, np.where(det_events == 0))
-    stats = sigma_clipped_stats(det_events,iters=3,sigma_lower=3,sigma_upper=3)
-    bad_dets = IDS[det_events > stats[0]+2.6*stats[2]]
-    log.info('{0}'.format(det_events))
-    log.info('Mean {0}, std {1}'.format(stats[0],stats[2]))
-    if len(bad_dets) > 0:
-        log.info('Found hot detectors {0}. Masking them...'.format(bad_dets))
-        for id in args.mask:
+    bad_dets = find_hot_detectors(filttable)
+    if bad_dets is not None:
+        log.info('Found hot detectors {0}'.format(bad_dets))
+        for id in bad_dets:
             etable = etable[np.where(etable['DET_ID'] != id)]
 
 

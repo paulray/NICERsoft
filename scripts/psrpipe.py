@@ -239,10 +239,28 @@ for obsdir in args.indirs:
         "gti=GTI", "clobber=yes"]
     runcmd(cmd)
 
+    # Here we can automatically mask detectors by parsing the intermediate file
+    bad_dets = None
+    if args.mask is not None and args.mask[0] < 0:
+        etable = Table.read(intermediatename,hdu=1)
+        log.info('Auto-masking detectors')
+        bad_dets = find_hot_detectors(filttable)
+        if bad_dets is not None:
+            log.info('Found hot detectors {0}!!'.format(bad_dets))
+            for id in bad_dets:
+                etable = etable[np.where(etable['DET_ID'] != id)]
+
+
     evfilt_expr = '(EVENT_FLAGS==bx1x000)'
+    # Filter any explicitly specified masked detectors
     if args.mask is not None:
         for detid in args.mask:
             evfilt_expr += ".and.(DET_ID!={0})".format(detid)
+    # Filter any automatically identified hot detectors
+    if bad_dets is not None:
+        for detid in bad_dets:
+            evfilt_expr += ".and.(DET_ID!={0})".format(detid)
+
     cmd = ["ftcopy", "{0}[{1}]".format(intermediatename,evfilt_expr), filteredname,
         "clobber=yes", "history=yes"]
     runcmd(cmd)
