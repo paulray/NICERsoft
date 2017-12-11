@@ -257,14 +257,17 @@ def calc_pi(etable, calfile):
 def plot_energy_spec(etable,binscale=1.0):
     'plots the energy spectrum of PI'
     bb = np.concatenate((np.arange(0.0,2.0,0.02*binscale),np.arange(2.0,15.0,0.1*binscale)))
-    plot.hist(etable['PI']*PI_TO_KEV, bins=bb,
-        histtype='step',log=False,density=False)
+    hh, hh_bins = np.histogram(etable['PI']*PI_TO_KEV, bins=bb)
+    widths = bb[1:] - bb[:-1]
+    plot.step(bb[:-1],hh/widths,where='post')
+#    plot.hist(etable['PI']*PI_TO_KEV, bins=bb,
+#        histtype='step',log=False,density=False)
     plot.yscale('log')
     plot.xscale('log')
     plot.xlim((0.1,20.0))
     plot.title('PI Spectrum')
     plot.xlabel('Energy (keV)')
-    plot.ylabel('Counts')
+    plot.ylabel('Counts/keV')
 
     return
 #-------------------------------THIS PLOTS THE POWER SPECTRUM (FFT)--------------
