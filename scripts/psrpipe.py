@@ -245,13 +245,16 @@ for obsdir in args.indirs:
     if args.mask is not None and args.mask[0] < 0:
         etable = Table.read(intermediatename,hdu=1)
         log.info('Auto-masking detectors')
-        bad_dets = find_hot_detectors(filttable)
+        bad_dets = find_hot_detectors(etable)
         if bad_dets is not None:
             log.info('Found hot detectors {0}!!'.format(bad_dets))
-            for id in bad_dets:
-                etable = etable[np.where(etable['DET_ID'] != id)]
+        # Make intermediate eng plot to show bad detectors
+        cmd = ["nicerql.py", "--save",
+               "--eng", intermediatename, "--lcbinsize", "4.0",
+               "--basename", path.join(pipedir,basename)+"_intermediate"]
+        runcmd(cmd)
 
-
+    # Now filter any bad detectors
     evfilt_expr = '(EVENT_FLAGS==bx1x000)'
     # Filter any explicitly specified masked detectors
     if args.mask is not None:
