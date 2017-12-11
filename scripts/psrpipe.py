@@ -272,7 +272,7 @@ for obsdir in args.indirs:
         "clobber=yes", "history=yes"]
     runcmd(cmd)
     # Remove intermediate file
-    os.remove(intermediatename)
+    #os.remove(intermediatename)
 
     # Make final clean plot
     cmd = ["nicerql.py", "--save",

@@ -25,7 +25,7 @@ parser=OptionParser(usage=" %prog [options] [FT1_FILENAME]",
                                         description=desc)
 parser.add_option("-n","--ntoa",type="int",default=60,help="Number of TOAs to produce between TSTART and TSTOP.")
 parser.add_option("-b","--nbins",type="int",default=32,help="Number of bins in each profile.")
-parser.add_option("-e","--emin",type="float",default=0.3,help="Minimum energy to include.")
+parser.add_option("-e","--emin",type="float",default=0.25,help="Minimum energy to include.")
 parser.add_option("-x","--emax",type="float",default=12.0,help="Maximum energy to include.")
 parser.add_option("-o","--outfile",type="string",default=None,help="File name for plot file.  Type comes from extension.")
 parser.add_option("-r","--radio",type="string",default=None,help="Radio profile to overplot.")
