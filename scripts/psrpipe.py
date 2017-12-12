@@ -10,6 +10,7 @@ from glob import glob
 from subprocess import check_call
 import shutil
 from astropy.table import Table
+from astropy.io import fits
 
 from nicer.values import *
 from nicer.plotutils import find_hot_detectors
@@ -91,23 +92,6 @@ for obsdir in args.indirs:
         os.makedirs(pipedir)
 
     log.info('Making initial QL plots')
-    cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0",
-           "--lclog", "--useftools", "--extraphkshootrate", "--writebkf",
-           "--eventshootrate",
-           "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
-           "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
-           "--basename", path.join(pipedir,basename)+'_prefilt']
-    if args.mask is not None:
-        cmd.append("--mask")
-        for detid in args.mask:
-            cmd.append("{0}".format(detid))
-    if args.par is not None:
-        cmd.append("--par")
-        cmd.append("{0}".format(args.par))
-#    if (args.maxovershoot>0) or (args.badcut>0):
-#        cmd.append("--writebkf")
-    runcmd(cmd)
-
 
     # Get event filenames (could be just one)
     evfiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_cl.evt'))
@@ -118,6 +102,37 @@ for obsdir in args.indirs:
     ufafiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_ufa.evt'))
     ufafiles.sort()
     log.info('Unfiltered Event Files: {0}'.format("\n" + "    \n".join(evfiles)))
+
+    ufaevents = 0
+    for ufafile in ufafiles:
+        hdulist = fits.open(ufafile, memmap=True)
+        nevents = hdulist[1].header['NAXIS2']
+        hdulist.close()
+        ufaevents = ufaevents + nevents
+
+    if ufaevents < 40000000:
+        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0",
+               "--lclog", "--useftools", "--extraphkshootrate", "--writebkf",
+               "--eventshootrate",
+               "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
+               "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
+               "--basename", path.join(pipedir,basename)+'_prefilt']
+    else:
+        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0",
+               "--lclog", "--useftools", "--extraphkshootrate", "--writebkf",
+               "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
+               "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
+               "--basename", path.join(pipedir,basename)+'_prefilt']
+    if args.mask is not None:
+        cmd.append("--mask")
+        for detid in args.mask:
+            cmd.append("{0}".format(detid))
+    if args.par is not None:
+        cmd.append("--par")
+        cmd.append("{0}".format(args.par))
+#    if (args.maxovershoot>0) or (args.badcut>0):
+#        cmd.append("--writebkf")
+    runcmd(cmd)
 
     # Get orbit file
     orbfile = glob(path.join(obsdir,'auxil/ni*.orb'))[0]
