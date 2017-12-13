@@ -271,7 +271,7 @@ class NicerFileSet:
         b2 = self.etable['PI'] < emax/PI_TO_KEV
         elowlc = np.histogram(self.etable['MET'][b2], hkmetbins)[0]
 
-        emin = 0.4
+        emin = 0.25
         emax = 2.0
         b1 = self.etable['PI'] > emin/PI_TO_KEV
         b2 = self.etable['PI'] < emax/PI_TO_KEV
