@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env pythonw
 from __future__ import print_function, division
 import os, sys
 import matplotlib.pyplot as plt
@@ -59,13 +59,19 @@ args = parser.parse_args()
 os.environ['HEADASNOQUERY'] = ' '
 os.environ['HEADASPROMPT'] = '/dev/null'
 
+# Checking the presence of HEASOFT
+try:
+    check_call('nicerversion',env=os.environ)
+except:
+    print("You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!", file=sys.stderr)
+    exit()
+
 # For some reason if the script is called via #!/usr/bin/env python
 # it does not inherit LD_LIBRARY_PATH so ftools don't run.
 #print(os.environ['LD_LIBRARY_PATH'])
 #print(os.environ['HEADAS'])
 #os.environ['LD_LIBRARY_PATH'] = path.join(os.environ['HEADAS'],'lib')
 #print(os.environ['LD_LIBRARY_PATH'])
-
 
 all_evfiles = []
 
@@ -239,7 +245,7 @@ for obsdir in args.indirs:
 
     # Build input file for niextract-events
     evlistname=path.join(pipedir,'evfiles.txt')
-    fout = file(evlistname,'w')
+    fout = open(evlistname,'w')
     for en in evfiles:
         print('{0}'.format(en),file=fout)
     fout.close()
@@ -277,7 +283,7 @@ for obsdir in args.indirs:
             evfilt_expr += ".and.(DET_ID!={0})".format(detid)
     # Filter any automatically identified hot detectors
     if bad_dets is not None:
-        fout = file(path.join(pipedir,"bad_dets.txt"),"w")
+        fout = open(path.join(pipedir,"bad_dets.txt"),"w")
         print("{0}".format(bad_dets),file=fout)
         fout.close()
         for detid in bad_dets:
@@ -337,7 +343,7 @@ if args.merge and (len(all_evfiles)>1) :
 
     # Build input file for niextract-events
     evlistname=path.join(pipedir,'evfiles.txt')
-    fout = file(evlistname,'w')
+    fout = open(evlistname,'w')
     for en in all_evfiles:
         print('{0}'.format(en),file=fout)
     fout.close()
