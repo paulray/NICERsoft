@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env pythonw
 from __future__ import (print_function, division, unicode_literals, absolute_import)
 import sys
 # Hack to add this to pythonpath
