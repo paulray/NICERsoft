@@ -156,7 +156,7 @@ def gti_colormap():
     cmap, norm = mpl.colors.from_levels_and_colors(levels=colorlevels, colors=colornames, extend='max')
     return colornames, cmap, norm
 
-def plot_light_curve(etable, lclog, gtitable, binsize=1.0, noplot=False):
+def plot_light_curve(etable, lclog, gtitable, binsize=1.0, noplot=False, plot_pos=None):
    #'Compute binned light curve of events and return mean rate,plots light curve'
     #EDGE CASE FOR FIRST INSTANCE
     bins, sums = light_curve(etable, gtitable['START'][0], gtitable['STOP'][0], binsize=binsize)
@@ -181,11 +181,27 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0, noplot=False):
         # Plot line at mean counts per bin
         plot.axhline(y=mean_rate, xmin=bins[0], xmax=bins[-1], linestyle='dashed', label = label)
         #plot.legend(loc = 4)
-        plot.ylabel('c/s')
         if lclog:
             plot.yscale('log')
             plot.ylim(ymin=0.1)
 
+        # Default option
+        if plot_pos is None:
+            plot.ylabel('c/s')
+
+        ## Options for plot_all_spec
+        if plot_pos is "corner":
+            plot.ylabel('c/s')
+            plot.tick_params(axis='x',which='both',bottom='on',labelbottom='on')
+        if plot_pos is "left":
+            plot.ylabel('c/s')
+            plot.tick_params(axis='x',which='both',labelbottom='off')
+        if plot_pos is "center":
+            plot.tick_params(axis='x',which='both',labelbottom='off')
+
+   
+
+            
     return mean_rate, sums
 
 #-------------------------------THIS PLOTS THE FAST TO SLOW___------------------
@@ -261,7 +277,7 @@ def calc_pi(etable, calfile):
     pi = np.array(e_keV/PI_TO_KEV,dtype=np.int)
     return pi
 
-def plot_energy_spec(etable,binscale=1.0):
+def plot_energy_spec(etable,binscale=1.0,plot_pos=None):
     'plots the energy spectrum of PI'
     bb = np.concatenate((np.arange(0.0,2.0,0.02*binscale),np.arange(2.0,15.0,0.1*binscale)))
     hh, hh_bins = np.histogram(etable['PI']*PI_TO_KEV, bins=bb)
@@ -272,9 +288,27 @@ def plot_energy_spec(etable,binscale=1.0):
     plot.yscale('log')
     plot.xscale('log')
     plot.xlim((0.1,20.0))
-    plot.title('PI Spectrum')
-    plot.xlabel('Energy (keV)')
-    plot.ylabel('Counts/keV')
+
+    # Default option
+    if plot_pos is None:
+        plot.title('PI Spectrum')
+        plot.xlabel('Energy (keV)')
+        plot.ylabel('Counts/keV')
+
+    ## Options for plot_all_spec
+    if plot_pos is "corner":
+        plot.xlabel('Energy (keV)')
+        plot.ylabel('Counts/keV')
+        plot.tick_params(axis='x',which='both',bottom='on',labelbottom='on')
+    if plot_pos is "left":
+        plot.ylabel('Counts/keV')
+        plot.tick_params(axis='x',which='both',labelbottom='off')
+    if plot_pos is "bottom":
+        plot.xlabel('Energy (keV)')
+    if plot_pos is "center":
+        plot.tick_params(axis='x',which='both',labelbottom='off')
+
+        
 
     return
 #-------------------------------THIS PLOTS THE POWER SPECTRUM (FFT)--------------

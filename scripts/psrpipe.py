@@ -117,14 +117,14 @@ for obsdir in args.indirs:
         ufaevents = ufaevents + nevents
 
     if ufaevents < 40000000:
-        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0",
+        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0","--allspec","--alllc",
                "--lclog", "--useftools", "--extraphkshootrate", "--writebkf",
                "--eventshootrate",
                "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
                "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
                "--basename", path.join(pipedir,basename)+'_prefilt']
     else:
-        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0",
+        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0","--allspec","--alllc",
                "--lclog", "--useftools", "--extraphkshootrate", "--writebkf",
                "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
                "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
@@ -271,7 +271,7 @@ for obsdir in args.indirs:
             log.info('Found hot detectors {0}!!'.format(bad_dets))
         # Make intermediate eng plot to show bad detectors
         cmd = ["nicerql.py", "--save",
-               "--eng", intermediatename, "--lcbinsize", "4.0",
+               "--eng", intermediatename, "--lcbinsize", "4.0","--allspec","--alllc",
                "--basename", path.join(pipedir,basename)+"_intermediate"]
         runcmd(cmd)
 
@@ -298,7 +298,7 @@ for obsdir in args.indirs:
     # Make final clean plot
     cmd = ["nicerql.py", "--save",
            "--orb", path.join(pipedir,path.basename(orbfile)),
-           "--sci", "--eng", filteredname, "--lcbinsize", "4.0",
+           "--sci", "--eng", filteredname, "--lcbinsize", "4.0","--allspec","--alllc",
            "--basename", path.join(pipedir,basename)+"_cleanfilt"]
     if args.par is not None:
         cmd.append("--par")
@@ -356,7 +356,7 @@ if args.merge and (len(all_evfiles)>1) :
 
     # Make final merged clean plot
     cmd = ["nicerql.py", "--save", "--merge",
-           "--sci", outname, "--lcbinsize", "4.0",
+           "--sci", outname, "--lcbinsize", "4.0","--allspec","--alllc",
            "--basename", path.splitext(outname)[0]]
     if args.par is not None:
         log.warning('The use of par files requires a merged orbit file -- not implemented yet')

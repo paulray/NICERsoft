@@ -18,6 +18,8 @@ from nicer.cartographer import *
 from nicer.plotutils import *
 from nicer.sci_plots import sci_plots
 from nicer.eng_plots import eng_plots
+from nicer.eng_plots import plot_all_spectra
+from nicer.eng_plots import plot_all_lc
 from glob import glob
 import sys
 from nicer.bkg_plots import *
@@ -64,6 +66,8 @@ parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = '
 parser.add_argument("--readovs", help = "Filters events with overshoot > input number", nargs = '*', type = float, default = None)
 parser.add_argument("--gtirows",help="Select GTI rows", nargs = '*', type=int, default=None)
 parser.add_argument("--merge", help="when using a merged file, the OBSID keyword in header is updated (for plotting purposes)", action='store_true')
+parser.add_argument("--allspec",help = "Makes a figure will a spectrum for each DET_ID", action = 'store_true')
+parser.add_argument("--alllc",help = "Makes a figure will a lightcurve for each DET_ID", action = 'store_true')
 args = parser.parse_args()
 
 #------------------------------Getting the data and concatenating------------------------------
@@ -326,7 +330,7 @@ if args.eng:
             figure1.savefig('{0}_eng_{1:.1f}-{2:.1f}keV.png'.format(basename,args.emin,args.emax), dpi = 100)
         else:
             figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
-
+            
 # Science plot is light curve, spectrum, pulse profile, and PHA ratio plot (or poweer spectrum)
 if args.sci:
     # Make science plots using filtered events
@@ -364,6 +368,24 @@ if args.interactive:
     ILC = InteractiveLC(etable, args.lclog, gtitable, figure4, basename, binsize=1.0)
     ILC.getgoodtimes()
     ILC.writegti()
+
+# Plot all DetID spectra if --allspec
+if args.allspec:
+    log.info("")
+    figure5 = plot_all_spectra(etable, args, reset_rates, filttable, gtitable)
+    figure5.set_size_inches(16,12)
+    if args.save:
+        log.info('Writing all spectral plot {0}'.format(basename))
+        figure5.savefig('{0}_eng_AllSpec.png'.format(basename), dpi = 100)
+
+# Plot all DET_ID lightcurve if --alllc
+if args.alllc:
+    log.info("")
+    figure6 = plot_all_lc(etable, args, reset_rates, filttable, gtitable)
+    figure6.set_size_inches(16,12)
+    if args.save:
+        log.info('Writing all lightcurve plot {0}'.format(basename))
+        figure6.savefig('{0}_eng_AllLC.png'.format(basename), dpi = 100)
 
 # Show all plots at the end, if not saving
 if not args.save:
