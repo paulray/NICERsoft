@@ -65,3 +65,69 @@ def eng_plots(etable, args, reset_rates, filttable, gtitable):
         plot.figtext(.55, .05, 'IDS {0} are masked'.format(args.mask), fontsize=10)
 
     return figure1
+
+
+
+def plot_all_spectra(etable, args, reset_rates, filttable, gtitable):
+    #GRID SET UP
+    fig_all_spec = plot.figure(figsize = (11, 8.5), facecolor = 'white')    
+    ncols = 8
+    nbDET = len(IDS)
+    spec_grid = gridspec.GridSpec(nbDET // ncols , ncols)
+
+    # Plot spectrum of all detectors
+    for i, detid in enumerate(IDS):
+        row = (i // ncols)
+        col = i % ncols
+        idx = np.where(filttable['DET_ID']==detid)[0]
+        plot.subplot(spec_grid[row, col])
+        if col==0:
+            plot_energy_spec(filttable[idx],binscale=4.0,plot_pos='left')
+        if row == ((nbDET // ncols)-1):
+            plot_energy_spec(filttable[idx],binscale=4.0,plot_pos='bottom')
+        if (col==0) and (row == ((nbDET // ncols)-1) ):
+            plot_energy_spec(filttable[idx],binscale=4.0,plot_pos='corner')
+        if (col!=0) and (row != ((nbDET // ncols)-1) ):
+            plot_energy_spec(filttable[idx],binscale=4.0,plot_pos='center')
+        plot.title('DET_ID {0}'.format(detid))
+        
+    plot.subplots_adjust(left = .04, right = .99, bottom = .05, top = .94, wspace = .2, hspace = .2)
+    fig_all_spec.suptitle('Object: {0} at {1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS'].replace('T', ' at ')),fontsize=18)
+    
+    return fig_all_spec
+
+
+def plot_all_lc(etable, args, reset_rates, filttable, gtitable):
+    #GRID SET UP
+    fig_all_lc = plot.figure(figsize = (11, 8.5), facecolor = 'white')    
+    ncols = 8
+    nbDET = len(IDS)
+    lc_grid = gridspec.GridSpec(nbDET // ncols , ncols)
+    lc_grid.update(hspace=0.5)
+
+    # Plot lightcurve of all detectors
+    for i, detid in enumerate(IDS):
+        row = (i // ncols)
+        col = i % ncols
+        idx = np.where(filttable['DET_ID']==detid)[0]
+        plot.subplot(lc_grid[row, col])
+        if col==0:
+            meanrate, a = plot_light_curve(filttable[idx], args.lclog, gtitable, binsize=5*args.lcbinsize,plot_pos='left')
+
+        if row == ((nbDET // ncols)-1):
+            meanrate, a = plot_light_curve(filttable[idx], args.lclog, gtitable, binsize=5*args.lcbinsize,plot_pos='bottom')
+            plot.xlabel('Time (s)')
+            
+        if (col==0) and (row == ((nbDET // ncols)-1) ):
+            meanrate, a = plot_light_curve(filttable[idx], args.lclog, gtitable, binsize=5*args.lcbinsize,plot_pos='corner')
+            plot.xlabel('Time (s)')
+            
+        if (col!=0) and (row != ((nbDET // ncols)-1) ):
+            meanrate, a = plot_light_curve(filttable[idx], args.lclog, gtitable, binsize=5*args.lcbinsize,plot_pos='center')
+
+        plot.title('DET_ID {0}'.format(detid))
+
+    plot.subplots_adjust(left = .04, right = .99, bottom = .05, top = .94, wspace = .2, hspace = .0)
+    fig_all_lc.suptitle('Object: {0} at {1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS'].replace('T', ' at ')),fontsize=18)
+    
+    return fig_all_lc
