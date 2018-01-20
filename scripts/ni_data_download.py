@@ -194,7 +194,7 @@ for n,[no, row] in enumerate(source.iterrows()):
          try:
              dtime = datetime.strptime(row['Start TimeUTC'], "%Y-%m-%dT%H:%M:%S")
          except:
-             log.info("Time is NaN...Ignoring ObsID {}".format(obsid))
+             log.warning("Time is NaN...Ignoring ObsID {}".format(obsid))
              continue
  
          # Set the archive
@@ -231,7 +231,7 @@ for n,[no, row] in enumerate(source.iterrows()):
              try:
                  os.remove("{}.tar".format(obsid))
              except:
-                 log.info("{:3d} / {:3d} :: Cannot remove {}.tar. File not found".format(n+1, len(source), obsid))
+                 log.warning("{:3d} / {:3d} :: Cannot remove {}.tar. File not found".format(n+1, len(source), obsid))
                  continue
              
              if args.decryptkey:
