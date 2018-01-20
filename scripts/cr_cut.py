@@ -1,4 +1,4 @@
-#!/usr/bin/env pythonw
+#!/usr/bin/env python
 from __future__ import print_function, division
 import os, sys
 import matplotlib.pyplot as plt
@@ -49,6 +49,15 @@ try:
     check_call('nicerversion',env=os.environ)
 except:
     print("You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!", file=sys.stderr)
+    exit()
+
+################################################
+# Checking the presence of gti header and columns in data/
+gticolumns = path.join(datadir,'gti_columns.txt')
+gtiheader = path.join(datadir,'gti_header.txt')
+
+if not os.path.isfile(gtiheader) or not os.path.isfile(gticolumns):
+    log.error('The files gti_header.txt or gti_columns.txt are missing.  Check the {} directory'.format(os.path.abspath(datadir)))
     exit()
 
 ################################################
@@ -136,20 +145,8 @@ runcmd(cmd)
 
 ################################################
 ##  STEP 6 - Making the GTI file from the text file
-gticolumns = path.join(pipedir,'gti_columns.txt')
-if not os.path.isfile(gticolumns):
-    log.info('Making gti_columns.txt file, necessary for ftcreate')
-    f = open(gticolumns, 'w')
-    f.write("START D s\nSTOP D s\n")
-    f.close()
-
-gtiheader = path.join(pipedir,'gti_header.txt')
-if not os.path.isfile(gtiheader):
-    log.info('A text file (called gti_header.txt) is missing. It must contain the header info for the GTI file...Exiting...')
-    exit()
-
-log.info("Making the GTI file gti.fits from the TSTART/TEND file (gti_data.txt), column info file (gti_columns.txt), and header info file (gti_header.txt)")
-cmd = ['ftcreate', 'gti_columns.txt', 'gti_data.txt', 'gti.fits', 'headfile=gti_header.txt', 'extname="GTI"', 'clobber=yes']
+log.info("Making the GTI file gti.fits from the GTI data textfile")
+cmd = ['ftcreate', '{}'.format(gticolumns), 'gti_data.txt', 'gti.fits', 'headfile={}'.format(gtiheader), 'extname="GTI"', 'clobber=yes']
 runcmd(cmd)
 
 
