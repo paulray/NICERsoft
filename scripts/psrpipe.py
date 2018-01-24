@@ -94,6 +94,8 @@ if len(args.indirs)==1:
         inputdirs = args.indirs[0].split('@')[1]
         log.info('Reading input ObsID list: {}'.format(inputdirs))
         all_obsids = np.loadtxt(inputdirs,dtype=str)
+    else:
+        all_obsids = args.indirs
 else:
     all_obsids = args.indirs
 
