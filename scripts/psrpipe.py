@@ -81,7 +81,26 @@ def runcmd(cmd):
     log.info(cmd)
     check_call(cmd,env=os.environ)
 
-for obsdir in args.indirs:
+# Check if outdir contains 'None', 'NONE', or 'none' (causes bug in ni-extractevents)
+if args.outdir:
+    names = ['none', 'None', 'NONE']
+    if any(st in args.outdir for st in names):
+        log.error("Due to a current bug in ni-extractevents, --outdir cannot contain 'none', 'None', or 'NONE'.  Existing...")
+        exit()
+    
+# Check if ObsIDs are listed or to be read from file
+if len(args.indirs)==1:
+    if args.indirs[0].startswith('@'):
+        inputdirs = args.indirs[0].split('@')[1]
+        log.info('Reading input ObsID list: {}'.format(inputdirs))
+        all_obsids = np.loadtxt(inputdirs,dtype=str)
+    else:
+        all_obsids = args.indirs
+else:
+    all_obsids = args.indirs
+
+# Start processing all ObsIDs
+for obsdir in all_obsids:
 
     # Set up a basename and make a work directory
     if args.obsid is not None:
@@ -331,45 +350,59 @@ for obsdir in args.indirs:
 # Merging all ObsIDs
 if args.merge and (len(all_evfiles)>1) :
 
-    # Make directory for working files and output
-    pipedir = "merged_{0}".format(args.outdir)
-    if not os.path.exists(pipedir):
-        os.makedirs(pipedir)
-    log.info('Merging all ObsIDs into single event file with niextract-event')
+    ## Call merge.py
 
-    ## The list of event files all_evfiles is created in the loop above
-    all_evfiles.sort()
-    log.info('Cleaned Event Files to Merge: {0}'.format("\n      " + "\n      ".join(all_evfiles)))
-
-    # Build input file for niextract-events
-    evlistname=path.join(pipedir,'evfiles.txt')
-    fout = open(evlistname,'w')
-    for en in all_evfiles:
-        print('{0}'.format(en),file=fout)
-    fout.close()
-
-    # Build selection expression for niextract-events
-    outname = path.join(pipedir,"merged.evt")
-    cmd = ["niextract-events", "filename=@{0}".format(evlistname),
-        "eventsout={0}".format(outname), "clobber=yes"]
-    runcmd(cmd)
-
-    # Make final merged clean plot
-    cmd = ["nicerql.py", "--save", "--merge",
-           "--sci", outname, "--lcbinsize", "4.0","--allspec","--alllc",
-           "--basename", path.splitext(outname)[0]]
+    cmd = ["merge.py"]
+    for evt in all_evfiles:
+        cmd.append(evt)
+    cmd.append("merged")
+    cmd.append("merged_{0}".format(args.outdir))
+    cmd.append("--clobber")
     if args.par is not None:
-        log.warning('The use of par files requires a merged orbit file -- not implemented yet')
-        #cmd.append("--par")
-        #cmd.append("{0}".format(args.par))
+        cmd.append("--par")
+        cmd.append("{0}".format(args.par))
     runcmd(cmd)
 
-    # Extract simple PHA file and light curve
-    phafile = path.splitext(outname)[0] + ".pha"
-    lcfile = path.splitext(outname)[0] + ".lc"
-    cmd = ["extractor", outname, "eventsout=none", "imgfile=none",
-        "phafile={0}".format(phafile), "fitsbinlc={0}".format(lcfile),
-        "binlc=1.0", "regionfile=none", "timefile=none",
-        "xcolf=RAWX", "ycolf=RAWY", "tcol=TIME", "ecol=PI", "xcolh=RAWX",
-        "ycolh=RAWY", "gti=GTI"]
-    runcmd(cmd)
+    
+    # # Make directory for working files and output
+    # pipedir = "merged_{0}".format(args.outdir)
+    # if not os.path.exists(pipedir):
+    #     os.makedirs(pipedir)
+    # log.info('Merging all ObsIDs into single event file with niextract-event')
+
+    # ## The list of event files all_evfiles is created in the loop above
+    # all_evfiles.sort()
+    # log.info('Cleaned Event Files to Merge: {0}'.format("\n      " + "\n      ".join(all_evfiles)))
+
+    # # Build input file for niextract-events
+    # evlistname=path.join(pipedir,'evfiles.txt')
+    # fout = open(evlistname,'w')
+    # for en in all_evfiles:
+    #     print('{0}'.format(en),file=fout)
+    # fout.close()
+
+    # # Build selection expression for niextract-events
+    # outname = path.join(pipedir,"merged.evt")
+    # cmd = ["niextract-events", "filename=@{0}".format(evlistname),
+    #     "eventsout={0}".format(outname), "clobber=yes"]
+    # runcmd(cmd)
+
+    # # Make final merged clean plot
+    # cmd = ["nicerql.py", "--save", "--merge",
+    #        "--sci", outname, "--lcbinsize", "4.0","--allspec","--alllc",
+    #        "--basename", path.splitext(outname)[0]]
+    # if args.par is not None:
+    #     log.warning('The use of par files requires a merged orbit file -- not implemented yet')
+    #     #cmd.append("--par")
+    #     #cmd.append("{0}".format(args.par))
+    # runcmd(cmd)
+
+    # # Extract simple PHA file and light curve
+    # phafile = path.splitext(outname)[0] + ".pha"
+    # lcfile = path.splitext(outname)[0] + ".lc"
+    # cmd = ["extractor", outname, "eventsout=none", "imgfile=none",
+    #     "phafile={0}".format(phafile), "fitsbinlc={0}".format(lcfile),
+    #     "binlc=1.0", "regionfile=none", "timefile=none",
+    #     "xcolf=RAWX", "ycolf=RAWY", "tcol=TIME", "ecol=PI", "xcolh=RAWX",
+    #     "ycolh=RAWY", "gti=GTI"]
+    # runcmd(cmd)
