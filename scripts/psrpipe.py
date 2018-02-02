@@ -48,6 +48,7 @@ parser.add_argument("--maxovershoot",help="Select data where overshoot rate is b
     type=float,default=-1)
 parser.add_argument("--badcut",help="Select data where bad ratio event rate is below this limit (default: no filter)",
     type=float,default=-1)
+parser.add_argument("--angdist",help="Set threshold for ANG_DIST in call to nimaketime (degrees, default=0.015)", type=float, default=0.015)
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
     default=None)
 parser.add_argument("--dark", help="Apply SUNSHINE=0 filter to get only data in Earth shadow", action='store_true')
@@ -247,7 +248,7 @@ for obsdir in all_obsids:
         cor_string = "{0}-".format(args.cormin)
     cmd = ["nimaketime",  "infile={0}".format(mkfile),
         'outfile={0}'.format(gtiname_merged), 'nicersaafilt=YES',
-        'saafilt=NO', 'trackfilt=YES', 'ang_dist=0.015', 'elv=30',
+        'saafilt=NO', 'trackfilt=YES', 'ang_dist={0:.3f}'.format(args.angdist), 'elv=30',
         'br_earth=40', 'cor_range={0}'.format(cor_string), 'min_fpm=38',
         'ingtis={0}'.format(extragtis), "clobber=yes",
         'expr={0}'.format(extra_expr),
