@@ -33,6 +33,8 @@ parser.add_argument("infile", help="list of event files or text file with list",
 parser.add_argument("outroot", help="root of the output filenames", type=str)
 parser.add_argument("outdir", help="Name of output directories", type=str)
 parser.add_argument("--par", help="Par file to use for phases (in nicerql.py)")
+parser.add_argument("--orb", help="text file containing the paths to all orbits files")
+parser.add_argument("--cut", help="perform count rate cut at the end", action='store_true')
 parser.add_argument("--clobber", help="replace existing merged files", action='store_true')
 args = parser.parse_args()
 
@@ -62,6 +64,16 @@ def runcmd(cmd):
     log.info(cmd)
     check_call(cmd,env=os.environ)
 
+## Check if outdir contains 'None', 'NONE', or 'none' (causes bug in ni-extractevents)
+
+names = ['none', 'None', 'NONE']
+if any(st in args.outdir for st in names):
+    log.error("Due to a current bug in ni-extractevents, outdir cannot contain 'none', 'None', or 'NONE'.  Existing...")
+    exit()
+if any(st in args.outroot for st in names):
+    log.error("Due to a current bug in ni-extractevents, outroot cannot contain 'none', 'None', or 'NONE'.  Existing...")
+    exit()
+    
 # Make directory for working files if it does not exist
 pipedir = "{0}".format(args.outdir)
 if not os.path.exists(pipedir):
@@ -69,26 +81,41 @@ if not os.path.exists(pipedir):
     os.makedirs(pipedir)
 
 ## The list of event files all_evfiles is created in the loop above
-print(args.infile)
 if len(args.infile)==1:
     if args.infile[0].startswith('@'):
         inputfile = args.infile[0].split('@')[1]
         log.info('Reading input file list: {}'.format(inputfile))
         all_evfiles = open(inputfile,'r').readlines()
         if len(all_evfiles)==1:
-            log.warning('Why would you try to merge a single event file. Exiting...')
+            log.error('Why would you try to merge a single event file. Exiting...')
             exit()
-    else:
-        log.warning('Why would you try to merge a single event file. Exiting...')
-        exit()
 
+        ## if pa
+    else:
+        log.error('Why would you try to merge a single event file. Exiting...')
+        exit()
 else:
     all_evfiles = args.infile
 
-log.info('Event Files to Merge: {0}'.format("\n      " + "\n      ".join(all_evfiles)))
+log.info('Event Files to merge: {0}'.format("\n      " + "\n      ".join(all_evfiles)))
 log.info('NOTE: the input event files will be merged in that order')
 
-
+if args.par and args.orb:
+    if args.orb.startswith('@'):    
+        inputorb = args.orb.split('@')[1]
+    else:
+        inputorb = args.orb
+    all_orbfiles = open(inputorb,'r').readlines()
+    if len(all_evfiles)!=len(all_orbfiles):
+        log.error('Different numbers of event files and orbit files! Exiting...')
+        exit()
+    else:
+        log.info('Orbit Files to use: {0}'.format("\n      " + "\n      ".join(all_orbfiles)))
+else:
+    if (args.par and not args.orb) or (args.orb and not args.par):
+        log.error('You need both --par and --orb for the phase calculations! Exiting...')
+        exit()
+        
 # Build input file for niextract-events
 evlistname=path.join(pipedir,'evfiles.txt')
 fout = open(evlistname,'w')
@@ -105,15 +132,28 @@ if args.clobber is not None:
     cmd.append("clobber=yes")
 runcmd(cmd)
 
+# Call to cr_cut.py
+if args.cut:
+    cmd = ["cr_cut.py", "{}.evt".format(outname), "--lcfile {}".format(lcfile), "--plotfilt"]
+    runcmd(cmd)
+
 # Make final merged clean plot
 cmd = ["nicerql.py", "--save", "--merge",
        "--sci", outname, "--lcbinsize", "4.0","--allspec","--alllc",
        "--basename", path.splitext(outname)[0]]
 if args.par is not None:
-    log.warning('The use of par files requires a merged orbit file -- not implemented yet')
-    #cmd.append("--par")
-    #cmd.append("{0}".format(args.par))
+    cmd.append("--par")
+    cmd.append("{0}".format(args.par))
+    cmd.append("--orb")
+    cmd.append("@{0}".format(args.orb))
 runcmd(cmd)
+
+# Make Phaseogram 
+if args.par is not None:
+    plotfile = path.join(pipedir,"{}_phaseogram.png".format(args.outroot))
+    cmd = ["photonphase", "--fix", "--orb", "@{0}".format(args.orb) ,
+           "--plot", "--plotfile", plotfile, "--addphase", outname, args.par]
+    runcmd(cmd)
 
 # Extract simple PHA file and light curve
 phafile = path.join(pipedir,"{}.pha".format(args.outroot)) 
@@ -124,3 +164,5 @@ cmd = ["extractor", outname, "eventsout=none", "imgfile=none",
        "xcolf=RAWX", "ycolf=RAWY", "tcol=TIME", "ecol=PI", "xcolh=RAWX",
        "ycolh=RAWY", "gti=GTI"]
 runcmd(cmd)
+
+
