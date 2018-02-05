@@ -132,11 +132,6 @@ if args.clobber is not None:
     cmd.append("clobber=yes")
 runcmd(cmd)
 
-# Call to cr_cut.py
-if args.cut:
-    cmd = ["cr_cut.py", "{}.evt".format(outname), "--lcfile {}".format(lcfile), "--plotfilt"]
-    runcmd(cmd)
-
 # Make final merged clean plot
 cmd = ["nicerql.py", "--save", "--merge",
        "--sci", outname, "--lcbinsize", "4.0","--allspec","--alllc",
@@ -165,4 +160,37 @@ cmd = ["extractor", outname, "eventsout=none", "imgfile=none",
        "ycolh=RAWY", "gti=GTI"]
 runcmd(cmd)
 
+# Call to cr_cut.py
+if args.cut:
+    cmd = ["cr_cut.py", "{}".format(outname), "--plotfilt"]
+    runcmd(cmd)
 
+    outname_cut = path.join(pipedir,"{}_cut.evt".format(args.outroot))
+    
+    # Make final merged_cut clean plot
+    cmd = ["nicerql.py", "--save", "--merge",
+           "--sci", outname_cut, "--lcbinsize", "4.0","--allspec","--alllc",
+           "--basename", path.splitext(outname_cut)[0]]
+    if args.par is not None:
+        cmd.append("--par")
+        cmd.append("{0}".format(args.par))
+        cmd.append("--orb")
+        cmd.append("@{0}".format(args.orb))
+    runcmd(cmd)
+
+    # Make Phaseogram_Cut 
+    if args.par is not None:
+        plotfile = path.join(pipedir,"{}_cut_phaseogram.png".format(args.outroot))
+        cmd = ["photonphase", "--fix", "--orb", "@{0}".format(args.orb) ,
+               "--plot", "--plotfile", plotfile, "--addphase", outname_cut, args.par]
+        runcmd(cmd)
+        
+    # Extract simple PHA file and light curve
+    phafile_cut = path.join(pipedir,"{}_cut.pha".format(args.outroot)) 
+    lcfile_cut = path.join(pipedir,"{}_cut.lc".format(args.outroot)) 
+    cmd = ["extractor", outname_cut, "eventsout=none", "imgfile=none",
+           "phafile={0}".format(phafile_cut), "fitsbinlc={0}".format(lcfile_cut),
+           "binlc=1.0", "regionfile=none", "timefile=none",
+           "xcolf=RAWX", "ycolf=RAWY", "tcol=TIME", "ecol=PI", "xcolh=RAWX",
+           "ycolh=RAWY", "gti=GTI"]
+    runcmd(cmd)
