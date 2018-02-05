@@ -151,7 +151,7 @@ runcmd(cmd)
 ################################################
 ##  STEP 7 - Extracting the new event file using the new GTI file created
 log.info("Making the filtered event file using niextract-event and gti.fits")
-outevtfile = path.splitext(eventfile)[0] + "_filt.evt"
+outevtfile = path.splitext(eventfile)[0] + "_cut.evt"
 cmd = ['niextract-events', '{0}'.format(eventfile), '{0}'.format(outevtfile), 'timefile="gti.fits[GTI]"', 'clobber=yes']
 runcmd(cmd)
 
