@@ -65,19 +65,17 @@ desc = """
 Count rate cut on event file, using ftools (following method by S. Bogdanov).  Automatic if count rate cut is provided, ortherwise interactive (calling sci_plot) 
 """
 parser = argparse.ArgumentParser(description = desc)
-parser.add_argument("evfiles", help="event file", default = None)
+parser.add_argument("evfile", help="event file", default = None)
 parser.add_argument("--lcfile", help="Light curve file (optional)", type=str, default = None)
 parser.add_argument("--cut", help="Count rate cut in cts/sec (optional)", type=float, default=None)
 parser.add_argument("--timebin", help="Time bin width in sec (default = 4 sec)", type=float, default=4.0)
 parser.add_argument("--plotfilt", help="Ploting filtered lightcurve at the end", default=False, action='store_true')
 
 args = parser.parse_args()
-pipedir = os.getcwd()
-
 
 ################################################
 ##  STEP 0 - open event file and get GTI
-eventfile = path.join(pipedir,args.evfiles)
+eventfile = args.evfile
 etable = Table.read(eventfile,hdu=1)
 eventgti = getgti(eventfile)
 log.info('Changing name of TIME column of event file to MET (this is just for the nicer.plotutils.plot_light_curve call)')
@@ -95,7 +93,7 @@ if not args.lcfile:
         "xcolf=RAWX", "ycolf=RAWY", "tcol=TIME", "ecol=PI", "gti=GTI"]
     runcmd(cmd)
 else:
-    lcfile = path.join(pipedir,args.lcfile)
+    lcfile = args.lcfile
     log.info('Using light curve file provided: {0}'.format(lcfile)) 
 
 
@@ -153,7 +151,7 @@ runcmd(cmd)
 ################################################
 ##  STEP 7 - Extracting the new event file using the new GTI file created
 log.info("Making the filtered event file using niextract-event and gti.fits")
-outevtfile = path.splitext(eventfile)[0] + "_filt.evt"
+outevtfile = path.splitext(eventfile)[0] + "_cut.evt"
 cmd = ['niextract-events', '{0}'.format(eventfile), '{0}'.format(outevtfile), 'timefile="gti.fits[GTI]"', 'clobber=yes']
 runcmd(cmd)
 

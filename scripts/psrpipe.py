@@ -48,12 +48,14 @@ parser.add_argument("--maxovershoot",help="Select data where overshoot rate is b
     type=float,default=-1)
 parser.add_argument("--badcut",help="Select data where bad ratio event rate is below this limit (default: no filter)",
     type=float,default=-1)
+parser.add_argument("--angdist",help="Set threshold for ANG_DIST in call to nimaketime (degrees, default=0.015)", type=float, default=0.015)
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
     default=None)
 parser.add_argument("--dark", help="Apply SUNSHINE=0 filter to get only data in Earth shadow", action='store_true')
 parser.add_argument("--par", help="Par file to use for phases")
 parser.add_argument("--outdir", help="Add name to output directories (by default: directories end in '_pipe')", default='pipe')
 parser.add_argument("--merge", help="Merge all ObsIDs provided into single event list, lightcurve and spectrum (outputdir called 'merged')", action='store_true')
+parser.add_argument("--crcut", help="perform count rate cut on merged event file (only if --merge)", action='store_true')
 args = parser.parse_args()
 
 os.environ['HEADASNOQUERY'] = ' '
@@ -74,6 +76,7 @@ except:
 #print(os.environ['LD_LIBRARY_PATH'])
 
 all_evfiles = []
+all_orbfiles = []
 
 def runcmd(cmd):
     # CMD should be a list of strings since it is not processed by a shell
@@ -247,7 +250,7 @@ for obsdir in all_obsids:
         cor_string = "{0}-".format(args.cormin)
     cmd = ["nimaketime",  "infile={0}".format(mkfile),
         'outfile={0}'.format(gtiname_merged), 'nicersaafilt=YES',
-        'saafilt=NO', 'trackfilt=YES', 'ang_dist=0.015', 'elv=30',
+        'saafilt=NO', 'trackfilt=YES', 'ang_dist={0:.3f}'.format(args.angdist), 'elv=30',
         'br_earth=40', 'cor_range={0}'.format(cor_string), 'min_fpm=38',
         'ingtis={0}'.format(extragtis), "clobber=yes",
         'expr={0}'.format(extra_expr),
@@ -344,14 +347,16 @@ for obsdir in all_obsids:
     # if --merge option, Add clean evt file to list of files to merge
     if args.merge:
         all_evfiles.append(filteredname)
-
+        all_orbfiles.append(orbfile)
 
 
 # Merging all ObsIDs
 if args.merge and (len(all_evfiles)>1) :
+    ## save list of orbit files
+    orbfiles_list = path.join(os.getcwd(),"list_orbfiles.txt")
+    np.savetxt(orbfiles_list,all_orbfiles,fmt=['%s'])
 
     ## Call merge.py
-
     cmd = ["merge.py"]
     for evt in all_evfiles:
         cmd.append(evt)
@@ -361,48 +366,14 @@ if args.merge and (len(all_evfiles)>1) :
     if args.par is not None:
         cmd.append("--par")
         cmd.append("{0}".format(args.par))
+        cmd.append("--orb")
+        cmd.append("{0}".format(orbfiles_list))
+    if args.crcut:
+        cmd.append("--cut")
     runcmd(cmd)
 
+else:
+    if args.crcut:
+        log.warning("Count rate cuts are only performed on merged event files (add the option --merge)")
     
-    # # Make directory for working files and output
-    # pipedir = "merged_{0}".format(args.outdir)
-    # if not os.path.exists(pipedir):
-    #     os.makedirs(pipedir)
-    # log.info('Merging all ObsIDs into single event file with niextract-event')
-
-    # ## The list of event files all_evfiles is created in the loop above
-    # all_evfiles.sort()
-    # log.info('Cleaned Event Files to Merge: {0}'.format("\n      " + "\n      ".join(all_evfiles)))
-
-    # # Build input file for niextract-events
-    # evlistname=path.join(pipedir,'evfiles.txt')
-    # fout = open(evlistname,'w')
-    # for en in all_evfiles:
-    #     print('{0}'.format(en),file=fout)
-    # fout.close()
-
-    # # Build selection expression for niextract-events
-    # outname = path.join(pipedir,"merged.evt")
-    # cmd = ["niextract-events", "filename=@{0}".format(evlistname),
-    #     "eventsout={0}".format(outname), "clobber=yes"]
-    # runcmd(cmd)
-
-    # # Make final merged clean plot
-    # cmd = ["nicerql.py", "--save", "--merge",
-    #        "--sci", outname, "--lcbinsize", "4.0","--allspec","--alllc",
-    #        "--basename", path.splitext(outname)[0]]
-    # if args.par is not None:
-    #     log.warning('The use of par files requires a merged orbit file -- not implemented yet')
-    #     #cmd.append("--par")
-    #     #cmd.append("{0}".format(args.par))
-    # runcmd(cmd)
-
-    # # Extract simple PHA file and light curve
-    # phafile = path.splitext(outname)[0] + ".pha"
-    # lcfile = path.splitext(outname)[0] + ".lc"
-    # cmd = ["extractor", outname, "eventsout=none", "imgfile=none",
-    #     "phafile={0}".format(phafile), "fitsbinlc={0}".format(lcfile),
-    #     "binlc=1.0", "regionfile=none", "timefile=none",
-    #     "xcolf=RAWX", "ycolf=RAWY", "tcol=TIME", "ecol=PI", "xcolh=RAWX",
-    #     "ycolh=RAWY", "gti=GTI"]
-    # runcmd(cmd)
+    
