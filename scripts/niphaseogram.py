@@ -138,10 +138,15 @@ if options.radio is not None:
     #x = np.arange(len(y))/len(y)
     #y = psr_utils.fft_rotate(y,0.2498*len(x))
     #y=y-y[20:50].mean()
+
+    if len(y) > options.nbins:
+	    # Average every N points to bring the profile down to nbins
+	    y = y.reshape((options.nbins,int(len(y)/options.nbins)))
+	    y = np.mean(y,1)
     y = y-y.min()
     y = y/y.max()
     y = y*(py.max()-py.min()) + py.min()
-    #y=y*(py.max()/y.max())
+
     pylab.plot(np.arange(2.0*len(y))/len(y),np.concatenate((y,y)),linewidth=1.5,color='r')
 
 #pylab.subplots_adjust(hspace=0)
