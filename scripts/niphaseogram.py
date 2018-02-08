@@ -8,7 +8,6 @@
 # Then, fits TOAs and outputs them in tempo2 format.
 from __future__ import division, print_function
 import sys, math, os
-from commands import getstatusoutput
 from optparse import OptionParser
 import numpy as np
 import pylab
