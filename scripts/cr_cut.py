@@ -66,7 +66,7 @@ Count rate cut on event file, using ftools (following method by S. Bogdanov).  A
 """
 parser = argparse.ArgumentParser(description = desc)
 parser.add_argument("evfile", help="event file", default = None)
-parser.add_argument("--lcfile", help="Light curve file (optional)", type=str, default = None)
+parser.add_argument("--lcfile", help="Light curve file (optional)", type=str, default=None)
 parser.add_argument("--cut", help="Count rate cut in cts/sec (optional)", type=float, default=None)
 parser.add_argument("--timebin", help="Time bin width in sec (default = 4 sec)", type=float, default=4.0)
 parser.add_argument("--plotfilt", help="Ploting filtered lightcurve at the end", default=False, action='store_true')
@@ -166,7 +166,7 @@ if args.plotfilt:
     plt.xlabel('Time Elapsed (s)')
     plt.grid()
     plt.show()
-    plt.clf()
+    #plt.clf()
 
     
 ################################################

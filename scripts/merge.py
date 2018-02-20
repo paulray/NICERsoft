@@ -31,7 +31,7 @@ The PULSE_PHASE column will be ignored for the nicerql.py plot, since it require
 parser = argparse.ArgumentParser(description = desc)
 parser.add_argument("infile", help="list of event files or text file with list", nargs='+')
 parser.add_argument("outroot", help="root of the output filenames", type=str)
-parser.add_argument("outdir", help="Name of output directories", type=str)
+parser.add_argument("outdir", help="Name of output directory", type=str)
 parser.add_argument("--par", help="Par file to use for phases (in nicerql.py)")
 parser.add_argument("--orb", help="text file containing the paths to all orbits files")
 parser.add_argument("--cut", help="perform count rate cut at the end", action='store_true')

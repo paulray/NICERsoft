@@ -34,19 +34,31 @@ parser.add_argument("--unzip",      help="Gunzip after decrypting", action='stor
 args = parser.parse_args()
 
 # ----------------------------------------------------------------------
-# Checking the presence of GPG or GPG2 --- THIS DOES NOT WORK AT THE MOMENT
+# Checking the presence of GPG or GPG2
 # ----------------------------------------------------------------------
-# if args.decryptkey:
-#     try:
-#         os.system('gpg --version')  #subprocess.check_output('gpg',env=os.environ)
-#     except OSError:
-#         print("GPG not found...Trying gpg2...", file=sys.stderr)
-#         try:
-#             os.system('gpg2 --version')    
-#         except OSError:
-#             print("GPG2 not found either...Exiting...", file=sys.stderr)
-#             exit()
-
+gpg_version = 'gpg'
+if args.decryptkey:
+    try:
+        cmd = ["{}".format(gpg_version),"--version"]
+        subprocess.call(cmd)
+    except OSError as e:
+        if e.errno == os.errno.ENOENT:
+            log.warning("gpg not found...Trying gpg2")
+            gpg_version = 'gpg2'
+            cmd = ["{}".format(gpg_version),"--version"]
+            try:
+                subprocess.call(cmd)
+            except OSError as e:
+                if e.errno == os.errno.ENOENT:
+                    log.warning("gpg2 not found...No decryption will be performed")
+                    exit()
+                else:
+                    log.error("Something went wrong while trying to run gpg2")
+                    raise
+        else:
+            log.error("Something went wrong while trying to run gpg")
+            raise
+log.info("{} will be used".format(gpg_version))
 
 # ----------------------------------------------------------------------
 #   HEASARC scraper
@@ -83,14 +95,18 @@ def print_nicer_segment(url = 'https://heasarc.gsfc.nasa.gov/docs/nicer/team_sch
 # ----------------------------------------------------------------------
 #   file handling
 # ----------------------------------------------------------------------
-
 def untar(obsid,outdir):
     cmd = "tar -xf {}.tar --directory {}".format(obsid,outdir)
     os.system(cmd)
 
-def decrypt(passwd,obsid_dir):
-    cmd = "find {} -name '*.gpg' -exec gpg --batch --yes --passphrase '{}'  {{}} \; -delete".format(obsid_dir, passwd)
-    os.system(cmd+" 2>> ni-gpg-call.log")
+def decrypt(passwd,obsid_dir,gpg_v):
+    cmd = "find {} -name '*.gpg' -exec {} --batch --yes --passphrase '{}'  {{}} \; -delete".format(obsid_dir, gpg_v, passwd)
+    print(obsid_dir)
+    try:
+        os.remove("{}/ni-gpg-call.log".format(obsid_dir))
+    except OSError:
+        pass
+    os.system(cmd+" 2>> {}/ni-gpg-call.log".format(obsid_dir))
 
 def unzip(obsid_dir):
     cmd = "find {} -name '*.gz' -exec gunzip {{}} \;".format(obsid_dir)
@@ -113,14 +129,6 @@ if args.unzip:
         print("")
         parser.print_help()
         exit()
-
-if args.decryptkey:
-    #log.info("Removing log file ni-gpg-call.log")
-    try:
-        os.remove("ni-gpg-call.log")
-    except OSError:
-        pass
-
 
 # Set up work directory
 if args.outdir:
@@ -219,9 +227,6 @@ for n,[no, row] in enumerate(source.iterrows()):
          if not matchedfiles or args.clobber:
              # Build the download command
              cmd = "curl --retry 10 {0}{1} --create-dirs -o {1}".format(base, target)
-             print(cmd)
-             
-             #  Download files 
              log.info("{:3d} / {:3d} :: Trying: curl obsid {}.tar".format(n+1, len(source), obsid))
              os.system(cmd)
 
@@ -237,8 +242,8 @@ for n,[no, row] in enumerate(source.iterrows()):
              if args.decryptkey:
                  decryptOK = True
                  log.info("{:3d} / {:3d} :: De-crypting ObsID {}".format(n+1, len(source), obsid))
-                 decrypt(args.decryptkey,os.path.join(workingdir,obsid))
-                 if 'bad key' in open('ni-gpg-call.log').read():
+                 decrypt(args.decryptkey,os.path.join(workingdir,obsid),gpg_version)
+                 if ('decryption failed') in open('{}/ni-gpg-call.log'.format(os.path.join(workingdir,obsid))).read():
                      log.warning('A bad key was provided. Decrypting was not performed!')
                      if args.unzip:
                          log.warning('A bad key was provided. Skipping unzip!')
@@ -258,8 +263,8 @@ for n,[no, row] in enumerate(source.iterrows()):
                  matchedfiles = check_files('*gpg'.format(obsid),workingdir)
                  if matchedfiles:
                      log.info("{:3d} / {:3d} :: De-crypting ObsID {}".format(n+1, len(source), obsid))
-                     decrypt(args.decryptkey,os.path.join(workingdir,obsid))
-                     if 'bad key' in open('ni-gpg-call.log').read():
+                     decrypt(args.decryptkey,os.path.join(workingdir,obsid),gpg_version)
+                     if 'decryption failed' in open('{}/ni-gpg-call.log'.format(os.path.join(workingdir,obsid))).read():
                          log.warning('A bad key was provided. Decrypting was not performed!')
                          if args.unzip:
                              log.warning('A bad key was provided. Skipping unzip!')
@@ -272,11 +277,6 @@ for n,[no, row] in enumerate(source.iterrows()):
                  if matchedfiles:
                      log.info("{:3d} / {:3d} :: unzipping all files of #{}".format(n+1, len(source), obsid))
                      unzip(os.path.join(workingdir,obsid))
-                 
-try:
-    shutil.move("ni-gpg-call.log", os.path.join(workingdir,"ni-gpg-call.log"))
-except OSError:
-    pass
     
 log.info(" --| DONE DOWNLOADING DATA FOR {0}|-- ".format(args.sourcename))
 print("")
