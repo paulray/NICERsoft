@@ -47,9 +47,9 @@ for i in xrange(m):
     cache[i,1] = np.sin(phasesinitial*(2*np.pi*(i+1)))
 cached_hm._cache = cache
 
-emins = np.arange(0.25,4.0,0.025)
+emins = np.arange(0.25,4.00,0.02)
 for emin in emins:
-    emaxs = np.arange(emin+0.1,12.01,0.1)
+    emaxs = np.arange(emin+0.10,12.01,0.10)
     for emax in emaxs:
         mask = np.logical_and(etable['PI']*PI_TO_KEV>emin,
             etable['PI']*PI_TO_KEV<emax)
