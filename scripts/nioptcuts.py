@@ -25,7 +25,11 @@ args = parser.parse_args()
 tlist = []
 for fn in args.evfiles:
     log.info('Reading file {0}'.format(fn))
-    tlist.append(Table.read(fn,hdu=1))
+    t = Table.read(fn,hdu=1)
+    if len(t) == 0:
+        continue
+    tlist.append(t)
+
 log.info('Concatenating files')
 if len(tlist) == 1:
     etable = tlist[0]
