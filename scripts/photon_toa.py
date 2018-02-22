@@ -112,12 +112,10 @@ else:
     sys.exit(1)
 
 # Now convert to TOAs object and compute TDBs and posvels
-ts = pint.toa.TOAs(toalist=tl)
+ts = pint.toa.get_TOAs_list(tl,ephem=args.ephem,planets=planets)
 ts.filename = args.eventname
 if args.fix:
     ts.adjust_TOAs(TimeDelta(np.ones(len(ts.table))*-1.0*u.s,scale='tt'))
-ts.compute_TDBs()
-ts.compute_posvels(ephem=args.ephem,planets=planets)
 
 print(ts.get_summary())
 mjds = ts.get_mjds()

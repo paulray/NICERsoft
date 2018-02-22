@@ -52,11 +52,14 @@ if options.weights is not None:
     weights = evdat.field(options.weights)
 
 # FILTER ON ENERGY
-en = evdat.field('PI')*PI_TO_KEV
-idx = np.where(np.logical_and((en>=options.emin),(en<=options.emax)))
-mjds = mjds[idx]
-phases = phases[idx]
-log.info("Energy cuts left %d out of %d events." % (len(mjds),len(mets)))
+try:
+    en = evdat.field('PI')*PI_TO_KEV
+    idx = np.where(np.logical_and((en>=options.emin),(en<=options.emax)))
+    mjds = mjds[idx]
+    phases = phases[idx]
+    log.info("Energy cuts left %d out of %d events." % (len(mjds),len(mets)))
+except:
+    log.warning('PI column not found. No energy cuts applied')
 
 TSTART = float(evhdr['TSTART'])
 TSTARTtime = MET0 + TSTART*u.s

@@ -22,8 +22,8 @@ platform = 'ISS (ZARYA)'
 
 parser = argparse.ArgumentParser(description="Compute ISS orbit geometry vs time")
 parser.add_argument("sourcename",help="Source name to look up coordinates")
-parser.add_argument("-ra ",  dest='ra', help="Source RA  [default: lookup]", default=None)
-parser.add_argument("-dec", dest='dec',help="Source DEC [default: lookup]", default=None)
+parser.add_argument("--ra ",  dest='ra', help="Source RA  [default: lookup]", default=None)
+parser.add_argument("--dec", dest='dec',help="Source DEC [default: lookup]", default=None)
 parser.add_argument("--vis", help="Visibility file from Wayne", default=None)
 args = parser.parse_args()
 
