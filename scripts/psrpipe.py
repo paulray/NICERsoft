@@ -53,6 +53,7 @@ parser.add_argument("--obsid", help="Use this as OBSID for directory and filenam
     default=None)
 parser.add_argument("--dark", help="Apply SUNSHINE=0 filter to get only data in Earth shadow", action='store_true')
 parser.add_argument("--par", help="Par file to use for phases")
+parser.add_argument("--ephem", help="Ephem to use with photonphase", default="DE421")
 parser.add_argument("--outdir", help="Add name to output directories (by default: directories end in '_pipe')", default='pipe')
 parser.add_argument("--merge", help="Merge all ObsIDs provided into single event list, lightcurve and spectrum (outputdir called 'merged')", action='store_true')
 parser.add_argument("--crcut", help="perform count rate cut on merged event file (only if --merge)", action='store_true')
@@ -330,7 +331,7 @@ for obsdir in all_obsids:
     # Add phases
     if args.par is not None:
         plotfile = path.join(pipedir,"phaseogram.png")
-        cmd = ["photonphase", "--fix", "--orb", orbfile, "--plot", "--plotfile",
+        cmd = ["photonphase", "--ephem", args.ephem, "--fix", "--orb", orbfile, "--plot", "--plotfile",
             plotfile, "--addphase", filteredname, args.par]
         runcmd(cmd)
 

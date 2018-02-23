@@ -199,9 +199,9 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0, noplot=False, plot_po
         if plot_pos is "center":
             plot.tick_params(axis='x',which='both',labelbottom='off')
 
-   
 
-            
+
+
     return mean_rate, sums
 
 #-------------------------------THIS PLOTS THE FAST TO SLOW___------------------
@@ -308,7 +308,7 @@ def plot_energy_spec(etable,binscale=1.0,plot_pos=None):
     if plot_pos is "center":
         plot.tick_params(axis='x',which='both',labelbottom='off')
 
-        
+
 
     return
 #-------------------------------THIS PLOTS THE POWER SPECTRUM (FFT)--------------
@@ -432,6 +432,11 @@ def pulse_profile(ax, etable, args):
     log.info('Setting up NICER observatory')
     NICERObs(name='NICER',FPorbname=args.orb,tt2tdb_mode='none')
 
+    log.info('Reading model from PARFILE')
+    # Load PINT model objects
+    modelin = pint.models.get_model(args.par)
+    log.info(str(modelin))
+
     # Read event file and return list of TOA objects
     log.info('doing the load_toas thing')
     #tl  = load_NICER_TOAs(pulsefilename[0])
@@ -441,17 +446,17 @@ def pulse_profile(ax, etable, args):
     for t in etable['T']:
         tl.append(pint.toa.TOA(t, obs='NICER'))
 
-    ts = pint.toa.get_TOAs_list(tl)
+    planets=False
+    if 'PLANET_SHAPIRO' in modelin.params:
+        if modelin.PLANET_SHAPIRO.value:
+            planets=True
+    ts = pint.toa.get_TOAs_list(tl,planets=planets,include_bipm=False,include_gps=False)
     log.warning('Applying -1.0s time correction to event time TOAs for pulse phase plot')
     ts.adjust_TOAs(TimeDelta(np.ones(len(ts.table))*-1.0*u.s,scale='tt'))
 # Note: adjust_TOAs recomputes TDBs and posvels so no need to do again.
 #    ts.compute_TDBs()
 #    ts.compute_posvels(ephem='DE421',planets=True)
 
-    log.info('Did all the stuff, now to PARFILE')
-    # Load PINT model objects
-    modelin = pint.models.get_model(args.par)
-    log.info(str(modelin))
 
     # Compute phases
     phss = modelin.phase(ts.table)[1]
