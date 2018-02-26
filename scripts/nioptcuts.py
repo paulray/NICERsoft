@@ -20,6 +20,7 @@ def cached_hm(mask):
 parser = argparse.ArgumentParser(description="Read event file with phase and optimize cuts")
 parser.add_argument("evfiles", help="Name of event files to process", nargs='+')
 parser.add_argument("--noplot", help="Suppress plotting.", action="store_true",default=False)
+parser.add_argument("--bins",help="Number of bins in profile (default = 32).", type=int, default=32)
 args = parser.parse_args()
 
 tlist = []
@@ -69,11 +70,11 @@ print("Best emin {0} emax {1}".format(eminbest,emaxbest))
 
 if not args.noplot:
     fig,ax = plt.subplots()
-    ax.hist(phasesinitial, bins = 32)
+    ax.hist(phasesinitial, bins = args.bins)
     idx = np.where(np.logical_and(etable['PI']*PI_TO_KEV>eminbest,
          etable['PI']*PI_TO_KEV<emaxbest))[0]
     phases = etable['PULSE_PHASE'][idx]
-    ax.hist(phases,bins=32)
+    ax.hist(phases,bins = args.bins)
     ax.text(0.1, 0.1, 'H = {0:.2f}'.format(hbest), transform=ax.transAxes)
     ax.set_ylabel('Counts')
     ax.set_xlabel('Pulse Phase')
