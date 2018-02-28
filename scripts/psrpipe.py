@@ -139,7 +139,7 @@ for obsdir in all_obsids:
         hdulist.close()
         ufaevents = ufaevents + nevents
 
-    if ufaevents < 40000000:
+    if ufaevents < 10000000:
         cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0","--allspec","--alllc",
                "--lclog", "--useftools", "--extraphkshootrate", "--writebkf",
                "--eventshootrate",
@@ -156,9 +156,9 @@ for obsdir in all_obsids:
         cmd.append("--mask")
         for detid in args.mask:
             cmd.append("{0}".format(detid))
-    if args.par is not None:
-        cmd.append("--par")
-        cmd.append("{0}".format(args.par))
+#    if args.par is not None:
+#        cmd.append("--par")
+#        cmd.append("{0}".format(args.par))
 #    if (args.maxovershoot>0) or (args.badcut>0):
 #        cmd.append("--writebkf")
     runcmd(cmd)
@@ -336,6 +336,7 @@ for obsdir in all_obsids:
     # Add phases
     if args.par is not None:
         plotfile = path.join(pipedir,"phaseogram.png")
+        log.info('Applying phases to {0}'.format(filteredname))
         if fits.getval(filteredname,"TIMEZERO",ext=1) < 0.0:
             log.info('Event file has TIMZERO < 0, so not applying --fix in photonphase!')
             cmd = ["photonphase", "--ephem", args.ephem, "--orb", orbfile, "--plot", "--plotfile",
