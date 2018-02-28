@@ -57,10 +57,10 @@ class NicerFileSet:
         # Get name of filter (.mkf) file
         self.mkfile = glob(path.join(args.obsdir,'auxil/ni*.mkf*'))[0]
         self.mktable = Table.read(self.mkfile,hdu=1)
-        if 'TIMEZERO' in mktable.meta:
-            log.info('Applying TIMEZERO of {0} to mktable in NicerFileSet'.format(mktable.meta['TIMEZERO']))
-            mktable['TIME'] += mktable.meta['TIMEZERO']
-            mktable.meta['TIMEZERO'] = 0.0
+        if 'TIMEZERO' in self.mktable.meta:
+            log.info('Applying TIMEZERO of {0} to mktable in NicerFileSet'.format(self.mktable.meta['TIMEZERO']))
+            self.mktable['TIME'] += self.mktable.meta['TIMEZERO']
+            self.mktable.meta['TIMEZERO'] = 0.0
 
         # Make lat, lon interpolater from mktable
         self.llinterp = LatLonInterp(self.mktable['TIME'], self.mktable['SAT_LAT'], self.mktable['SAT_LON'])
