@@ -45,6 +45,10 @@ def filtallandmerge_ftools(evfiles,workdir=None):
 
     # Read merged event FITS file into a Table
     etable = Table.read(mergedname,hdu=1)
+    # Apply TIMEZERO if needed
+    if 'TIMEZERO' in etable.meta:
+        log.info('Applying TIMEZERO of {0} to etable in filtallandmerge'.format(etable.meta['TIMEZERO']))
+        etable['TIME'] += etable.meta['TIMEZERO']
 
     # Clean up
     os.remove(evlistname)
@@ -74,6 +78,9 @@ def get_eventovershoots_ftools(evfiles,workdir=None):
 
     # Read merged event FITS file into a Table
     etable = Table.read(mergedname,hdu=1)
+    if 'TIMEZERO' in etable.meta:
+        log.info('Applying TIMEZERO of {0} to etable in get_eventovershoots'.format(etable.meta['TIMEZERO']))
+        etable['TIME'] += etable.meta['TIMEZERO']
 
     # Clean up
     os.remove(evlistname)
@@ -103,6 +110,9 @@ def get_eventundershoots_ftools(evfiles,workdir=None):
 
     # Read merged event FITS file into a Table
     etable = Table.read(mergedname,hdu=1)
+    if 'TIMEZERO' in etable.meta:
+        log.info('Applying TIMEZERO of {0} to etable in get_eventundershoots'.format(etable.meta['TIMEZERO']))
+        etable['TIME'] += etable.meta['TIMEZERO']
 
     # Clean up
     os.remove(evlistname)
@@ -133,6 +143,9 @@ def get_eventbothshoots_ftools(evfiles,workdir=None):
 
     # Read merged event FITS file into a Table
     etable = Table.read(mergedname,hdu=1)
+    if 'TIMEZERO' in etable.meta:
+        log.info('Applying TIMEZERO of {0} to etable in get_eventbothshoots'.format(etable.meta['TIMEZERO']))
+        etable['TIME'] += etable.meta['TIMEZERO']
 
     # Clean up
     os.remove(evlistname)
@@ -162,6 +175,9 @@ def get_badratioevents_ftools(evfiles,workdir=None):
 
     # Read merged event FITS file into a Table
     etable = Table.read(mergedname,hdu=1)
+    if 'TIMEZERO' in etable.meta:
+        log.info('Applying TIMEZERO of {0} to etable in get_badratioevents'.format(etable.meta['TIMEZERO']))
+        etable['TIME'] += etable.meta['TIMEZERO']
 
     # Clean up
     os.remove(evlistname)

@@ -63,7 +63,6 @@ parser.add_argument("--applygti",help="Read GTI from provided FITS file", defaul
 parser.add_argument("--extraphkshootrate",help="Compute HK shoot rates from a single MPU", action='store_true')
 parser.add_argument("--eventshootrate",help="Gets over/undershoot rates from the events", action='store_true')
 parser.add_argument("--interactive", help= "TEST FOR INTERACTIVE LC", action = 'store_true')
-parser.add_argument("--readovs", help = "Filters events with overshoot > input number", nargs = '*', type = float, default = None)
 parser.add_argument("--gtirows",help="Select GTI rows", nargs = '*', type=int, default=None)
 parser.add_argument("--merge", help="when using a merged file, the OBSID keyword in header is updated (for plotting purposes)", action='store_true')
 parser.add_argument("--allspec",help = "Makes a figure will a spectrum for each DET_ID", action = 'store_true')
@@ -97,10 +96,19 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
                 etable = tlist[0]
             else:
                 etable = vstack(tlist,metadata_conflicts='silent')
+            if 'TIMEZERO' in etable.meta:
+                log.info('Applying TIMEZERO of {0} to etable'.format(etable.meta['TIMEZERO']))
+                etable['TIME'] += etable.meta['TIMEZERO']
+                etable.meta['TIMEZERO'] = 0.0
             del tlist
 
         # Read the GTIs from the first event FITS file
         gtitable = Table.read(args.infiles[0],hdu=2)
+        if 'TIMEZERO' in gtitable.meta:
+            log.info('Applying TIMEZERO of {0} to self.gtitable in NicerFileSet'.format(gtitable.meta['TIMEZERO']))
+            gtitable['START'] += gtitable.meta['TIMEZERO']
+            gtitable['STOP'] += gtitable.meta['TIMEZERO']
+            gtitable.meta['TIMEZERO'] = 0.0
         log.info('Got the good times from GTI')
         gtitable['DURATION'] = gtitable['STOP']- gtitable['START']
         # Only keep GTIs longer than 16 seconds
@@ -230,11 +238,6 @@ if args.obsdir is not None:
 if args.writebkf:
     data.writebkffile()
 
-if np.logical_and(args.readovs is not None, args.writebkf == True):
-    ovsfile = "{0}.ovs".format(basename)
-    ovstable = Table.read(ovsfile,hdu=1)
-    print(ovstable)
-
 #---------------------------------------------Filting all the data as necessary!---------------------------------------------------------------
 log.info('Filtering...')
 filt_str = 'Filter: {0:.2f} < E < {1:.2f} keV'.format(args.emin,args.emax)
@@ -291,6 +294,11 @@ if args.par is not None:
 
 if args.applygti is not None:
     g = Table.read(args.applygti)
+    if 'TIMEZERO' in g.meta:
+        log.info('Applying TIMEZERO of {0} to self.gtitable in NicerFileSet'.format(g.meta['TIMEZERO']))
+        g['START'] += g.meta['TIMEZERO']
+        g['STOP'] += g.meta['TIMEZERO']
+        g.meta['TIMEZERO'] = 0.0
     log.info('Applying external GTI from {0}'.format(args.applygti))
     g['DURATION'] = g['STOP']-g['START']
     # Only keep GTIs longer than 16 seconds
@@ -330,7 +338,7 @@ if args.eng:
             figure1.savefig('{0}_eng_{1:.1f}-{2:.1f}keV.png'.format(basename,args.emin,args.emax), dpi = 100)
         else:
             figure1.savefig('{0}_eng.png'.format(basename), dpi = 100)
-            
+
 # Science plot is light curve, spectrum, pulse profile, and PHA ratio plot (or poweer spectrum)
 if args.sci:
     # Make science plots using filtered events

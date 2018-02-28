@@ -17,7 +17,7 @@ from nicer.plotutils import plot_light_curve
 
 ############################################################################################
 ## Code based on method by S. Bogdanov
-## Code still in development. 
+## Code still in development.
 ##
 ## TO DO:
 ##  - fix the os.system() or check_call()
@@ -40,6 +40,13 @@ def runcmd(cmd):
 def getgti(evf):
     # Read the GTIs from the  event FITS file
     gtitable = Table.read(evf,hdu=2)
+    # Apply TIMEZERO if needed
+    if 'TIMEZERO' in gtitable.meta:
+        log.info('Applying TIMEZERO of {0} to gtitable'.format(gtitable.meta['TIMEZERO']))
+        gtitable['START'] += gtitable.meta['TIMEZERO']
+        gtitable['STOP'] += gtitable.meta['TIMEZERO']
+        gtitable.meta['TIMEZERO'] = 0.0
+
     return gtitable
 
 
@@ -62,7 +69,7 @@ if not os.path.isfile(gtiheader) or not os.path.isfile(gticolumns):
 
 ################################################
 desc = """
-Count rate cut on event file, using ftools (following method by S. Bogdanov).  Automatic if count rate cut is provided, ortherwise interactive (calling sci_plot) 
+Count rate cut on event file, using ftools (following method by S. Bogdanov).  Automatic if count rate cut is provided, ortherwise interactive (calling sci_plot)
 """
 parser = argparse.ArgumentParser(description = desc)
 parser.add_argument("evfile", help="event file", default = None)
@@ -77,6 +84,11 @@ args = parser.parse_args()
 ##  STEP 0 - open event file and get GTI
 eventfile = args.evfile
 etable = Table.read(eventfile,hdu=1)
+if 'TIMEZERO' in etable.meta:
+    log.info('Applying TIMEZERO of {0} to etable'.format(etable.meta['TIMEZERO']))
+    etable['TIME'] += etable.meta['TIMEZERO']
+    etable.meta['TIMEZERO'] = 0.0
+
 eventgti = getgti(eventfile)
 log.info('Changing name of TIME column of event file to MET (this is just for the nicer.plotutils.plot_light_curve call)')
 etable.columns['TIME'].name = 'MET'
@@ -85,7 +97,7 @@ etable.columns['TIME'].name = 'MET'
 ################################################
 ##  STEP 1 -- making light curve
 if not args.lcfile:
-    log.info('No light curve file provided. Making light curve with timebin {0} sec'.format(args.timebin))    
+    log.info('No light curve file provided. Making light curve with timebin {0} sec'.format(args.timebin))
     lcfile = path.splitext(eventfile)[0] + ".lcurve"
     cmd = ["extractor", eventfile, "eventsout=none", "imgfile=none",
         "phafile=none", "fitsbinlc={0}".format(lcfile),
@@ -94,7 +106,7 @@ if not args.lcfile:
     runcmd(cmd)
 else:
     lcfile = args.lcfile
-    log.info('Using light curve file provided: {0}'.format(lcfile)) 
+    log.info('Using light curve file provided: {0}'.format(lcfile))
 
 
 ################################################
@@ -102,7 +114,7 @@ else:
 if  args.cut:
     log.info("The count rate cut will be performed at {0} cts/sec".format(args.cut))
     CRcut = args.cut
-else:        
+else:
     log.info("No cut provided. I will now show you the light curve to choose: Please close the display and enter your CRcut")
     plt.subplot(1,1,1)
     meanrate, a = plot_light_curve(etable, False, eventgti, binsize=args.timebin)
@@ -115,7 +127,7 @@ else:
     CRcut = input('Choose your count rate cut: ')
     log.info("The count rate cut will be performed at {0} cts/sec".format(CRcut))
 
-    
+
 ################################################
 ## STEP 3 - Making Cut with lcfile
 lcfile_cut = path.splitext(lcfile)[0] + "_cut.lcurve"
@@ -158,6 +170,10 @@ runcmd(cmd)
 if args.plotfilt:
     log.info("Showing the filtered light curve")
     filtetable = Table.read(outevtfile,hdu=1)
+    if 'TIMEZERO' in filtetable.meta:
+        log.info('Applying TIMEZERO of {0} to etable'.format(filtetable.meta['TIMEZERO']))
+        filtetable['TIME'] += filtetable.meta['TIMEZERO']
+        filtetable.meta['TIMEZERO'] = 0.0
     filteventgti = getgti(outevtfile)
     filtetable.columns['TIME'].name = 'MET'
     plt.subplot(1,1,1)
@@ -168,7 +184,6 @@ if args.plotfilt:
     plt.show()
     #plt.clf()
 
-    
+
 ################################################
 log.info('DONE')
-        

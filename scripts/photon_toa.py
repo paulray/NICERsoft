@@ -115,6 +115,8 @@ else:
 ts = pint.toa.get_TOAs_list(tl,ephem=args.ephem,planets=planets)
 ts.filename = args.eventname
 if args.fix:
+    if hdr['TIMEZERO'] < 0.0:
+        log.error('TIMEZERO<0 and --fix: You are trying to apply the 1-s offet twice!')
     ts.adjust_TOAs(TimeDelta(np.ones(len(ts.table))*-1.0*u.s,scale='tt'))
 
 print(ts.get_summary())
@@ -213,7 +215,7 @@ else:
             current = 0
             i0 = i
     toafinal,toafinal_err = zip(*toas)
-    
+
 if args.minexp is not None:
     x = [(t,e) for t,e in zip(toafinal,toafinal_err) if t.flags['exposure'] > args.minexp]
     if len(x) > 0:
@@ -229,4 +231,3 @@ toas.write_TOA_file(sio,name='nicer',format='tempo2')
 output = sio.getvalue()
 output = output.replace('barycenter','@')
 print(output)
-

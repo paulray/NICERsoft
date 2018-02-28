@@ -41,8 +41,8 @@ parser.add_argument("indirs", help="Input directories to process", nargs='+')
 parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.25)", type=float, default=0.25)
 parser.add_argument("--emax", help="Maximum energy to include (kev, default=12.0)", type=float, default=12.0)
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
-parser.add_argument("--nofiltpolar",help="Disable filtering polar horn regions from data",default=False,action='store_true')
-parser.add_argument("--cormin",help="Set minimum cutoff rigidity (COR_SAX) for nimaketime filtering (typical value = 4)",default=None)
+parser.add_argument("--filtpolar",help="Turn on  filtering polar horn regions from data",default=False,action='store_true')
+parser.add_argument("--cormin",help="Set minimum cutoff rigidity (COR_SAX) for nimaketime filtering (default=no COR filtering, typical value = 4)",default=None)
 parser.add_argument("--uocut",help="Apply Teru's undershoot/overshoot parameter space cut",default=False,action='store_true')
 parser.add_argument("--maxovershoot",help="Select data where overshoot rate is below this limit (default: no filter)",
     type=float,default=-1)
@@ -91,7 +91,7 @@ if args.outdir:
     if any(st in args.outdir for st in names):
         log.error("Due to a current bug in ni-extractevents, --outdir cannot contain 'none', 'None', or 'NONE'.  Existing...")
         exit()
-    
+
 # Check if ObsIDs are listed or to be read from file
 if len(args.indirs)==1:
     if args.indirs[0].startswith('@'):
@@ -190,7 +190,7 @@ for obsdir in all_obsids:
 
     # Create any additional GTIs beyond what nimaketime does...
     extragtis="NONE"
-    if not args.nofiltpolar:
+    if args.filtpolar:
         saafile = path.join(datadir,'saa.reg')
         mkf_expr = 'regfilter("{0}",SAT_LON,SAT_LAT)'.format(saafile)
         phfile = path.join(datadir,'polarhorns.reg')
@@ -288,6 +288,11 @@ for obsdir in all_obsids:
     bad_dets = None
     if args.mask is not None and args.mask[0] < 0:
         etable = Table.read(intermediatename,hdu=1)
+        # Apply TIMEZERO if needed
+        if 'TIMEZERO' in etable.meta:
+            log.info('Applying TIMEZERO of {0} to etable'.format(etable.meta['TIMEZERO']))
+            etable['TIME'] += etable.meta['TIMEZERO']
+            etable.meta['TIMEZERO'] = 0.0
         log.info('Auto-masking detectors')
         bad_dets = find_hot_detectors(etable)
         if bad_dets is not None:
@@ -331,8 +336,13 @@ for obsdir in all_obsids:
     # Add phases
     if args.par is not None:
         plotfile = path.join(pipedir,"phaseogram.png")
-        cmd = ["photonphase", "--ephem", args.ephem, "--fix", "--orb", orbfile, "--plot", "--plotfile",
-            plotfile, "--addphase", filteredname, args.par]
+        if fits.getval(filteredname,"TIMEZERO",ext=1) < 0.0:
+            log.info('Event file has TIMZERO < 0, so not applying --fix in photonphase!')
+            cmd = ["photonphase", "--ephem", args.ephem, "--orb", orbfile, "--plot", "--plotfile",
+                plotfile, "--addphase", filteredname, args.par]
+        else:
+            cmd = ["photonphase", "--ephem", args.ephem, "--fix", "--orb", orbfile, "--plot", "--plotfile",
+                plotfile, "--addphase", filteredname, args.par]
         runcmd(cmd)
 
     # Extract simple PHA file and light curve
@@ -376,5 +386,3 @@ if args.merge and (len(all_evfiles)>1) :
 else:
     if args.crcut:
         log.warning("Count rate cuts are only performed on merged event files (add the option --merge)")
-    
-    

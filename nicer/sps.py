@@ -20,6 +20,12 @@ class SPS:
     '''
     def __init__(self, spsname):
         spstab = Table.read(spsname,hdu=1)
+        # Apply TIMEZERO if needed
+        if 'TIMEZERO' in spstab.meta:
+            log.info('Applying TIMEZERO of {0} to spstab'.format(spstab.meta['TIMEZERO']))
+            spstab['TIME'] += spstab.meta['TIMEZERO']
+            spstab.meta['TIMEZERO'] = 0.0
+
         idx = np.where(np.logical_not(np.logical_and(spstab['GPS_SPS_LAT']==0.0, spstab['GPS_SPS_LON']==0.0)))[0]
         spstab = spstab[idx]
         spstab.sort('TIME')
