@@ -451,8 +451,9 @@ def pulse_profile(ax, etable, args):
         if modelin.PLANET_SHAPIRO.value:
             planets=True
     ts = pint.toa.get_TOAs_list(tl,planets=planets,include_bipm=False,include_gps=False)
-    log.warning('Applying -1.0s time correction to event time TOAs for pulse phase plot')
-    ts.adjust_TOAs(TimeDelta(np.ones(len(ts.table))*-1.0*u.s,scale='tt'))
+# No longer needed, since Feb 28 reprocessing    
+#    log.warning('Applying -1.0s time correction to event time TOAs for pulse phase plot')
+#    ts.adjust_TOAs(TimeDelta(np.ones(len(ts.table))*-1.0*u.s,scale='tt'))
 # Note: adjust_TOAs recomputes TDBs and posvels so no need to do again.
 #    ts.compute_TDBs()
 #    ts.compute_posvels(ephem='DE421',planets=True)
