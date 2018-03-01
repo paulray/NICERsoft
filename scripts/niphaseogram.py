@@ -44,6 +44,7 @@ evhdr=hdulist[1].header
 evdat=hdulist[1].data
 
 mets = evdat.field('TIME')
+mets += evhdr['TIMEZERO']
 evtimes = MET0 + mets*u.s
 mjds = evtimes.mjd
 log.info('Evtimes {0}'.format(evtimes[:10]))

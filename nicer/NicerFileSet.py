@@ -57,6 +57,10 @@ class NicerFileSet:
         # Get name of filter (.mkf) file
         self.mkfile = glob(path.join(args.obsdir,'auxil/ni*.mkf*'))[0]
         self.mktable = Table.read(self.mkfile,hdu=1)
+        if 'TIMEZERO' in self.mktable.meta:
+            log.info('Applying TIMEZERO of {0} to mktable in NicerFileSet'.format(self.mktable.meta['TIMEZERO']))
+            self.mktable['TIME'] += self.mktable.meta['TIMEZERO']
+            self.mktable.meta['TIMEZERO'] = 0.0
 
         # Make lat, lon interpolater from mktable
         self.llinterp = LatLonInterp(self.mktable['TIME'], self.mktable['SAT_LAT'], self.mktable['SAT_LON'])
@@ -78,6 +82,11 @@ class NicerFileSet:
 
         if args.applygti is not None:
             g = Table.read(args.applygti)
+            if 'TIMEZERO' in g.meta:
+                log.info('Applying TIMEZERO of {0} to gti in NicerFileSet'.format(g.meta['TIMEZERO']))
+                g['START'] += g.meta['TIMEZERO']
+                g['STOP'] += g.meta['TIMEZERO']
+                g.meta['TIMEZERO'] = 0.0
             log.info('Applying external GTI from {0}'.format(args.applygti))
             g['DURATION'] = g['STOP']-g['START']
             # Only keep GTIs longer than 16 seconds
@@ -115,6 +124,12 @@ class NicerFileSet:
         else:
             self.etable = vstack(tlist,metadata_conflicts='silent')
         del tlist
+
+        # Apply TIMEZERO if needed
+        if 'TIMEZERO' in etable.meta:
+            log.info('Applying TIMEZERO of {0} to etable'.format(etable.meta['TIMEZERO']))
+            etable['TIME'] += etable.meta['TIMEZERO']
+            etable.meta['TIMEZERO'] = 0.0
 
         return self.etable
 
@@ -317,6 +332,11 @@ class NicerFileSet:
     def getgti(self):
             # Read the GTIs from the first event FITS file
         self.gtitable = Table.read(self.ufafiles[0],hdu=2)
+        if 'TIMEZERO' in self.gtitable.meta:
+            log.info('Applying TIMEZERO of {0} to self.gtitable in NicerFileSet'.format(self.gtitable.meta['TIMEZERO']))
+            self.gtitable['START'] += self.gtitable.meta['TIMEZERO']
+            self.gtitable['STOP'] += self.gtitable.meta['TIMEZERO']
+            self.gtitable.meta['TIMEZERO'] = 0.0
         log.info('Got the good times from GTI')
         self.gtitable['DURATION'] = self.gtitable['STOP']- self.gtitable['START']
         # Only keep GTIs longer than 16 seconds
