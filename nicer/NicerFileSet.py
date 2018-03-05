@@ -126,10 +126,10 @@ class NicerFileSet:
         del tlist
 
         # Apply TIMEZERO if needed
-        if 'TIMEZERO' in etable.meta:
-            log.info('Applying TIMEZERO of {0} to etable'.format(etable.meta['TIMEZERO']))
-            etable['TIME'] += etable.meta['TIMEZERO']
-            etable.meta['TIMEZERO'] = 0.0
+        if 'TIMEZERO' in self.etable.meta:
+            log.info('Applying TIMEZERO of {0} to etable'.format(self.etable.meta['TIMEZERO']))
+            self.etable['TIME'] += self.etable.meta['TIMEZERO']
+            self.etable.meta['TIMEZERO'] = 0.0
 
         return self.etable
 
@@ -333,9 +333,13 @@ class NicerFileSet:
             # Read the GTIs from the first event FITS file
         self.gtitable = Table.read(self.ufafiles[0],hdu=2)
         if 'TIMEZERO' in self.gtitable.meta:
-            log.info('Applying TIMEZERO of {0} to self.gtitable in NicerFileSet'.format(self.gtitable.meta['TIMEZERO']))
-            self.gtitable['START'] += self.gtitable.meta['TIMEZERO']
-            self.gtitable['STOP'] += self.gtitable.meta['TIMEZERO']
+            tz = self.gtitable.meta['TIMEZERO']
+            # If there are multiple TIMEZERO entries in the header, just take the last
+            if not np.isscalar(tz):
+                tz = tz[-1]
+            log.info('Applying TIMEZERO of {0} to self.gtitable in NicerFileSet'.format(tz))
+            self.gtitable['START'] += tz
+            self.gtitable['STOP'] += tz
             self.gtitable.meta['TIMEZERO'] = 0.0
         log.info('Got the good times from GTI')
         self.gtitable['DURATION'] = self.gtitable['STOP']- self.gtitable['START']
