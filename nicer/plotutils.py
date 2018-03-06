@@ -227,11 +227,15 @@ def plot_slowfast(etable,args):
     # Ratio is SLOW to FAST. Edge events should have ratio bigger than cut
     ratio = np.array(etable['PI'],dtype=np.float)/np.array(etable['PI_FAST'],dtype=np.float)
 
-    fastsig = 250.0
-    fastquart = 4.0e-11
+#    fastconst = 1.0
+#    fastsig = 250.0
+#    fastquart = 4.0e-11
+    fastconst = 1.1
+    fastsig = 1200.0
+    fastquart = 0.0
 
     x = np.array(etable['PI'],dtype=np.float)
-    ratio_cut =  1.0 + (fastsig/10.0)/x + fastquart*x**3
+    ratio_cut =  fastconst + (fastsig/10.0)/x + fastquart*x**3
 
     colors = np.array(['k']*len(ratio))
     idx = np.where(ratio>ratio_cut)[0]
@@ -451,7 +455,7 @@ def pulse_profile(ax, etable, args):
         if modelin.PLANET_SHAPIRO.value:
             planets=True
     ts = pint.toa.get_TOAs_list(tl,planets=planets,include_bipm=False,include_gps=False)
-# No longer needed, since Feb 28 reprocessing    
+# No longer needed, since Feb 28 reprocessing
 #    log.warning('Applying -1.0s time correction to event time TOAs for pulse phase plot')
 #    ts.adjust_TOAs(TimeDelta(np.ones(len(ts.table))*-1.0*u.s,scale='tt'))
 # Note: adjust_TOAs recomputes TDBs and posvels so no need to do again.
@@ -693,11 +697,17 @@ def filt_ratio_trumpet(etable):
     ratio = np.zeros_like(etable['PI'],dtype=np.float)
     idx = np.where(np.logical_and(etable['PI']>0, etable['PI_FAST']>0))[0]
     ratio[idx] = np.asarray(etable['PI'][idx],dtype=np.float)/np.asarray(etable['PI_FAST'][idx],dtype=np.float)
-    fastsig = 250.0
-    fastquart = 4.0e-11
+    # Old version
+    #fastconst = 1.0
+    #fastsig = 250.0
+    #fastquart = 4.0e-11
+    # New version 2018 Feb
+    fastconst = 1.1
+    fastsig = 1200.0
+    fastquart = 0.0
 
     x = np.array(etable['PI'],dtype=np.float)
-    ratio_cut =  1.0 + (fastsig/10.0)/x + fastquart*x**3
+    ratio_cut =  fastconst + (fastsig/10.0)/x + fastquart*x**3
 
     etable = etable[np.where(ratio < ratio_cut)[0]]
     return etable
