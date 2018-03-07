@@ -112,7 +112,7 @@ else:
     sys.exit(1)
 
 # Now convert to TOAs object and compute TDBs and posvels
-ts = pint.toa.get_TOAs_list(tl,ephem=args.ephem,planets=planets)
+ts = pint.toa.get_TOAs_list(tl,ephem=args.ephem,planets=planets,include_bipm=False,include_gps=False)
 ts.filename = args.eventname
 if args.fix:
     if hdr['TIMEZERO'] < 0.0:
