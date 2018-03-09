@@ -52,7 +52,7 @@ parser.add_argument("--plot",help="Show phaseogram plot.", action='store_true', 
 parser.add_argument("--plotfile",help="Output figure file name (default=None)", default=None)
 parser.add_argument("--fitbg",help="Fit an overall background level (e.g. for changing particle background level (default=False).",action='store_true',default=False)
 parser.add_argument("--unbinned",help="Fit position with unbinned likelihood.  Don't use for large data sets. (default=False)",action='store_true',default=False)
-parser.add_argument("--fix",help="Adjust times to fix 1.0 second offset in NICER data (default=False)", action='store_true',default=False)
+#parser.add_argument("--fix",help="Adjust times to fix 1.0 second offset in NICER data (default=False)", action='store_true',default=False)
 parser.add_argument("--tint",help="Integrate for tint seconds for each TOA, or until the total integration exceeds maxint.  The algorithm is based on GTI, so the integration will slightly exceed tint (default None; see maxint.)",default=None)
 parser.add_argument("--maxint",help="Maximum time interval to accumulate exposure for a single TOA (default=2*86400s)",default=2*86400.)
 parser.add_argument("--minexp",help="Minimum exposure (s) for which to include a TOA (default=None).",default=None)
@@ -112,12 +112,13 @@ else:
     sys.exit(1)
 
 # Now convert to TOAs object and compute TDBs and posvels
-ts = pint.toa.get_TOAs_list(tl,ephem=args.ephem,planets=planets)
+ts = pint.toa.get_TOAs_list(tl,ephem=args.ephem,planets=planets,include_bipm=False,include_gps=False)
+del tl
 ts.filename = args.eventname
-if args.fix:
-    if hdr['TIMEZERO'] < 0.0:
-        log.error('TIMEZERO<0 and --fix: You are trying to apply the 1-s offet twice!')
-    ts.adjust_TOAs(TimeDelta(np.ones(len(ts.table))*-1.0*u.s,scale='tt'))
+#if args.fix:
+#    if hdr['TIMEZERO'] < 0.0:
+#        log.error('TIMEZERO<0 and --fix: You are trying to apply the 1-s offet twice!')
+#    ts.adjust_TOAs(TimeDelta(np.ones(len(ts.table))*-1.0*u.s,scale='tt'))
 
 print(ts.get_summary())
 mjds = ts.get_mjds()
@@ -183,6 +184,9 @@ def estimate_toa(mjds,phases,tdbs):
 if args.tint is None:
     # do a single TOA for table
     toafinal,toafinal_err = estimate_toa(mjds,phases,tdbs)
+    if 'OBS_ID' in hdr:
+        # Add ObsID to the TOA flags
+        toafinal.flags['-obsid'] = hdr['OBS_ID']
     toafinal = [toafinal]
     toafinal_err = [toafinal_err]
 else:
@@ -224,6 +228,8 @@ if args.minexp is not None:
         print('No TOAs passed exposure cut!')
         sys.exit(0)
 
+for t in toafinal:
+    t.flags["-t"] = hdr['TELESCOP']
 toas = pint.toa.TOAs(toalist=toafinal)
 toas.table['error'][:] = np.asarray(toafinal_err)
 sio = cStringIO.StringIO()

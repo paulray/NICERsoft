@@ -11,6 +11,7 @@ from subprocess import check_call
 import shutil
 from astropy.table import Table
 from astropy.io import fits
+import tempfile
 
 from nicer.values import *
 from nicer.plotutils import find_hot_detectors
@@ -69,6 +70,15 @@ except:
     print("You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!", file=sys.stderr)
     exit()
 
+# Create a temporary dir for pfiles and set the environment 
+tempdir = tempfile.mkdtemp()
+os.mkdir(tempdir+'/pfiles')
+headas = os.environ['HEADAS']
+os.environ["PFILES"] = tempdir+'/pfiles;'+headas+'/syspfiles'
+#print(os.environ["PFILES"])
+# Called before each exit() and at end of program to clean up:
+#shutil.rmtree(tempdir)
+
 # For some reason if the script is called via #!/usr/bin/env python
 # it does not inherit LD_LIBRARY_PATH so ftools don't run.
 #print(os.environ['LD_LIBRARY_PATH'])
@@ -90,6 +100,7 @@ if args.outdir:
     names = ['none', 'None', 'NONE']
     if any(st in args.outdir for st in names):
         log.error("Due to a current bug in ni-extractevents, --outdir cannot contain 'none', 'None', or 'NONE'.  Existing...")
+        shutil.rmtree(tempdir)
         exit()
 
 # Check if ObsIDs are listed or to be read from file
@@ -387,3 +398,5 @@ if args.merge and (len(all_evfiles)>1) :
 else:
     if args.crcut:
         log.warning("Count rate cuts are only performed on merged event files (add the option --merge)")
+
+shutil.rmtree(tempdir)
