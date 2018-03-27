@@ -101,7 +101,6 @@ def untar(obsid,outdir):
 
 def decrypt(passwd,obsid_dir,gpg_v):
     cmd = "find {} -name '*.gpg' -exec {} --batch --yes --passphrase '{}'  {{}} \; -delete".format(obsid_dir, gpg_v, passwd)
-    print(obsid_dir)
     try:
         os.remove("{}/ni-gpg-call.log".format(obsid_dir))
     except OSError:
