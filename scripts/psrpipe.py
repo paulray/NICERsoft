@@ -44,6 +44,7 @@ parser.add_argument("--emax", help="Maximum energy to include (kev, default=12.0
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("--filtpolar",help="Turn on  filtering polar horn regions from data",default=False,action='store_true')
 parser.add_argument("--cormin",help="Set minimum cutoff rigidity (COR_SAX) for nimaketime filtering (default=no COR filtering, typical value = 4)",default=None)
+parser.add_argument("--minfpm",help="Set minimum of FPMs active for nimaketime filtering (default=38)",default=38)
 parser.add_argument("--uocut",help="Apply Teru's undershoot/overshoot parameter space cut",default=False,action='store_true')
 parser.add_argument("--maxovershoot",help="Select data where overshoot rate is below this limit (default: no filter)",
     type=float,default=-1)
@@ -263,7 +264,7 @@ for obsdir in all_obsids:
     cmd = ["nimaketime",  "infile={0}".format(mkfile),
         'outfile={0}'.format(gtiname_merged), 'nicersaafilt=YES',
         'saafilt=NO', 'trackfilt=YES', 'ang_dist={0:.3f}'.format(args.angdist), 'elv=30',
-        'br_earth=40', 'cor_range={0}'.format(cor_string), 'min_fpm=38',
+        'br_earth=40', 'cor_range={0}'.format(cor_string), 'min_fpm={0}'.format(args.minfpm),
         'ingtis={0}'.format(extragtis), "clobber=yes",
         'expr={0}'.format(extra_expr),
         'outexprfile={0}'.format(path.join(pipedir,"psrpipe_expr.txt"))]
