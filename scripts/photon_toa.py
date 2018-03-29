@@ -67,6 +67,8 @@ log.info(str(modelin))
 # check for consistency between ephemeris and options
 if 'SolarSystemShapiro' in modelin.components.keys():
     planets=True
+else:
+    planets=False
 
 # Load Template objects
 try:

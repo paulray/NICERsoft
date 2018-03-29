@@ -472,7 +472,11 @@ def pulse_profile(ax, etable, args):
     mjds = ts.get_mjds()
 
     h = hm(phases)
-    log.info("H = {0} from {1} phases".format(h,len(phases)))
+    if not np.isfinite(h):
+        log.error("H not finite, using {0} phases!".format(len(phases)))
+        print("Phases from {0} to {1}\n".format(h.min(),h.max()))
+    else:
+        log.info("H = {0} from {1} phases".format(h,len(phases)))
     ax.hist(phases, bins = 32)
     ax.text(0.1, 0.1, 'H = {0:.2f}'.format(h), transform=ax.transAxes)
 
