@@ -90,7 +90,7 @@ if hdr['TELESCOP'] == 'NICER':
     # Instantiate NICERObs once so it gets added to the observatory registry
     if args.orbfile is not None:
         log.info('Setting up NICER observatory')
-        NICERObs(name='NICER',FPorbname=args.orbfile,tt2tdb_mode='none')
+        NICERObs(name='NICER',FPorbname=args.orbfile,tt2tdb_mode='spacecraft')
     # Read event file and return list of TOA objects
     try:
         tl  = local_load_NICER_TOAs(args.eventname)
@@ -102,7 +102,7 @@ elif hdr['TELESCOP'] == 'XTE':
     if args.orbfile is not None:
         # Determine what observatory type is.
         log.info('Setting up RXTE observatory')
-        RXTEObs(name='RXTE',FPorbname=args.orbfile,tt2tdb_mode='none')
+        RXTEObs(name='RXTE',FPorbname=args.orbfile,tt2tdb_mode='spacecraft')
     # Read event file and return list of TOA objects
     tl  = load_RXTE_TOAs(args.eventname)
 elif hdr['TELESCOP'].startswith('XMM'):
