@@ -140,10 +140,10 @@ for obsdir in all_obsids:
     log.info('Cleaned Event Files: {0}'.format("\n" + "    \n".join(evfiles)))
 
     # Get ufa file (unfiltered events)
-    ufafiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_ufa.evt'))
+    ufafiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_ufa.evt*'))
     ufafiles.sort()
-    log.info('Unfiltered Event Files: {0}'.format("\n" + "    \n".join(evfiles)))
-
+    log.info('Unfiltered Event Files: {0}'.format("\n" + "    \n".join(ufafiles)))
+    
     ufaevents = 0
     for ufafile in ufafiles:
         hdulist = fits.open(ufafile, memmap=True)
