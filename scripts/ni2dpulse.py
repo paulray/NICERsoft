@@ -13,6 +13,8 @@ parser.add_argument("--nbins", help="Number of phase bins", type=int, default=32
 parser.add_argument("--emin", help="Min energy to plot", type=float, default=0.3)
 parser.add_argument("--emax", help="Max energy to plot", type=float, default=2.0)
 parser.add_argument("--nebins", help="Number of phase bins", type=int, default=35)
+parser.add_argument("--log", help="Log scale histogram", action="store_true")
+parser.add_argument("--sqrt", help="Log scale histogram", action="store_true")
 args = parser.parse_args()
 
 pi = pyfits.getdata(args.evfile,'EVENTS').field('PI')
@@ -31,11 +33,21 @@ phrange = arange(args.nbins*2+1,dtype=np.float)/float(args.nbins)
 H,piedges,phedges = np.histogram2d(pi2,phase2,bins=[pirange,phrange])
 eedges = piedges*PI_TO_KEV
 
-pcolormesh(phedges,eedges,H,cmap="jet")
+if args.log:
+    pcolormesh(phedges,eedges,np.log10(H),cmap="jet")
+    cbar = colorbar()
+    cbar.set_label("Log10(Photon count)")
+elif args.sqrt:
+    pcolormesh(phedges,eedges,np.sqrt(H),cmap="jet")
+    cbar = colorbar()
+    cbar.set_label("Sqrt(Photon count)")
+else:
+    pcolormesh(phedges,eedges,H,cmap="jet")
+    cbar = colorbar()
+    cbar.set_label("Photon count")
+
 xlabel("Pulse Phase")
 ylabel("Energy (keV)")
-cbar = colorbar()
-cbar.set_label("Photon count")
 
 if args.outfile is not None:
     savefig(args.outfile)
