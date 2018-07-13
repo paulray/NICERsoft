@@ -18,6 +18,8 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 from astropy import log
 from nicer.values import *
+from pint.fits_utils import read_fits_event_mjds
+from astropy.time import Time
 
 desc="Read an FT1 file containing a PULSE_PHASE column and make a 2-d phaseogram"
 parser=OptionParser(usage=" %prog [options] [FT1_FILENAME]",
@@ -43,12 +45,28 @@ hdulist = pyfits.open(evname)
 evhdr=hdulist[1].header
 evdat=hdulist[1].data
 
-mets = evdat.field('TIME')
-mets += evhdr['TIMEZERO']
-evtimes = MET0 + mets*u.s
-mjds = evtimes.mjd
-log.info('Evtimes {0}'.format(evtimes[:10]))
-phases = evdat.field('PULSE_PHASE')
+# Hack for XMM barycentered data
+if evhdr['TELESCOP'].startswith('XMM'):
+    log.info('XMM data, setting MET0 to 50814.0')
+    MET0 = Time(50814.0,format='mjd',scale='tdb')
+
+# Hack for NuSTAR barycentered data
+if evhdr['TELESCOP'].startswith('NuSTAR'):
+    log.info('NuSTAR data, setting MET0 to 55197.00076601852')
+    MET0 = Time(55197.00076601852,format='mjd',scale='tdb')
+
+#mets = evdat.field('TIME')
+#mets += evhdr['TIMEZERO']
+mjds = read_fits_event_mjds(hdulist[1])
+#log.info('MJDs {0}'.format(mjds[:10]))
+#evtimes = MET0 + mets*u.s
+#mjds = evtimes.mjd
+#log.info('Evtimes {0}'.format(evtimes[:10]))
+try:
+	phases = evdat.field('PULSE_PHASE')
+except:
+	phases = evdat.field('PHASE')
+
 if options.weights is not None:
     weights = evdat.field(options.weights)
 
@@ -58,7 +76,7 @@ try:
     idx = np.where(np.logical_and((en>=options.emin),(en<=options.emax)))
     mjds = mjds[idx]
     phases = phases[idx]
-    log.info("Energy cuts left %d out of %d events." % (len(mjds),len(mets)))
+    log.info("Energy cuts left %d out of %d events." % (len(mjds),len(en)))
 except:
     log.warning('PI column not found. No energy cuts applied')
 
@@ -104,6 +122,15 @@ for tstart,tstop in zip(mjdstarts,mjdstops):
     else:
         a = np.append(a,profile)
         fullprof += profile
+
+log.info('Total photons = {0}'.format(fullprof.sum()))
+log.info('DC level = {0} counts per bin ({1} bins)'.format(fullprof.min(),options.nbins))
+try:
+	log.info('Exposure = {0}'.format(evhdr['EXPOSURE']))
+	log.info('Total count rate = {0}'.format((fullprof.sum())/evhdr['EXPOSURE']))
+	log.info('Pulsed count rate (estimated from minimum profile bin) = {0}'.format((fullprof.sum()-options.nbins*fullprof.min())/evhdr['EXPOSURE']))
+except:
+	pass
 
 b = a.reshape(options.ntoa,options.nbins)
 
