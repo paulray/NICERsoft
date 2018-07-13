@@ -45,7 +45,6 @@ parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, defau
 parser.add_argument("--filtpolar",help="Turn on  filtering polar horn regions from data",default=False,action='store_true')
 parser.add_argument("--cormin",help="Set minimum cutoff rigidity (COR_SAX) for nimaketime filtering (default=no COR filtering, typical value = 4)",default=None)
 parser.add_argument("--minfpm",help="Set minimum of FPMs active for nimaketime filtering (default=38)",default=38)
-parser.add_argument("--uocut",help="Apply Teru's undershoot/overshoot parameter space cut",default=False,action='store_true')
 parser.add_argument("--maxovershoot",help="Select data where overshoot rate is below this limit (default: no filter)",
     type=float,default=-1)
 parser.add_argument("--badcut",help="Select data where bad ratio event rate is below this limit (default: no filter)",
@@ -71,7 +70,7 @@ except:
     print("You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!", file=sys.stderr)
     exit()
 
-# Create a temporary dir for pfiles and set the environment 
+# Create a temporary dir for pfiles and set the environment
 tempdir = tempfile.mkdtemp()
 os.mkdir(tempdir+'/pfiles')
 headas = os.environ['HEADAS']
@@ -143,7 +142,7 @@ for obsdir in all_obsids:
     ufafiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_ufa.evt*'))
     ufafiles.sort()
     log.info('Unfiltered Event Files: {0}'.format("\n" + "    \n".join(ufafiles)))
-    
+
     ufaevents = 0
     for ufafile in ufafiles:
         hdulist = fits.open(ufafile, memmap=True)
@@ -153,14 +152,14 @@ for obsdir in all_obsids:
 
     if ufaevents < 10000000:
         cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0","--allspec","--alllc",
-               "--lclog", "--useftools", "--extraphkshootrate", "--writebkf",
+               "--lclog", "--useftools", "--extraphkshootrate",
                "--eventshootrate",
                "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
                "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
                "--basename", path.join(pipedir,basename)+'_prefilt']
     else:
         cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0","--allspec","--alllc",
-               "--lclog", "--useftools", "--extraphkshootrate", "--writebkf",
+               "--lclog", "--useftools", "--extraphkshootrate",
                "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
                "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
                "--basename", path.join(pipedir,basename)+'_prefilt']
@@ -192,8 +191,9 @@ for obsdir in all_obsids:
     log.info('ATT HK File: {0}'.format(attfile))
 
     #  Get BKF file for filtering based on background indicators
-    bkffile = path.join(pipedir,basename)+'_prefilt.bkf'
-    log.info('BKF File: {0}'.format(bkffile))
+    #bkffile = path.join(pipedir,basename)+'_prefilt.bkf'
+    #log.info('BKF File: {0}'.format(bkffile))
+    bkffile=None
 
     #  Get MPU hk files
     hkfiles = glob(path.join(obsdir,'xti/hk/ni*.hk'))
@@ -253,11 +253,6 @@ for obsdir in all_obsids:
     extra_expr="NONE"
     if args.dark:
         extra_expr = "(SUNSHINE.eq.0)"
-    if args.uocut:
-        if extra_expr == "NONE":
-            extra_expr = "((float)TOT_OVER_COUNT<50.0+5.5*((float)TOT_UNDER_COUNT/1000.0)**2)"
-        else:
-            extra_expr += ".and.((float)TOT_OVER_COUNT<50.0+5.5*((float)TOT_UNDER_COUNT/1000.0)**2)"
     cor_string="-"
     if args.cormin is not None:
         cor_string = "{0}-".format(args.cormin)
@@ -349,13 +344,9 @@ for obsdir in all_obsids:
     if args.par is not None:
         plotfile = path.join(pipedir,"phaseogram.png")
         log.info('Applying phases to {0}'.format(filteredname))
-        if fits.getval(filteredname,"TIMEZERO",ext=1) < 0.0:
-            log.info('Event file has TIMZERO < 0, so not applying --fix in photonphase!')
-            cmd = ["photonphase", "--ephem", args.ephem, "--orb", orbfile, "--plot", "--plotfile",
-                plotfile, "--addphase", filteredname, args.par]
-        else:
-            cmd = ["photonphase", "--ephem", args.ephem, "--fix", "--orb", orbfile, "--plot", "--plotfile",
-                plotfile, "--addphase", filteredname, args.par]
+        log.info('Event file has TIMZERO < 0, so not applying --fix in photonphase!')
+        cmd = ["photonphase", "--ephem", args.ephem, "--orb", orbfile, "--plot", "--plotfile",
+            plotfile, "--addphase", filteredname, args.par]
         runcmd(cmd)
 
     # Extract simple PHA file and light curve
