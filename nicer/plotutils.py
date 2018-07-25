@@ -434,7 +434,7 @@ def pulse_profile(ax, etable, args):
                                                                   etable.meta['INSTRUME']))
     # Instantiate NICERObs once so it gets added to the observatory registry
     log.info('Setting up NICER observatory')
-    NICERObs(name='NICER',FPorbname=args.orb,tt2tdb_mode='none')
+    NICERObs(name='NICER',FPorbname=args.orb)
 
     log.info('Reading model from PARFILE')
     # Load PINT model objects
