@@ -464,7 +464,7 @@ def pulse_profile(ax, etable, args):
 
 
     # Compute phases
-    phss = modelin.phase(ts.table)[1]
+    phss = modelin.phase(ts)[1]
     # Strip the units, because PINT may return u.cycle
     phss = np.array(phss)
     # ensure all postive
