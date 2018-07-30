@@ -434,7 +434,7 @@ def pulse_profile(ax, etable, args):
                                                                   etable.meta['INSTRUME']))
     # Instantiate NICERObs once so it gets added to the observatory registry
     log.info('Setting up NICER observatory')
-    NICERObs(name='NICER',FPorbname=args.orb,tt2tdb_mode='none')
+    NICERObs(name='NICER',FPorbname=args.orb)
 
     log.info('Reading model from PARFILE')
     # Load PINT model objects
@@ -464,7 +464,7 @@ def pulse_profile(ax, etable, args):
 
 
     # Compute phases
-    phss = modelin.phase(ts.table)[1]
+    phss = modelin.phase(ts)[1]
     # Strip the units, because PINT may return u.cycle
     phss = np.array(phss)
     # ensure all postive
