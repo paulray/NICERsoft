@@ -260,7 +260,7 @@ def plot_slowfast(etable,args):
     plot.annotate(bad, xy = (.03, .7), xycoords='axes fraction')
     #plot.annotate("Ratio cut = {0:.2f}".format(ratio_cut),xy=(0.65,0.85),xycoords='axes fraction')
     x = np.linspace(min(etable['PI']),max(etable['PI']),100,dtype=np.float)
-    cutline = 1.0 + (fastsig/10.0)/x + fastquart*x**3
+    cutline = fastconst + (fastsig/10.0)/x + fastquart*x**3
     plot.plot(x*PI_TO_KEV, cutline, 'g--', linewidth = 1.5)
     return
 
