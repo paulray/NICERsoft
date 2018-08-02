@@ -21,7 +21,7 @@ def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
         hkmet = shoottable['HKMET']
 
     figure = plt.figure(figsize = (8.5, 11), facecolor = 'white')
-    bkg_grid = gridspec.GridSpec(25,4)
+    bkg_grid = gridspec.GridSpec(29,4)
 
     #Lightcurve of Rejected events
     log.info('Building Rejected Event Light curve')
@@ -77,10 +77,16 @@ def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
     plot_pointing(mktable, gtitable)
 
     #Plot of LAT / Long
-    plt.subplot(bkg_grid[21:25,:4])
     #plot_latlon(mktable, gtitable)
+
+    #Plot of COR_SAX
+    plt.subplot(bkg_grid[21:25,:4])
     plot_cor(mktable, gtitable)
 
+    #Plot of event light curve
+    plt.subplot(bkg_grid[25:29,:4])
+    plot_light_curve(etable,False, gtitable)
+  
     figure.suptitle('Object: {0} at {1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS'].replace('T', ' at ')),
                     fontsize=16)
     #plt.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .95, hspace = .95)
