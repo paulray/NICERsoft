@@ -319,7 +319,6 @@ if args.bkg:
         log.error("Can't make background plots without MPU HKP files")
     else:
         if eventovershoots is not None:
-
             figure4 = bkg_plots(etable, data, gtitable, args, mktable, data.eventshoottable)
         else:
             figure4 = bkg_plots(etable, data, gtitable, args, mktable, data.hkshoottable)
