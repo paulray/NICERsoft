@@ -318,10 +318,12 @@ if args.bkg:
     if hkmet is None:
         log.error("Can't make background plots without MPU HKP files")
     else:
-        if eventovershoots is not None:
-            figure4 = bkg_plots(etable, data, gtitable, args, mktable, data.eventshoottable)
-        else:
-            figure4 = bkg_plots(etable, data, gtitable, args, mktable, data.hkshoottable)
+    #     if eventovershoots is not None:
+    #         figure4 = bkg_plots(etable, data, gtitable, args, mktable, data.eventshoottable)
+    #     else:
+    #         figure4 = bkg_plots(etable, data, gtitable, args, mktable, data.hkshoottable)
+
+        figure4 = bkg_plots(etable, gtitable, args, mktable)
         figure4.set_size_inches(16,12)
         if args.save:
             log.info('Writing bkg plot {0}'.format(basename))
