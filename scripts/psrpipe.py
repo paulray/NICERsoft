@@ -58,6 +58,7 @@ parser.add_argument("--ephem", help="Ephem to use with photonphase", default="DE
 parser.add_argument("--outdir", help="Add name to output directories (by default: directories end in '_pipe')", default='pipe')
 parser.add_argument("--merge", help="Merge all ObsIDs provided into single event list, lightcurve and spectrum (outputdir called 'merged')", action='store_true')
 parser.add_argument("--crcut", help="perform count rate cut on merged event file (only if --merge)", action='store_true')
+# parser.add_argument("--crabnorm", help="normalize the spectrum with the crab (only if --merge)", action='store_true')
 args = parser.parse_args()
 
 os.environ['HEADASNOQUERY'] = ' '
@@ -170,8 +171,8 @@ for obsdir in all_obsids:
 #    if args.par is not None:
 #        cmd.append("--par")
 #        cmd.append("{0}".format(args.par))
-#    if (args.maxovershoot>0) or (args.badcut>0):
-#        cmd.append("--writebkf")
+    if (args.maxovershoot>0) or (args.badcut>0):
+        cmd.append("--writebkf")
     runcmd(cmd)
 
     # Get orbit file
@@ -191,9 +192,11 @@ for obsdir in all_obsids:
     log.info('ATT HK File: {0}'.format(attfile))
 
     #  Get BKF file for filtering based on background indicators
-    #bkffile = path.join(pipedir,basename)+'_prefilt.bkf'
-    #log.info('BKF File: {0}'.format(bkffile))
-    bkffile=None
+    if (args.maxovershoot>0) or (args.badcut>0):
+        bkffile = path.join(pipedir,basename)+'_prefilt.bkf'
+        log.info('BKF File: {0}'.format(bkffile))
+    else:
+        bkffile=None
 
     #  Get MPU hk files
     hkfiles = glob(path.join(obsdir,'xti/hk/ni*.hk'))
@@ -244,7 +247,7 @@ for obsdir in all_obsids:
     # in the extragtis passed to nimaketime
     if gtiname3 is not None:
         if extragtis == "NONE":
-            extragtis = gitname3
+            extragtis = gtiname3
         else:
             extragtis = extragtis + ',{0}'.format(gtiname3)
 
@@ -330,10 +333,17 @@ for obsdir in all_obsids:
     # Remove intermediate file
     #os.remove(intermediatename)
 
+    # Make cleanfilt.mkf file from ObsID .mkf file and merged_GTI
+    # --- NOT IMPLEMENTED --- #
+    # cleanfilt_mkf = path.join(pipedir,"cleanfilt.mkf")
+    # cmd = ["fltime", "infile='{}[1]'".format(mkfile), "gtifile='{}".format(gtiname_merged),"outfile='{}'".format(cleanfilt_mkf)]
+    # runcmd(cmd)
+
     # Make final clean plot
     cmd = ["nicerql.py", "--save",
            "--orb", path.join(pipedir,path.basename(orbfile)),
            "--sci", "--eng", filteredname, "--lcbinsize", "4.0","--allspec","--alllc",
+           # "--mkf", cleanfilt_mkf,  # --- NOT IMPLEMENTED --- #
            "--basename", path.join(pipedir,basename)+"_cleanfilt"]
     if args.par is not None:
         cmd.append("--par")
@@ -385,10 +395,26 @@ if args.merge and (len(all_evfiles)>1) :
         cmd.append("{0}".format(orbfiles_list))
     if args.crcut:
         cmd.append("--cut")
+    # if args.crabnorm:
+    #     cmd.append("--crabnorm")
+    # if args.dark:
+    #     cmd.append("--dark")
     runcmd(cmd)
 
 else:
     if args.crcut:
         log.warning("Count rate cuts are only performed on merged event files (add the option --merge)")
+
+    # # Perform Crab Normalization (in the case of single ObsID bring processed)
+    # --- NOT IMPLEMENTED --- #
+    # if args.crabnorm:
+    #     log.info("Performing normalization of the cleanfilt spectrum with crab residuals")
+    #     normed_spec = path.join(phafile.strip('.pha'),"_crabnorm.pha")
+    #     if args.dark:
+    #         cmd = ["mathpha","{}/{}".format(phafile,CRAB_RES_NIGHT),"R","{}".format(normed_spec),"{} % POISS-0 0".format(phafile)]
+    #         runcmd(cmd)
+    #     else:
+    #         cmd = ["mathpha","{}/{}".format(phafile,CRAB_RES_TOT),"R","{}".format(normed_spec),"{} % POISS-0 0".format(phafile)]
+    #         runcmd(cmd)
 
 shutil.rmtree(tempdir)
