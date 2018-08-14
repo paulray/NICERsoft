@@ -52,9 +52,10 @@ parser.add_argument("--lclog", help = "make light curve log axis", action = "sto
 parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed freq (Hz)",default=0.0,type=float)
 parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",default=100.0,type=float)
 parser.add_argument("--map", help= "Creates a map with overshoots and undershoots", action = 'store_true')
-parser.add_argument("--orb", help="Path to orbit FITS filed", default = None)
+parser.add_argument("--orb", help="Path to orbit FITS files", default = None)
 parser.add_argument("--par", help="Path to par file", default = None)
 parser.add_argument("--sps", help="Path to SPS HK file (_apid0260.hk)",default=None)
+parser.add_argument("--mkf", help="Path to MKF file",default=None)
 parser.add_argument("--powspec",help = "Display power spectrum (replaces ratio plot)", action = 'store_true')
 parser.add_argument("--pslog", help = "make power spectrum log axis", action = "store_true")
 parser.add_argument("--writeps", help = "write out power spectrum", action = "store_true")
@@ -146,6 +147,13 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
         else:
             basename = args.basename
 
+        if args.mkf is not None:
+            mktable = Table.read(args.mkf,hdu=1)
+            if 'TIMEZERO' in self.mktable.meta:
+                log.info('Applying TIMEZERO of {0} to mktable in nicerql'.format(mktable.meta['TIMEZERO']))
+                mktable['TIME'] += mktable.meta['TIMEZERO']
+                mktable.meta['TIMEZERO'] = 0.0
+        
         reset_rates = None
 else:
     log.warning('You have not specified any files, please input the path to the files you want to see. Exiting.')
@@ -359,13 +367,14 @@ if args.sci:
 # Map plot is overshoot and undershoot rates on maps
 if args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
-    if eventovershoots is not None:
-        figure3 = cartography(hkmet, eventovershoots, args, eventundershoots,
-            filttable, mktable, gtitable)
-    else:
-        figure3 = cartography(hkmet, hkovershoots, args, hkundershoots,
-            filttable, mktable, gtitable)
-
+    # if eventovershoots is not None:
+    #     figure3 = cartography(hkmet, eventovershoots, args, eventundershoots,
+    #         filttable, mktable, gtitable)
+    # else:
+    #     figure3 = cartography(hkmet, hkovershoots, args, hkundershoots,
+    #         filttable, mktable, gtitable)
+    
+    figure3 = cartography(filttable, mktable, gtitable, args)
     if args.save:
         log.info('Writing MAP {0}'.format(basename))
         figure3.savefig('{0}_map.png'.format(basename), dpi = 100)

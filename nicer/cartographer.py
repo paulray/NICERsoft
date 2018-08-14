@@ -15,9 +15,12 @@ from nicer.plotutils import *
 #from nicer.sps import SPS
 from nicer.latloninterp import LatLonInterp
 
-def cartography(hkmet, overshootrate, args, undershootrate, etable, mktable, gtitable):
+#def cartography(hkmet, overshootrate, args, undershootrate, etable, mktable, gtitable):
+def cartography(etable, mktable, gtitable, args):
+
     from mpl_toolkits.basemap import Basemap
-#Getting the data
+    
+    #Getting the data
     log.info('Getting SAA data')
     saa_lon, saa_lat = np.loadtxt(path.join(datadir,'saa_lonlat.txt'),unpack=True)
     nph_lon, nph_lat = np.loadtxt(path.join(datadir,'nph_lonlat.txt'),unpack=True)
@@ -30,20 +33,32 @@ def cartography(hkmet, overshootrate, args, undershootrate, etable, mktable, gti
 
     # Use GPS SPS data for ISS location
 
-    llinterp = LatLonInterp(mktable['TIME'], mktable['SAT_LAT'], mktable['SAT_LON'])
+    #llinterp = LatLonInterp(mktable['TIME'], mktable['SAT_LAT'], mktable['SAT_LON'])
 
     #eph = SPS(args.sps)
     #log.info('got SPS ephemeris')
     #lat, lon = eph.latlon(hkmet)
 
     # Interpolate lon, lat from MKF housekeeping data
-    lat, lon = llinterp.latlon(hkmet)
+    #lat, lon = llinterp.latlon(hkmet)
 
     #Creating the plots and figure
     log.info('plotting map')
     fig = plot.figure(figsize = (8,11), facecolor = 'white')
 
-    #fig, ax = plot.subplots(figsize=(16,9))
+    # Get lat, lon, overshoots from the .mkf table
+    ovtime, overshootrate, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_OVERONLY_COUNT'], gtitable)
+    ovtime, lat, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LAT'], gtitable)
+    ovtime, lon, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)
+
+    # remove "nan" from arrays
+    ovtimeNan = np.where(np.isnan(overshootrate))
+    ovtimeNew=np.delete(ovtime,ovtimeNan)
+    overshootrate=np.delete(overshootrate,ovtimeNan)
+    lat = np.delete(lat,ovtimeNan)
+    lon = np.delete(lon,ovtimeNan)
+
+    # Plot Overshoot map
     overshoot = plot.subplot(3,1,1)
 
     map = Basemap(projection='cyl', resolution = 'l',  llcrnrlon=-180, llcrnrlat=-61,
@@ -62,6 +77,19 @@ def cartography(hkmet, overshootrate, args, undershootrate, etable, mktable, gti
     plot.ylabel('Overshoot Rate')
     #cbar.set_label('Overshoot Rate')
 
+    # Get lat, lon, undershoots from the .mkf table    
+    udtime, undershootrate, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_UNDERONLY_COUNT'], gtitable)
+    udtime, lat, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LAT'], gtitable)
+    udtime, lon, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)
+
+    # remove "nan" from arrays
+    udtimeNan = np.where(np.isnan(undershootrate))
+    udtimeNew=np.delete(udtime,udtimeNan)
+    undershootrate=np.delete(undershootrate,udtimeNan)
+    lat = np.delete(lat,udtimeNan)
+    lon = np.delete(lon,udtimeNan)
+    
+    # Plot Undershoot map
     undershoot = plot.subplot(3,1,2)
 
     map = Basemap(projection='cyl', resolution = 'l', llcrnrlon=-180, llcrnrlat=-61,
@@ -84,8 +112,12 @@ def cartography(hkmet, overshootrate, args, undershootrate, etable, mktable, gti
     map = Basemap(projection='cyl', resolution = 'l', llcrnrlon=-180, llcrnrlat=-61,
     urcrnrlon=180, urcrnrlat=61,lat_0 = 0, lon_0 = 0)
     map.drawcoastlines()
-    etime, goodlon, cc = convert_to_elapsed_goodtime(hkmet, lon, gtitable)
-    etime, goodlat, cc = convert_to_elapsed_goodtime(hkmet, lat, gtitable)
+    
+    #etime, goodlon, cc = convert_to_elapsed_goodtime(hkmet, lon, gtitable)
+    #etime, goodlat, cc = convert_to_elapsed_goodtime(hkmet, lat, gtitable)
+    etime, goodlon, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)
+    etime, goodlat, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LAT'], gtitable)
+
     colornames, cmap, norm = gti_colormap()
     sc = map.scatter(goodlon, goodlat,c=np.fmod(cc,len(colornames)),s=2.0,cmap=cmap,
         norm=norm)
