@@ -227,19 +227,19 @@ if gtitable is not None:
         cumtime += mylcduration
     gtitable['CUMTIME'] = np.array(cumtimes)
 
-#Getting over/undershoot rate from event data.
-if args.eventshootrate:
-    eventovershoots = data.eventovershoots
-    eventundershoots = data.eventundershoots
-    eventbothshoots = data.eventbothshoots
-else:
-    eventbothshoots = None
-    eventundershoots = None
-    eventovershoots = None
+# Getting over/undershoot rate from event data.
+# if args.eventshootrate:
+#     eventovershoots = data.eventovershoots
+#     eventundershoots = data.eventundershoots
+#     eventbothshoots = data.eventbothshoots
+# else:
+#     eventbothshoots = None
+#     eventundershoots = None
+#     eventovershoots = None
 
 if args.obsdir is not None:
-    hkovershoots = data.hkovershoots
-    hkundershoots = data.hkundershoots
+#     hkovershoots = data.hkovershoots
+#     hkundershoots = data.hkundershoots
     reset_rates = data.reset_rates
 
 # Write overshoot and undershoot rates to file for filtering

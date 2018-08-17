@@ -152,14 +152,14 @@ for obsdir in all_obsids:
         ufaevents = ufaevents + nevents
 
     if ufaevents < 10000000:
-        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0","--allspec","--alllc",
+        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0", ##  "--allspec","--alllc",
                "--lclog", "--useftools", "--extraphkshootrate",
                "--eventshootrate",
                "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
                "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
                "--basename", path.join(pipedir,basename)+'_prefilt']
     else:
-        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0","--allspec","--alllc",
+        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0", ## "--allspec","--alllc",
                "--lclog", "--useftools", "--extraphkshootrate",
                "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
                "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,

@@ -110,7 +110,7 @@ class NicerFileSet:
             self.quickhkshootrate()
         else:
             self.hkshootrate()
-        self.geteventshoots()
+        # self.geteventshoots()
 
     def createetable(self):
         log.info('Reading files')
