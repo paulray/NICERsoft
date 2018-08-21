@@ -64,33 +64,11 @@ args = parser.parse_args()
 modelin = pint.models.get_model(args.parname)
 log.info(str(modelin))
 
-# Read TZR parameters from parfile separately
-tzrmjd = None
-tzrsite = '@'
-tzrfrq = np.inf*u.MHz
-for line in open(args.parname):
-    if line.startswith('TZRMJD'):
-        tzrmjd = np.longdouble(line.split()[1])
-    if line.startswith('TZRSITE'):
-        tzrsite = line.split()[1]
-    if line.startswith('TZRFRQ'):
-        tzrfrq = np.float(line.split()[1])*u.MHz
-
-# If no TZRMJD, then just use some random time
-if tzrmjd is None:
-    tzrmjd = 58000.0
-
 # check for consistency between ephemeris and options
 if 'SolarSystemShapiro' in modelin.components.keys():
     planets=True
 else:
     planets=False
-
-tztoa = pint.toa.TOA(tzrmjd,obs=tzrsite,freq=tzrfrq)
-tz = pint.toa.get_TOAs_list([tztoa],include_bipm=False,include_gps=False,
-    ephem=args.ephem, planets=planets)
-
-
 
 # Load Template objects
 try:
@@ -152,7 +130,7 @@ mjds = ts.get_mjds()
 print(mjds.min(),mjds.max())
 
 # Compute model phase for each TOA
-phss = modelin.phase(ts)[1].value - modelin.phase(tz)[1].value # discard units
+phss = modelin.phase(ts)[1].value # discard units
 # ensure all postive
 phases = np.where(phss < 0.0, phss + 1.0, phss)
 tdbs = ts.table['tdb']
