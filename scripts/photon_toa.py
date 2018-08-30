@@ -130,7 +130,7 @@ mjds = ts.get_mjds()
 print(mjds.min(),mjds.max())
 
 # Compute model phase for each TOA
-phss = modelin.phase(ts)[1].value # discard units
+phss = modelin.phase(ts,abs_phase=True)[1].value # discard units
 # ensure all postive
 phases = np.where(phss < 0.0, phss + 1.0, phss)
 tdbs = ts.table['tdb']
@@ -171,7 +171,7 @@ def estimate_toa(mjds,phases,tdbs):
     toas = pint.toa.TOAs(toalist=[toamid,toaplus])
     toas.compute_TDBs()
     toas.compute_posvels(ephem=args.ephem,planets=planets)
-    phsi,phsf = modelin.phase(toas)
+    phsi,phsf = modelin.phase(toas,abs_phase=True)
     fbary = (phsi[1]-phsi[0]) + (phsf[1]-phsf[0])
     fbary._unit = u.Hz
     # First delta is to get time of phase 0.0 of initial model
