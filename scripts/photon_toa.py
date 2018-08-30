@@ -56,6 +56,8 @@ parser.add_argument("--unbinned",help="Fit position with unbinned likelihood.  D
 parser.add_argument("--tint",help="Integrate for tint seconds for each TOA, or until the total integration exceeds maxint.  The algorithm is based on GTI, so the integration will slightly exceed tint (default None; see maxint.)",default=None)
 parser.add_argument("--maxint",help="Maximum time interval to accumulate exposure for a single TOA (default=2*86400s)",default=2*86400.)
 parser.add_argument("--minexp",help="Minimum exposure (s) for which to include a TOA (default=None).",default=None)
+parser.add_argument("--use_bipm",help="Use BIPM clock corrections",action="store_true",default=False)
+parser.add_argument("--use_gps",help="Use GPS to UTC clock corrections",action="store_true",default=False)
 
 ## Parse arguments
 args = parser.parse_args()
@@ -169,6 +171,7 @@ def estimate_toa(mjds,phases,tdbs):
     toamid = pint.toa.TOA(tmid)
     toaplus = pint.toa.TOA(tplus)
     toas = pint.toa.TOAs(toalist=[toamid,toaplus])
+    toas.apply_clock_corrections(include_gps=args.use_gps,include_bipm=args.use_bipm)
     toas.compute_TDBs()
     toas.compute_posvels(ephem=args.ephem,planets=planets)
     phsi,phsf = modelin.phase(toas,abs_phase=True)
