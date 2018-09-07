@@ -56,6 +56,8 @@ parser.add_argument("--unbinned",help="Fit position with unbinned likelihood.  D
 parser.add_argument("--tint",help="Integrate for tint seconds for each TOA, or until the total integration exceeds maxint.  The algorithm is based on GTI, so the integration will slightly exceed tint (default None; see maxint.)",default=None)
 parser.add_argument("--maxint",help="Maximum time interval to accumulate exposure for a single TOA (default=2*86400s)",default=2*86400.)
 parser.add_argument("--minexp",help="Minimum exposure (s) for which to include a TOA (default=None).",default=None)
+parser.add_argument("--use_bipm",help="Use BIPM clock corrections",action="store_true",default=False)
+parser.add_argument("--use_gps",help="Use GPS to UTC clock corrections",action="store_true",default=False)
 
 ## Parse arguments
 args = parser.parse_args()
@@ -64,33 +66,11 @@ args = parser.parse_args()
 modelin = pint.models.get_model(args.parname)
 log.info(str(modelin))
 
-# Read TZR parameters from parfile separately
-tzrmjd = None
-tzrsite = '@'
-tzrfrq = np.inf*u.MHz
-for line in open(args.parname):
-    if line.startswith('TZRMJD'):
-        tzrmjd = np.longdouble(line.split()[1])
-    if line.startswith('TZRSITE'):
-        tzrsite = line.split()[1]
-    if line.startswith('TZRFRQ'):
-        tzrfrq = np.float(line.split()[1])*u.MHz
-
-# If no TZRMJD, then just use some random time
-if tzrmjd is None:
-    tzrmjd = 58000.0
-
 # check for consistency between ephemeris and options
 if 'SolarSystemShapiro' in modelin.components.keys():
     planets=True
 else:
     planets=False
-
-tztoa = pint.toa.TOA(tzrmjd,obs=tzrsite,freq=tzrfrq)
-tz = pint.toa.get_TOAs_list([tztoa],include_bipm=False,include_gps=False,
-    ephem=args.ephem, planets=planets)
-
-
 
 # Load Template objects
 try:
@@ -152,7 +132,7 @@ mjds = ts.get_mjds()
 print(mjds.min(),mjds.max())
 
 # Compute model phase for each TOA
-phss = modelin.phase(ts)[1].value - modelin.phase(tz)[1].value # discard units
+phss = modelin.phase(ts,abs_phase=True)[1].value # discard units
 # ensure all postive
 phases = np.where(phss < 0.0, phss + 1.0, phss)
 tdbs = ts.table['tdb']
@@ -191,9 +171,10 @@ def estimate_toa(mjds,phases,tdbs):
     toamid = pint.toa.TOA(tmid)
     toaplus = pint.toa.TOA(tplus)
     toas = pint.toa.TOAs(toalist=[toamid,toaplus])
+    toas.apply_clock_corrections(include_gps=args.use_gps,include_bipm=args.use_bipm)
     toas.compute_TDBs()
     toas.compute_posvels(ephem=args.ephem,planets=planets)
-    phsi,phsf = modelin.phase(toas)
+    phsi,phsf = modelin.phase(toas,abs_phase=True)
     fbary = (phsi[1]-phsi[0]) + (phsf[1]-phsf[0])
     fbary._unit = u.Hz
     # First delta is to get time of phase 0.0 of initial model

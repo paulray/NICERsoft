@@ -26,6 +26,7 @@ parser.add_argument("--ra",help="RA in HH:MM:SS.s",default="00:00:00")
 parser.add_argument("--dec",help="DEC in DD:MM:SS.s", default="00:00:00")
 
 parser.add_argument("--observer",help="Name of person analyzing data",default=None)
+parser.add_argument("--force",help="Force processing even if not barycentered",default=False,action="store_true")
 args = parser.parse_args()
 if args.observer is None:
     import getpass
@@ -35,7 +36,7 @@ if args.observer is None:
 base = os.path.splitext(os.path.basename(args.evfile))[0]
 
 etable = Table.read(args.evfile,hdu=1)
-if etable.meta['TIMESYS'] != 'TDB':
+if etable.meta['TIMESYS'] != 'TDB' and not args.force:
     log.error('Event file must be barycentered!')
     sys.exit(1)
 gtitable = Table.read(args.evfile,hdu=2)
