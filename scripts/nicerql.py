@@ -79,7 +79,7 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
         gtitable = data.gtitable
         #Some Definitions
         mktable = data.mktable
-        hkmet = data.hkmet
+        #hkmet = data.hkmet
         basename = data.basename
     else:
         #Creating the data table for each separate file
@@ -149,12 +149,12 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
 
         if args.mkf is not None:
             mktable = Table.read(args.mkf,hdu=1)
-            if 'TIMEZERO' in self.mktable.meta:
+            if 'TIMEZERO' in mktable.meta:
                 log.info('Applying TIMEZERO of {0} to mktable in nicerql'.format(mktable.meta['TIMEZERO']))
                 mktable['TIME'] += mktable.meta['TIMEZERO']
                 mktable.meta['TIMEZERO'] = 0.0
         
-        reset_rates = None
+        # reset_rates = None
 else:
     log.warning('You have not specified any files, please input the path to the files you want to see. Exiting.')
     sys.exit()
@@ -237,10 +237,10 @@ if gtitable is not None:
 #     eventundershoots = None
 #     eventovershoots = None
 
-if args.obsdir is not None:
+#if args.obsdir is not None:
 #     hkovershoots = data.hkovershoots
 #     hkundershoots = data.hkundershoots
-    reset_rates = data.reset_rates
+#     reset_rates = data.reset_rates
 
 # Write overshoot and undershoot rates to file for filtering
 if args.writebkf:
@@ -323,23 +323,24 @@ log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
 #------------------------------------------------------PLOTTING HAPPENS BELOW HERE ------------------------------------------------------
 # Background plots are diagnostics for background rates and filtering
 if args.bkg:
-    if hkmet is None:
-        log.error("Can't make background plots without MPU HKP files")
-    else:
+    #if hkmet is None:
+    #    log.error("Can't make background plots without MPU HKP files")
+    #else:
     #     if eventovershoots is not None:
     #         figure4 = bkg_plots(etable, data, gtitable, args, mktable, data.eventshoottable)
     #     else:
     #         figure4 = bkg_plots(etable, data, gtitable, args, mktable, data.hkshoottable)
 
-        figure4 = bkg_plots(etable, gtitable, args, mktable)
-        figure4.set_size_inches(16,12)
-        if args.save:
-            log.info('Writing bkg plot {0}'.format(basename))
-            figure4.savefig('{0}_bkg.png'.format(basename), dpi = 100)
+    figure4 = bkg_plots(etable, gtitable, args, mktable)
+    figure4.set_size_inches(16,12)
+    if args.save:
+        log.info('Writing bkg plot {0}'.format(basename))
+        figure4.savefig('{0}_bkg.png'.format(basename), dpi = 100)
 
 # Engineering plots are reset rates, count rates by detector, and deadtime
 if args.eng:
-    figure1 = eng_plots(etable, args, reset_rates, filttable, gtitable)
+    # figure1 = eng_plots(etable, args, reset_rates, filttable, gtitable)
+    figure1 = eng_plots(etable, args, filttable, gtitable)
     figure1.set_size_inches(16,12)
     if args.save:
         log.info('Writing eng plot {0}'.format(basename))
@@ -390,7 +391,7 @@ if args.interactive:
 # Plot all DetID spectra if --allspec
 if args.allspec:
     log.info("")
-    figure5 = plot_all_spectra(etable, args, reset_rates, filttable, gtitable)
+    figure5 = plot_all_spectra(etable, args, filttable, gtitable)
     figure5.set_size_inches(16,12)
     if args.save:
         log.info('Writing all spectral plot {0}'.format(basename))
@@ -399,7 +400,7 @@ if args.allspec:
 # Plot all DET_ID lightcurve if --alllc
 if args.alllc:
     log.info("")
-    figure6 = plot_all_lc(etable, args, reset_rates, filttable, gtitable)
+    figure6 = plot_all_lc(etable, args, filttable, gtitable)
     figure6.set_size_inches(16,12)
     if args.save:
         log.info('Writing all lightcurve plot {0}'.format(basename))

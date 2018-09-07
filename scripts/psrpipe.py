@@ -334,16 +334,16 @@ for obsdir in all_obsids:
     #os.remove(intermediatename)
 
     # Make cleanfilt.mkf file from ObsID .mkf file and merged_GTI
-    # --- NOT IMPLEMENTED --- #
-    # cleanfilt_mkf = path.join(pipedir,"cleanfilt.mkf")
-    # cmd = ["fltime", "infile='{}[1]'".format(mkfile), "gtifile='{}".format(gtiname_merged),"outfile='{}'".format(cleanfilt_mkf)]
-    # runcmd(cmd)
+    cleanfilt_mkf = path.join(pipedir,"cleanfilt.mkf")
+    log.info('Applying the GTI filtering to the *mkf file')
+    cmd = ["fltime", "infile={}[1]".format(mkfile), "gtifile={}".format(gtiname_merged),"outfile={}".format(cleanfilt_mkf),"clobber=yes"]
+    runcmd(cmd)
 
     # Make final clean plot
     cmd = ["nicerql.py", "--save",
            "--orb", path.join(pipedir,path.basename(orbfile)),
            "--sci", "--eng", filteredname, "--lcbinsize", "4.0","--allspec","--alllc",
-           # "--mkf", cleanfilt_mkf,  # --- NOT IMPLEMENTED --- #
+           "--mkf", cleanfilt_mkf, "--bkg",
            "--basename", path.join(pipedir,basename)+"_cleanfilt"]
     if args.par is not None:
         cmd.append("--par")

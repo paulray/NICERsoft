@@ -7,7 +7,8 @@ import argparse
 from nicer.plotutils import *
 from nicer.values import *
 
-def eng_plots(etable, args, reset_rates, filttable, gtitable):
+#def eng_plots(etable, args, reset_rates, filttable, gtitable):
+def eng_plots(etable, args, filttable, gtitable):
     #GRID SET UP
     figure1 = plot.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,6)
@@ -28,6 +29,7 @@ def eng_plots(etable, args, reset_rates, filttable, gtitable):
 
     #RESET RATE PER DETECTOR
     log.info('Computing reset rates')
+    reset_rates = None 
     plot.subplot(sci_grid[:2, 2:4])
     if reset_rates is not None:
         plot_resetrate(IDS, reset_rates)
@@ -68,7 +70,7 @@ def eng_plots(etable, args, reset_rates, filttable, gtitable):
 
 
 
-def plot_all_spectra(etable, args, reset_rates, filttable, gtitable):
+def plot_all_spectra(etable, args, filttable, gtitable):
     #GRID SET UP
     fig_all_spec = plot.figure(figsize = (11, 8.5), facecolor = 'white')    
     ncols = 8
@@ -97,7 +99,7 @@ def plot_all_spectra(etable, args, reset_rates, filttable, gtitable):
     return fig_all_spec
 
 
-def plot_all_lc(etable, args, reset_rates, filttable, gtitable):
+def plot_all_lc(etable, args, filttable, gtitable):
     #GRID SET UP
     fig_all_lc = plot.figure(figsize = (11, 8.5), facecolor = 'white')    
     ncols = 8
