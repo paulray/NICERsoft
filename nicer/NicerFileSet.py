@@ -105,12 +105,13 @@ class NicerFileSet:
             self.etable = apply_gti(self.etable,g)
             self.gtitable = g
 
-        #Compiling HK Data
-        if args.extraphkshootrate:
-            self.quickhkshootrate()
-        else:
-            self.hkshootrate()
-        self.geteventshoots()
+        # Compiling HK Data
+        # if args.extraphkshootrate:
+        #     self.quickhkshootrate()
+        # else:
+        #     self.hkshootrate()
+        # self.geteventshoots()
+        # self.reset_rates = None
 
     def createetable(self):
         log.info('Reading files')
@@ -151,115 +152,115 @@ class NicerFileSet:
         if self.args.object is not None:
             self.etable.meta['OBJECT'] = self.args.object
 
-    def quickhkshootrate(self):
-        'Compute HK shoot rates from a single MPU*7 instead of trying to sum all MPUs. This avoids errors when time axes are not compatible'
-        log.info('Getting HKP quick overshoot and undershoot rates from one MPU')
-        if len(self.hkfiles) > 0:
-            log.info('Reading '+self.hkfiles[4])
-            hdulist = pyfits.open(self.hkfiles[4])
-            td = hdulist[1].data
-            self.hkmet = td['TIME']
-            log.info("HK MET Range {0} to {1} (Span = {2:.1f} seconds)".format(self.hkmet.min(),
-                self.hkmet.max(),self.hkmet.max()-self.hkmet.min()))
-            # Only read one MPU so multiply by 7 to extrapolate to full rates
-            self.hkovershoots = td['MPU_OVER_COUNT'].sum(axis=1)*7
-            self.hkundershoots = td['MPU_UNDER_COUNT'].sum(axis=1)*7
-            # Here we don't get reset rates for all MPUS
-            nresets = td['MPU_UNDER_COUNT'].sum(axis=0)
-            del hdulist
-            self.reset_rates = None
+    # def quickhkshootrate(self):
+    #     'Compute HK shoot rates from a single MPU*7 instead of trying to sum all MPUs. This avoids errors when time axes are not compatible'
+    #     log.info('Getting HKP quick overshoot and undershoot rates from one MPU')
+    #     if len(self.hkfiles) > 0:
+    #         log.info('Reading '+self.hkfiles[4])
+    #         hdulist = pyfits.open(self.hkfiles[4])
+    #         td = hdulist[1].data
+    #         self.hkmet = td['TIME']
+    #         log.info("HK MET Range {0} to {1} (Span = {2:.1f} seconds)".format(self.hkmet.min(),
+    #             self.hkmet.max(),self.hkmet.max()-self.hkmet.min()))
+    #         # Only read one MPU so multiply by 7 to extrapolate to full rates
+    #         self.hkovershoots = td['MPU_OVER_COUNT'].sum(axis=1)*7
+    #         self.hkundershoots = td['MPU_UNDER_COUNT'].sum(axis=1)*7
+    #         # Here we don't get reset rates for all MPUS
+    #         nresets = td['MPU_UNDER_COUNT'].sum(axis=0)
+    #         del hdulist
+    #         self.reset_rates = None
 
-            timecol = pyfits.Column(name='HKTIME',array=self.hkmet, format = 'D')
-            ovscol = pyfits.Column(name = 'HK_OVERSHOOT', array = self.hkovershoots, format = 'D')
-            undcol = pyfits.Column(name = 'HK_UNDERSHOOT',array = self.hkundershoots, format = 'D')
+    #         timecol = pyfits.Column(name='HKTIME',array=self.hkmet, format = 'D')
+    #         ovscol = pyfits.Column(name = 'HK_OVERSHOOT', array = self.hkovershoots, format = 'D')
+    #         undcol = pyfits.Column(name = 'HK_UNDERSHOOT',array = self.hkundershoots, format = 'D')
 
-            self.hkshoottable = Table([self.hkmet, self.hkovershoots, self.hkundershoots],names = ('HKMET', 'HK_OVERSHOOTS', 'HK_UNDERSHOOTS'))
-        else:
-            hkmet = None
-            hkovershoots = None
-            hkundershoots = None
-            nresets = calc_nresets(self.etable, IDS)
-            reset_rates = nresets/self.etable.meta['EXPOSURE']
+    #         self.hkshoottable = Table([self.hkmet, self.hkovershoots, self.hkundershoots],names = ('HKMET', 'HK_OVERSHOOTS', 'HK_UNDERSHOOTS'))
+    #     else:
+    #         hkmet = None
+    #         hkovershoots = None
+    #         hkundershoots = None
+    #         nresets = calc_nresets(self.etable, IDS)
+    #         reset_rates = nresets/self.etable.meta['EXPOSURE']
 
-    def hkshootrate(self):
-        # getting the overshoot and undershoot rate from HK files.  Times are hkmet
-        log.info('Getting HKP overshoot and undershoot rates')
-        if len(self.hkfiles) > 0:
-            log.info('Reading '+self.hkfiles[0])
-            hdulist = pyfits.open(self.hkfiles[0])
-            td = hdulist[1].data
-            self.hkmet = td['TIME']
-            log.info("HK MET Range {0} to {1} (Span = {2:.1f} seconds)".format(self.hkmet.min(),
-                self.hkmet.max(),self.hkmet.max()-self.hkmet.min()))
-            self.hkovershoots = td['MPU_OVER_COUNT'].sum(axis=1)
-            self.hkundershoots = td['MPU_UNDER_COUNT'].sum(axis=1)
-            nresets = td['MPU_UNDER_COUNT'].sum(axis=0)
-            for fn in self.hkfiles[1:]:
-                log.info('Reading '+fn)
-                hdulist = pyfits.open(fn)
-                mytd = hdulist[1].data
-                mymet = mytd['TIME']
-                myhkovershoots= mytd['MPU_OVER_COUNT'].sum(axis=1)
-                myhkundershoots = mytd['MPU_UNDER_COUNT'].sum(axis=1)
-                # If time axis is bad, skip this MPU.
-                # Should fix this!
+    # def hkshootrate(self):
+    #     # getting the overshoot and undershoot rate from HK files.  Times are hkmet
+    #     log.info('Getting HKP overshoot and undershoot rates')
+    #     if len(self.hkfiles) > 0:
+    #         log.info('Reading '+self.hkfiles[0])
+    #         hdulist = pyfits.open(self.hkfiles[0])
+    #         td = hdulist[1].data
+    #         self.hkmet = td['TIME']
+    #         log.info("HK MET Range {0} to {1} (Span = {2:.1f} seconds)".format(self.hkmet.min(),
+    #             self.hkmet.max(),self.hkmet.max()-self.hkmet.min()))
+    #         self.hkovershoots = td['MPU_OVER_COUNT'].sum(axis=1)
+    #         self.hkundershoots = td['MPU_UNDER_COUNT'].sum(axis=1)
+    #         nresets = td['MPU_UNDER_COUNT'].sum(axis=0)
+    #         for fn in self.hkfiles[1:]:
+    #             log.info('Reading '+fn)
+    #             hdulist = pyfits.open(fn)
+    #             mytd = hdulist[1].data
+    #             mymet = mytd['TIME']
+    #             myhkovershoots= mytd['MPU_OVER_COUNT'].sum(axis=1)
+    #             myhkundershoots = mytd['MPU_UNDER_COUNT'].sum(axis=1)
+    #             # If time axis is bad, skip this MPU.
+    #             # Should fix this!
 
-                if not np.array_equal(mymet, self.hkmet):
-                    log.error('Time axes are not compatible')
-                else:
-                    self.hkovershoots += myhkovershoots
-                    self.hkundershoots += myhkundershoots
+    #             if not np.array_equal(mymet, self.hkmet):
+    #                 log.error('Time axes are not compatible')
+    #             else:
+    #                 self.hkovershoots += myhkovershoots
+    #                 self.hkundershoots += myhkundershoots
 
-                myreset = mytd['MPU_UNDER_COUNT'].sum(axis=0)
-                nresets = np.append(nresets,myreset)
-            del hdulist
-            self.reset_rates = nresets / np.float(self.etable.meta['EXPOSURE'])
+    #             myreset = mytd['MPU_UNDER_COUNT'].sum(axis=0)
+    #             nresets = np.append(nresets,myreset)
+    #         del hdulist
+    #         self.reset_rates = nresets / np.float(self.etable.meta['EXPOSURE'])
 
-            timecol = pyfits.Column(name='HKTIME',array=self.hkmet, format = 'D')
-            ovscol = pyfits.Column(name = 'HK_OVERSHOOT', array = self.hkovershoots, format = 'D')
-            undcol = pyfits.Column(name = 'HK_UNDERSHOOT',array = self.hkundershoots, format = 'D')
+    #         timecol = pyfits.Column(name='HKTIME',array=self.hkmet, format = 'D')
+    #         ovscol = pyfits.Column(name = 'HK_OVERSHOOT', array = self.hkovershoots, format = 'D')
+    #         undcol = pyfits.Column(name = 'HK_UNDERSHOOT',array = self.hkundershoots, format = 'D')
 
-            self.hkshoottable = Table([self.hkmet, self.hkovershoots, self.hkundershoots],names = ('HKMET', 'HK_OVERSHOOTS', 'HK_UNDERSHOOTS'))
+    #         self.hkshoottable = Table([self.hkmet, self.hkovershoots, self.hkundershoots],names = ('HKMET', 'HK_OVERSHOOTS', 'HK_UNDERSHOOTS'))
 
-        else:
-            hkmet = None
-            hkovershoots = None
-            hkundershoots = None
-            nresets = calc_nresets(self.etable, IDS)
-            reset_rates = nresets/self.etable.meta['EXPOSURE']
+    #     else:
+    #         hkmet = None
+    #         hkovershoots = None
+    #         hkundershoots = None
+    #         nresets = calc_nresets(self.etable, IDS)
+    #         reset_rates = nresets/self.etable.meta['EXPOSURE']
 
-    def geteventshoots(self):
-        log.info('Getting event shoot rates')
-        # Define bins for hkmet histogram
-        hkmetbins = np.append(self.hkmet,(self.hkmet[-1]+self.hkmet[1]-self.hkmet[0]))
+    # def geteventshoots(self):
+    #     log.info('Getting event shoot rates')
+    #     # Define bins for hkmet histogram
+    #     hkmetbins = np.append(self.hkmet,(self.hkmet[-1]+self.hkmet[1]-self.hkmet[0]))
 
-        if self.args.eventshootrate or self.args.writebkf:
-            #Both under and overshoot
-            if len(self.uffiles) == 0:
-                filelist = self.evfiles
-            else:
-                filelist = self.uffiles
-            etable = get_eventbothshoots_ftools(filelist,workdir=None)
-            self.eventbothshoots, edges = np.histogram(etable['TIME'],hkmetbins)
-            #Just overshoot
-            etable = get_eventovershoots_ftools(filelist,workdir=None)
-            self.eventovershoots, edges = np.histogram(etable['TIME'],hkmetbins)
+    #     if self.args.eventshootrate or self.args.writebkf:
+    #         #Both under and overshoot
+    #         if len(self.uffiles) == 0:
+    #             filelist = self.evfiles
+    #         else:
+    #             filelist = self.uffiles
+    #         etable = get_eventbothshoots_ftools(filelist,workdir=None)
+    #         self.eventbothshoots, edges = np.histogram(etable['TIME'],hkmetbins)
+    #         #Just overshoot
+    #         etable = get_eventovershoots_ftools(filelist,workdir=None)
+    #         self.eventovershoots, edges = np.histogram(etable['TIME'],hkmetbins)
 
-            self.eventshoottable = Table([self.hkmet, self.eventovershoots, self.eventbothshoots],names = ('HKMET', 'EVENT_OVERSHOOTS', 'EVENT_BOTHSHOOTS'))
-            del etable
-        else:
-            self.eventbothshoots = None
-            self.eventovershoots = None
+    #         self.eventshoottable = Table([self.hkmet, self.eventovershoots, self.eventbothshoots],names = ('HKMET', 'EVENT_OVERSHOOTS', 'EVENT_BOTHSHOOTS'))
+    #         del etable
+    #     else:
+    #         self.eventbothshoots = None
+    #         self.eventovershoots = None
 
-        # Don't compute this unless specifically requested, because it can be slow
-        if self.args.eventshootrate:
-            etable = get_eventundershoots_ftools(filelist,workdir=None)
-            self.eventundershoots, edges = np.histogram(etable['TIME'],hkmetbins)
-            self.eventshoottable = Table([self.hkmet, self.eventovershoots, self.eventundershoots, self.eventbothshoots],names = ('HKMET', 'EVENT_OVERSHOOTS', 'EVENT_UNDERSHOOTS', 'EVENT_BOTHSHOOTS'))
-            del etable
+    #     # Don't compute this unless specifically requested, because it can be slow
+    #     if self.args.eventshootrate:
+    #         etable = get_eventundershoots_ftools(filelist,workdir=None)
+    #         self.eventundershoots, edges = np.histogram(etable['TIME'],hkmetbins)
+    #         self.eventshoottable = Table([self.hkmet, self.eventovershoots, self.eventundershoots, self.eventbothshoots],names = ('HKMET', 'EVENT_OVERSHOOTS', 'EVENT_UNDERSHOOTS', 'EVENT_BOTHSHOOTS'))
+    #         del etable
 
-        else:
-            self.eventundershoots = None
+    #     else:
+    #         self.eventundershoots = None
 
     def writebkffile(self):
         # Write useful rates  to file for filtering

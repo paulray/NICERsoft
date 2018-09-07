@@ -162,7 +162,8 @@ def get_badratioevents_ftools(evfiles,workdir=None):
     # Build input file for ftmerge
     evlistname=path.join(tmpdir,'evfiles.txt')
     fout = open(evlistname,'w')
-    evfilt_expr = '(EVENT_FLAGS==bx11000).and.((float)PI/(float)PI_FAST > (1.0 + 25.0/(float)PI + 4.0E-11*(float)PI**3))'
+    #evfilt_expr = '(EVENT_FLAGS==bx11000).and.((float)PI/(float)PI_FAST > (1.0 + 25.0/(float)PI + 4.0E-11*(float)PI**3))'
+    evfilt_expr = '(EVENT_FLAGS==bx11000).and.((float)PI/(float)PI_FAST > (1.1 + 120.0/(float)PI + 0.0E-11*(float)PI**3))'
     for en in evfiles:
         print('{0}[{1}]'.format(en,evfilt_expr),file=fout)
     fout.close()

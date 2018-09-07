@@ -7,18 +7,19 @@ from astropy import log
 from nicer.plotutils import *
 from nicer.fitsutils import *
 
-def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
+#def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
+def bkg_plots(etable, gtitable, args, mktable):
 
-    if args.eventshootrate:
-        overshootrate = shoottable['EVENT_OVERSHOOTS']
-        undershootrate = shoottable['EVENT_UNDERSHOOTS']
-        bothrate = shoottable['EVENT_BOTHSHOOTS']
-        hkmet = shoottable['HKMET']
-    else:
-        overshootrate = shoottable['HK_OVERSHOOTS']
-        undershootrate = shoottable['HK_UNDERSHOOTS']
-        bothrate = None
-        hkmet = shoottable['HKMET']
+    # if args.eventshootrate:
+    #     overshootrate = shoottable['EVENT_OVERSHOOTS']
+    #     undershootrate = shoottable['EVENT_UNDERSHOOTS']
+    #     bothrate = shoottable['EVENT_BOTHSHOOTS']
+    #     hkmet = shoottable['HKMET']
+    # else:
+    #     overshootrate = shoottable['HK_OVERSHOOTS']
+    #     undershootrate = shoottable['HK_UNDERSHOOTS']
+    #     bothrate = None
+    #     hkmet = shoottable['HKMET']
 
     figure = plt.figure(figsize = (8.5, 11), facecolor = 'white')
     bkg_grid = gridspec.GridSpec(29,4)
@@ -27,25 +28,29 @@ def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
     log.info('Building Rejected Event Light curve')
     plt.subplot(bkg_grid[1:5,:4])
 
-    hkmetbins = np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0]))
+    # hkmetbins = np.append(hkmet,(hkmet[-1]+hkmet[1]-hkmet[0]))
 
     # Extract bad ratio events and bin onto hkmet bins
-    if len(data.ufafiles) == 0:
-        badtable = get_badratioevents_ftools(data.evfiles,workdir=None)
-    else:
-        badtable = get_badratioevents_ftools(data.ufafiles,workdir=None)
-    badlightcurve = np.histogram(badtable['TIME'], hkmetbins)[0]
-    badlightcurve = np.array(badlightcurve,dtype=np.float)
+    # if len(data.ufafiles) == 0:
+    #     badtable = get_badratioevents_ftools(data.evfiles,workdir=None)
+    # else:
+    #     badtable = get_badratioevents_ftools(data.ufafiles,workdir=None)
+    # badlightcurve = np.histogram(badtable['TIME'], hkmetbins)[0]
+    # badlightcurve = np.array(badlightcurve,dtype=np.float)
+
+    badlightcurve = 52*mktable['FPM_RATIO_REJ_COUNT']
 
     colornames, cmap, norm = gti_colormap()
 
-    times, lc, cc = convert_to_elapsed_goodtime(hkmet, badlightcurve, gtitable)
+    # times, lc, cc = convert_to_elapsed_goodtime(hkmet, badlightcurve, gtitable)
+    times, lc, cc = convert_to_elapsed_goodtime(mktable['TIME'], badlightcurve, gtitable)
     plot.scatter(times, lc, c=np.fmod(cc,len(colornames)), cmap=cmap, norm=norm, marker='.')
 
     # Really should convolve in GTI segments!
     kernel = np.ones(32)/32.0
     badsmooth = np.convolve(badlightcurve,kernel,mode='same')
-    times, lc, cc = convert_to_elapsed_goodtime(hkmet, badsmooth, gtitable)
+    # times, lc, cc = convert_to_elapsed_goodtime(hkmet, badsmooth, gtitable)
+    times, lc, cc = convert_to_elapsed_goodtime(mktable['TIME'], badsmooth, gtitable)
     plot.plot(times, lc)
 
     plot.yscale('symlog',linthreshy=5.0)
@@ -57,17 +62,20 @@ def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
     #Overshoot rate plot -- use --lclog to make it a log y axis
     log.info('Building overshoot plot')
     plt.subplot(bkg_grid[5:9,:4])
-    if overshootrate is not None:
-        plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate)
-        plot_SAA(mktable, gtitable, overshootrate)
+    # if overshootrate is not None:
+    # plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate, mktable)
+    plot_overshoot(mktable, gtitable, args)
+    # plot_SAA(mktable, gtitable, overshootrate)
+    plot_SAA(mktable, gtitable)
 
     #Plot of undershoot rate
     log.info('Building undershoot plot')
     plt.subplot(bkg_grid[9:13,:4])
-    if undershootrate is not None:
-        plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable)
-
-    #Plot of Sun / Moon
+    # if undershootrate is not None:
+    #    plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable)
+    plot_undershoot(mktable, gtitable, args)
+    
+    #Plot of Sun / Moon -- mktable
     log.info('Building Sun / Moon / Earth angle Plot')
     plt.subplot(bkg_grid[13:17,:4])
     plot_angles(mktable, gtitable)

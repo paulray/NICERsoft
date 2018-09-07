@@ -52,9 +52,10 @@ parser.add_argument("--lclog", help = "make light curve log axis", action = "sto
 parser.add_argument("--foldfreq", help="Make pulse profile by folding at a fixed freq (Hz)",default=0.0,type=float)
 parser.add_argument("--nyquist", help="Nyquist freq for power spectrum (Hz)",default=100.0,type=float)
 parser.add_argument("--map", help= "Creates a map with overshoots and undershoots", action = 'store_true')
-parser.add_argument("--orb", help="Path to orbit FITS filed", default = None)
+parser.add_argument("--orb", help="Path to orbit FITS files", default = None)
 parser.add_argument("--par", help="Path to par file", default = None)
 parser.add_argument("--sps", help="Path to SPS HK file (_apid0260.hk)",default=None)
+parser.add_argument("--mkf", help="Path to MKF file",default=None)
 parser.add_argument("--powspec",help = "Display power spectrum (replaces ratio plot)", action = 'store_true')
 parser.add_argument("--pslog", help = "make power spectrum log axis", action = "store_true")
 parser.add_argument("--writeps", help = "write out power spectrum", action = "store_true")
@@ -78,7 +79,7 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
         gtitable = data.gtitable
         #Some Definitions
         mktable = data.mktable
-        hkmet = data.hkmet
+        #hkmet = data.hkmet
         basename = data.basename
     else:
         #Creating the data table for each separate file
@@ -146,7 +147,14 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
         else:
             basename = args.basename
 
-        reset_rates = None
+        if args.mkf is not None:
+            mktable = Table.read(args.mkf,hdu=1)
+            if 'TIMEZERO' in mktable.meta:
+                log.info('Applying TIMEZERO of {0} to mktable in nicerql'.format(mktable.meta['TIMEZERO']))
+                mktable['TIME'] += mktable.meta['TIMEZERO']
+                mktable.meta['TIMEZERO'] = 0.0
+        
+        # reset_rates = None
 else:
     log.warning('You have not specified any files, please input the path to the files you want to see. Exiting.')
     sys.exit()
@@ -219,20 +227,20 @@ if gtitable is not None:
         cumtime += mylcduration
     gtitable['CUMTIME'] = np.array(cumtimes)
 
-#Getting over/undershoot rate from event data.
-if args.eventshootrate:
-    eventovershoots = data.eventovershoots
-    eventundershoots = data.eventundershoots
-    eventbothshoots = data.eventbothshoots
-else:
-    eventbothshoots = None
-    eventundershoots = None
-    eventovershoots = None
+# Getting over/undershoot rate from event data.
+# if args.eventshootrate:
+#     eventovershoots = data.eventovershoots
+#     eventundershoots = data.eventundershoots
+#     eventbothshoots = data.eventbothshoots
+# else:
+#     eventbothshoots = None
+#     eventundershoots = None
+#     eventovershoots = None
 
-if args.obsdir is not None:
-    hkovershoots = data.hkovershoots
-    hkundershoots = data.hkundershoots
-    reset_rates = data.reset_rates
+#if args.obsdir is not None:
+#     hkovershoots = data.hkovershoots
+#     hkundershoots = data.hkundershoots
+#     reset_rates = data.reset_rates
 
 # Write overshoot and undershoot rates to file for filtering
 if args.writebkf:
@@ -315,21 +323,24 @@ log.info('Exposure : {0:.2f}'.format(etable.meta['EXPOSURE']))
 #------------------------------------------------------PLOTTING HAPPENS BELOW HERE ------------------------------------------------------
 # Background plots are diagnostics for background rates and filtering
 if args.bkg:
-    if hkmet is None:
-        log.error("Can't make background plots without MPU HKP files")
-    else:
-        if eventovershoots is not None:
-            figure4 = bkg_plots(etable, data, gtitable, args, mktable, data.eventshoottable)
-        else:
-            figure4 = bkg_plots(etable, data, gtitable, args, mktable, data.hkshoottable)
-        figure4.set_size_inches(16,12)
-        if args.save:
-            log.info('Writing bkg plot {0}'.format(basename))
-            figure4.savefig('{0}_bkg.png'.format(basename), dpi = 100)
+    #if hkmet is None:
+    #    log.error("Can't make background plots without MPU HKP files")
+    #else:
+    #     if eventovershoots is not None:
+    #         figure4 = bkg_plots(etable, data, gtitable, args, mktable, data.eventshoottable)
+    #     else:
+    #         figure4 = bkg_plots(etable, data, gtitable, args, mktable, data.hkshoottable)
+
+    figure4 = bkg_plots(etable, gtitable, args, mktable)
+    figure4.set_size_inches(16,12)
+    if args.save:
+        log.info('Writing bkg plot {0}'.format(basename))
+        figure4.savefig('{0}_bkg.png'.format(basename), dpi = 100)
 
 # Engineering plots are reset rates, count rates by detector, and deadtime
 if args.eng:
-    figure1 = eng_plots(etable, args, reset_rates, filttable, gtitable)
+    # figure1 = eng_plots(etable, args, reset_rates, filttable, gtitable)
+    figure1 = eng_plots(etable, args, filttable, gtitable)
     figure1.set_size_inches(16,12)
     if args.save:
         log.info('Writing eng plot {0}'.format(basename))
@@ -357,13 +368,14 @@ if args.sci:
 # Map plot is overshoot and undershoot rates on maps
 if args.map:
     log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
-    if eventovershoots is not None:
-        figure3 = cartography(hkmet, eventovershoots, args, eventundershoots,
-            filttable, mktable, gtitable)
-    else:
-        figure3 = cartography(hkmet, hkovershoots, args, hkundershoots,
-            filttable, mktable, gtitable)
-
+    # if eventovershoots is not None:
+    #     figure3 = cartography(hkmet, eventovershoots, args, eventundershoots,
+    #         filttable, mktable, gtitable)
+    # else:
+    #     figure3 = cartography(hkmet, hkovershoots, args, hkundershoots,
+    #         filttable, mktable, gtitable)
+    
+    figure3 = cartography(filttable, mktable, gtitable, args)
     if args.save:
         log.info('Writing MAP {0}'.format(basename))
         figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
@@ -379,7 +391,7 @@ if args.interactive:
 # Plot all DetID spectra if --allspec
 if args.allspec:
     log.info("")
-    figure5 = plot_all_spectra(etable, args, reset_rates, filttable, gtitable)
+    figure5 = plot_all_spectra(etable, args, filttable, gtitable)
     figure5.set_size_inches(16,12)
     if args.save:
         log.info('Writing all spectral plot {0}'.format(basename))
@@ -388,7 +400,7 @@ if args.allspec:
 # Plot all DET_ID lightcurve if --alllc
 if args.alllc:
     log.info("")
-    figure6 = plot_all_lc(etable, args, reset_rates, filttable, gtitable)
+    figure6 = plot_all_lc(etable, args, filttable, gtitable)
     figure6.set_size_inches(16,12)
     if args.save:
         log.info('Writing all lightcurve plot {0}'.format(basename))

@@ -535,40 +535,65 @@ def convert_to_elapsed_goodtime(mets, vals, gtitable):
     # Returns the arrays of elapsed times, values, and an array of what segment it is in, used for setting plot colors by GTI segment
     return etimes, goodvals, cc
 
-def plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate):
+#def plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate, mktable):
+def plot_overshoot(mktable, gtitable, args):
 
-    etime, overshoot, cc = convert_to_elapsed_goodtime(hkmet, overshootrate, gtitable)
+    #etime, overshoot, cc = convert_to_elapsed_goodtime(hkmet, overshootrate, gtitable)
+    etime, overshoot, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_OVERONLY_COUNT'], gtitable)
+
+    # Delete the nan values from undershoot and cc so they don't plot
+    etimeNan = np.where(np.isnan(overshoot))
+    ovtime=np.delete(etime,etimeNan)
+    overshoot=np.delete(overshoot,etimeNan)
+    cc=np.delete(cc,etimeNan)
+    
     colornames, cmap, norm = gti_colormap()
 
-    plot.scatter(etime, overshoot, c=np.fmod(cc,len(colornames)), cmap=cmap,
+    plot.scatter(ovtime, overshoot, c=np.fmod(cc,len(colornames)), cmap=cmap,
         norm=norm, marker='+',label='Overshoot rate')
-    if bothrate is not None:
-        etime, both, cc = convert_to_elapsed_goodtime(hkmet, bothrate, gtitable)
-        plot.scatter(etime, both, color='c', marker='.', label='Both Under and Over Flags')
-        plot.legend(loc = 2)
+    
+    #if bothrate is not None:
+        #etime, both, cc = convert_to_elapsed_goodtime(hkmet, bothrate, gtitable)
+    etime, both, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_DOUBLE_COUNT'], gtitable)
+    plot.scatter(etime, both, color='c', marker='.', label='Both Under and Over Flags')
+    plot.legend(loc = 2)
+
     plot.ylabel('Overshoot rate')
     plot.grid(True)
 
     plot.yscale('symlog',linthreshy=10.0)
     return
 
-def plot_SAA(mktable, gtitable, overshootrate):
+#def plot_SAA(mktable, gtitable, overshootrate):
+def plot_SAA(mktable, gtitable):
     time, insaa, colors = convert_to_elapsed_goodtime(mktable['TIME'], mktable['NICER_SAA'], gtitable)
     time = np.delete(time, np.where(insaa == 0))
     insaa = np.delete(insaa, np.where(insaa == 0))
-    insaa[np.where(insaa == 1)] = max(overshootrate)
+
+    # Get Overshoot Max, just to put the SAA on the same plot
+    ovtime, overshoot, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_OVERONLY_COUNT'], gtitable)
+    #insaa[np.where(insaa == 1)] = max(overshootrate)
+    insaa[np.where(insaa == 1)] = np.nanmax(overshoot)
+    
     plot.scatter(time, insaa, color = 'y', label = 'In the SAA',marker = '_')
     plot.legend(loc = 2)
     return
 
 #-------------------------UNDERSHOOT RATE FOR RATIO------------------------------
-def plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable):
+#def plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable):
+def plot_undershoot(mktable, gtitable, args):
 
-    etime, undershoot, cc = convert_to_elapsed_goodtime(hkmet, undershootrate, gtitable)
+    #etime, undershoot, cc = convert_to_elapsed_goodtime(hkmet, undershootrate, gtitable)
+    etime, undershoot, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_UNDERONLY_COUNT'], gtitable)
 
+    # Delete the nan values from undershoot and cc so they don't plot
+    etimeNan = np.where(np.isnan(undershoot))
+    udtime=np.delete(etime,etimeNan)
+    undershoot=np.delete(undershoot,etimeNan)
+    cc=np.delete(cc,etimeNan)
+    
     colornames, cmap, norm = gti_colormap()
-
-    plot.scatter(etime, undershoot, c=np.fmod(cc,len(colornames)), cmap=cmap,
+    plot.scatter(udtime, undershoot, c=np.fmod(cc,len(colornames)), cmap=cmap,
         norm=norm, marker='+')
 
     # Add sunshine
@@ -579,7 +604,8 @@ def plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable):
     # Delete the 0 values so they don't plot
     sunt=np.delete(sunt,sidx)
     suny=np.delete(suny,sidx)
-    plot.scatter(sunt,suny*undershoot.max()+1, color='y', label='Sunshine',
+
+    plot.scatter(sunt,1.1*suny*undershoot.max(), color='y', label='Sunshine',
         marker = '_')
     plot.legend(loc = 2)
     plot.grid(True)
@@ -588,7 +614,6 @@ def plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable):
         plot.yscale('log')
 
     return
-
 
 #-------------------------SUN / EARTH / MOON ANGLES-----------------------------
 def plot_angles(mktable, gtitable):
