@@ -8,7 +8,7 @@ from nicer.plotutils import *
 from nicer.values import *
 
 #def eng_plots(etable, args, reset_rates, filttable, gtitable):
-def eng_plots(etable, args, filttable, gtitable):
+def eng_plots(etable, args, mktable, filttable, gtitable):
     #GRID SET UP
     figure1 = plot.figure(figsize = (11, 8.5), facecolor = 'white')
     sci_grid = gridspec.GridSpec(5,6)
@@ -28,11 +28,14 @@ def eng_plots(etable, args, filttable, gtitable):
     dead_plot = plot_deadtime(filttable)
 
     #RESET RATE PER DETECTOR
-    log.info('Computing reset rates')
-    reset_rates = None 
-    plot.subplot(sci_grid[:2, 2:4])
-    if reset_rates is not None:
-        plot_resetrate(IDS, reset_rates)
+    if mktable is not None:
+        log.info('Computing reset rates')
+        plot.subplot(sci_grid[:2, 2:4])
+        reset_rates = calc_nresets(mktable, IDS)/ etable.meta['EXPOSURE']
+        if reset_rates is not None:
+            plot_resetrate(IDS, reset_rates)
+    else:
+        reset_rates = None 
 
     # Hot detector
     num_events, colors = hist_use(filttable)

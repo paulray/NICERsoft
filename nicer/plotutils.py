@@ -691,16 +691,24 @@ def plot_cor(mktable, gtitable):
     return
 
 #-------------------------THIS PLOTS USEFUL TEXT AT THE TOP OF THE SUPLOT-------
-def calc_nresets(etable, IDS):
-    'Count resets (detector undershoots) for each detector'
+# def calc_nresets(etable, IDS):
+def calc_nresets(mktable, IDS):
+    'Count resets (detector undershoots) for each detector, from the mktable'
 
     nresets = np.zeros_like(IDS)
 
-    # For each DET_ID count the number of events with undershoot flag set
+#     # For each DET_ID count the number of events with undershoot flag set
+#     for i in range(len(IDS)):
+#         idx = np.where(np.logical_and(etable['DET_ID'] == IDS[i],
+#                         etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]))[0]
+#         nresets[i] = len(idx)
+
+    MPU_ud_only = mktable['MPU_UNDERONLY_COUNT'].reshape((len(mktable['MPU_UNDERONLY_COUNT']),56))
+    # Reshaping is necessary in the case of MPU_UNDERONLY_COUNT
+    # given as a 7x8 matrix instead of 56 array in the mktable
+    
     for i in range(len(IDS)):
-        idx = np.where(np.logical_and(etable['DET_ID'] == IDS[i],
-                        etable['EVENT_FLAGS'][:,FLAG_UNDERSHOOT]))[0]
-        nresets[i] = len(idx)
+        nresets[i] = MPU_ud_only[:,i].sum()
 
     return nresets
 

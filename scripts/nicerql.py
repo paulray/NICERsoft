@@ -147,13 +147,14 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
         else:
             basename = args.basename
 
-        if args.mkf is not None:
+        if args.mkf:
             mktable = Table.read(args.mkf,hdu=1)
             if 'TIMEZERO' in mktable.meta:
                 log.info('Applying TIMEZERO of {0} to mktable in nicerql'.format(mktable.meta['TIMEZERO']))
                 mktable['TIME'] += mktable.meta['TIMEZERO']
                 mktable.meta['TIMEZERO'] = 0.0
-        
+        else:
+            mktable = None
         # reset_rates = None
 else:
     log.warning('You have not specified any files, please input the path to the files you want to see. Exiting.')
@@ -340,7 +341,7 @@ if args.bkg:
 # Engineering plots are reset rates, count rates by detector, and deadtime
 if args.eng:
     # figure1 = eng_plots(etable, args, reset_rates, filttable, gtitable)
-    figure1 = eng_plots(etable, args, filttable, gtitable)
+    figure1 = eng_plots(etable, args, mktable, filttable, gtitable)
     figure1.set_size_inches(16,12)
     if args.save:
         log.info('Writing eng plot {0}'.format(basename))
