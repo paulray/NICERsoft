@@ -25,6 +25,7 @@ from pint.eventstats import hmw, hm, h2sig
 from astropy.time import Time, TimeDelta
 from pint.templates.lctemplate import LCTemplate,prim_io
 from pint.templates import lcfitters
+from copy import deepcopy
 import cPickle
 import cStringIO
 from collections import deque
@@ -50,7 +51,7 @@ parser.add_argument("--orbfile",help="Name of orbit file", default=None)
 parser.add_argument("--ephem",help="Planetary ephemeris to use (default=DE421)", default="DE421")
 parser.add_argument("--plot",help="Show phaseogram plot.", action='store_true', default=False)
 parser.add_argument("--plotfile",help="Output figure file name (default=None)", default=None)
-parser.add_argument("--fitbg",help="Fit an overall background level (e.g. for changing particle background level (default=False).",action='store_true',default=False)
+#parser.add_argument("--fitbg",help="Fit an overall background level (e.g. for changing particle background level (default=False).",action='store_true',default=False)
 parser.add_argument("--unbinned",help="Fit position with unbinned likelihood.  Don't use for large data sets. (default=False)",action='store_true',default=False)
 #parser.add_argument("--fix",help="Adjust times to fix 1.0 second offset in NICER data (default=False)", action='store_true',default=False)
 parser.add_argument("--tint",help="Integrate for tint seconds for each TOA, or until the total integration exceeds maxint.  The algorithm is based on GTI, so the integration will slightly exceed tint (default None; see maxint.)",default=None)
@@ -127,7 +128,7 @@ ts.filename = args.eventname
 #        log.error('TIMEZERO<0 and --fix: You are trying to apply the 1-s offet twice!')
 #    ts.adjust_TOAs(TimeDelta(np.ones(len(ts.table))*-1.0*u.s,scale='tt'))
 
-print(ts.get_summary())
+#print(ts.get_summary())
 mjds = ts.get_mjds()
 print(mjds.min(),mjds.max())
 
@@ -156,11 +157,12 @@ def estimate_toa(mjds,phases,tdbs):
     # Given some subset of the event times, phases, and weights, compute
     # the TOA based on a reference event near the middle of the span.
     # Build the TOA as a PINT TOA() object
-    lcf = lcfitters.LCFitter(template,phases)
-    if args.fitbg:
-        for i in xrange(2):
-            lcf.fit_position(unbinned=False)
-            lcf.fit_background(unbinned=False)
+    lcf = lcfitters.LCFitter(deepcopy(template),phases)
+# fitbg does not work!  Disabling.
+#    if args.fitbg:
+#        for i in xrange(2):
+#            lcf.fit_position(unbinned=False)
+#            lcf.fit_background(unbinned=False)
     dphi,dphierr = lcf.fit_position(unbinned=args.unbinned)
     log.info('Measured phase shift dphi={0}, dphierr={1}'.format(dphi,dphierr))
 
@@ -200,6 +202,7 @@ if args.tint is None:
 else:
     # Load in GTIs
     f = pyfits.open(args.eventname)
+    # Warning:: This is ignoring TIMEZERO!!!!
     gti_t0 = f['gti'].data.field('start')
     gti_t1 = f['gti'].data.field('stop')
     gti_dt = gti_t1-gti_t0
