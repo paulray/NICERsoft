@@ -59,6 +59,7 @@ parser.add_argument("--maxint",help="Maximum time interval to accumulate exposur
 parser.add_argument("--minexp",help="Minimum exposure (s) for which to include a TOA (default=None).",default=None)
 parser.add_argument("--use_bipm",help="Use BIPM clock corrections",action="store_true",default=False)
 parser.add_argument("--use_gps",help="Use GPS to UTC clock corrections",action="store_true",default=False)
+parser.add_argument("--outfile",help="Name of file to save TOAs to (default is STDOUT)",default=None)
 
 ## Parse arguments
 args = parser.parse_args()
@@ -172,10 +173,8 @@ def estimate_toa(mjds,phases,tdbs):
     tplus = tmid + TimeDelta(1*u.s,scale='tdb')
     toamid = pint.toa.TOA(tmid)
     toaplus = pint.toa.TOA(tplus)
-    toas = pint.toa.TOAs(toalist=[toamid,toaplus])
-    toas.apply_clock_corrections(include_gps=args.use_gps,include_bipm=args.use_bipm)
-    toas.compute_TDBs()
-    toas.compute_posvels(ephem=args.ephem,planets=planets)
+    toas = pint.toa.get_TOAs_list([toamid,toaplus],include_gps=args.use_gps,
+        include_bipm=args.use_bipm,ephem=args.ephem,planets=planets)
     phsi,phsf = modelin.phase(toas,abs_phase=True)
     fbary = (phsi[1]-phsi[0]) + (phsf[1]-phsf[0])
     fbary._unit = u.Hz
@@ -247,4 +246,7 @@ sio = cStringIO.StringIO()
 toas.write_TOA_file(sio,name='nicer',format='tempo2')
 output = sio.getvalue()
 output = output.replace('barycenter','@')
-print(output)
+if args.outfile is not None:
+    print(output,file=open(args.outfile,"w"))
+else:
+    print(output)
