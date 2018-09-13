@@ -55,7 +55,7 @@ parser.add_argument("--plotfile",help="Output figure file name (default=None)", 
 parser.add_argument("--unbinned",help="Fit position with unbinned likelihood.  Don't use for large data sets. (default=False)",action='store_true',default=False)
 #parser.add_argument("--fix",help="Adjust times to fix 1.0 second offset in NICER data (default=False)", action='store_true',default=False)
 parser.add_argument("--tint",help="Integrate for tint seconds for each TOA, or until the total integration exceeds maxint.  The algorithm is based on GTI, so the integration will slightly exceed tint (default None; see maxint.)",default=None)
-parser.add_argument("--maxint",help="Maximum time interval to accumulate exposure for a single TOA (default=2*86400s)",default=2*86400.)
+parser.add_argument("--maxint",help="Maximum time interval to accumulate exposure for a single TOA (default=2*86400s)",type=float, default=2*86400.)
 parser.add_argument("--minexp",help="Minimum exposure (s) for which to include a TOA (default=None).",default=None)
 parser.add_argument("--use_bipm",help="Use BIPM clock corrections",action="store_true",default=False)
 parser.add_argument("--use_gps",help="Use GPS to UTC clock corrections",action="store_true",default=False)
@@ -211,23 +211,25 @@ else:
     # until either the good time exceeds tint, or until the total time
     # interval exceeds maxint
     i0 = 0
-    current = 0
+    current = 0.0
     toas = deque()
     tint = float(args.tint)
     maxint = float(args.maxint)
     for i in xrange(len(gti_t0)):
-        #print('iteration=%d, current=%d'%(i,current))
         current += gti_dt[i]
+        #print('iteration=%d, current=%f'%(i,current))
         if (current >= tint) or ((gti_t1[i]-gti_t0[i0])>maxint) or (i==len(gti_t0)-1):
             # make a TOA
             ph0,ph1 = np.searchsorted(mets,[gti_t0[i0],gti_t1[i]])
-            m,p,t = mjds[ph0:ph1+1],phases[ph0:ph1+1],tdbs[ph0:ph1+1]
+            m,p,t = mjds[ph0:ph1],phases[ph0:ph1],tdbs[ph0:ph1]
+            #print('Generating TOA ph0={0}, ph1={1}, len(m)={2}, i0={3}, i={4}'.format(ph0,ph1,len(m),i0,i))
+            #print('m[0]={0}, m[1]={1}'.format(m[0],m[-1]))
             if len(m) > 0:
                 toas.append(estimate_toa(m,p,t))
                 # fix exposure
                 toas[-1][0].flags['exposure'] = current
-            current = 0
-            i0 = i
+            current = 0.0
+            i0 = i+1
     toafinal,toafinal_err = zip(*toas)
 
 if args.minexp is not None:
