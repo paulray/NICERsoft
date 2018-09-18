@@ -153,14 +153,14 @@ for obsdir in all_obsids:
         ufaevents = ufaevents + nevents
 
     if ufaevents < 10000000:
-        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0", ##  "--allspec","--alllc",
+        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "{}".format(args.lcbinsize), ##  "--allspec","--alllc",
                "--lclog", "--useftools", "--extraphkshootrate",
                "--eventshootrate",
                "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
                "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
                "--basename", path.join(pipedir,basename)+'_prefilt']
     else:
-        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "4.0", ## "--allspec","--alllc",
+        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "{}".format(args.lcbinsize), ## "--allspec","--alllc",
                "--lclog", "--useftools", "--extraphkshootrate",
                "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
                "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
@@ -367,7 +367,7 @@ for obsdir in all_obsids:
             log.info('Found hot detectors {0}!!'.format(bad_dets))
         # Make intermediate eng plot to show bad detectors
         cmd = ["nicerql.py", "--save",
-               "--eng", intermediatename, "--lcbinsize", "4.0","--allspec","--alllc",
+               "--eng", intermediatename, "--lcbinsize", "{}".format(args.lcbinsize), #"--allspec","--alllc",
                "--basename", path.join(pipedir,basename)+"_intermediate"]
         runcmd(cmd)
 
@@ -400,7 +400,7 @@ for obsdir in all_obsids:
     # Make final clean plot
     cmd = ["nicerql.py", "--save",
            "--orb", path.join(pipedir,path.basename(orbfile)),
-           "--sci", "--eng", filteredname, "--lcbinsize", "4.0","--allspec","--alllc",
+           "--sci", "--eng", filteredname, "--lcbinsize", "{}".format(args.lcbinsize),"--allspec","--alllc",
            "--mkf", cleanfilt_mkf, "--bkg",
            "--basename", path.join(pipedir,basename)+"_cleanfilt"]
     if args.par is not None:
