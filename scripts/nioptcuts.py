@@ -10,6 +10,14 @@ from astropy.table import Table, vstack
 import astropy.units as u
 from pint.eventstats import hm,z2m
 
+
+# Python 2 (xrange) and Python 3 (range) compatibility
+try:
+    xrange
+except NameError:
+    xrange = range
+
+
 def cached_hm(mask):
     nph = mask.sum()
     if nph == 0:
