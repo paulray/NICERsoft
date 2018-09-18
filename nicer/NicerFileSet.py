@@ -12,7 +12,7 @@ from nicer.plotutils import *
 from nicer.fitsutils import *
 from nicer.values import *
 from nicer.latloninterp import LatLonInterp
-import sys
+import sys, os
 
 class NicerFileSet:
     def __init__(self, args):
@@ -105,6 +105,8 @@ class NicerFileSet:
             self.etable = apply_gti(self.etable,g)
             self.gtitable = g
 
+        self.getbinnedovershoots()
+            
         # Compiling HK Data
         # if args.extraphkshootrate:
         #     self.quickhkshootrate()
@@ -152,6 +154,22 @@ class NicerFileSet:
         if self.args.object is not None:
             self.etable.meta['OBJECT'] = self.args.object
 
+    def getbinnedovershoots(self):
+        if self.basename.split('_')[-1] == 'prefilt':
+            ## STEP 1 -- Make lightcurve of FPM_OVERONLY_COUNT from mktable, using fcurve
+            self.ovbinfile = '{}_ovbin.mkf'.format(self.basename)
+            log.info("Extracting overshoots from {}, binning by {} sec, saving to file {}".format(self.mkfile,self.args.lcbinsize,self.ovbinfile))
+            cmd = ['fcurve', 'infile="{}[1]"'.format(self.mkfile), 'outfile="{}"'.format(self.ovbinfile),
+                   'gtifile="-"','timecol="TIME"','columns="FPM_OVERONLY_COUNT"','binsz="{}"'.format(self.args.lcbinsize),
+                   'lowval="INDEF"','highval="INDEF"','binmode="MEAN"','clobber=yes']
+            log.info('CMD: '+" ".join(cmd))
+            os.system(" ".join(cmd))
+            #runcmd(cmd)
+            self.ovbintable = Table.read(self.ovbinfile,hdu=1)
+            
+        else:
+            self.ovbintable = None
+            
     # def quickhkshootrate(self):
     #     'Compute HK shoot rates from a single MPU*7 instead of trying to sum all MPUs. This avoids errors when time axes are not compatible'
     #     log.info('Getting HKP quick overshoot and undershoot rates from one MPU')

@@ -8,7 +8,7 @@ from nicer.plotutils import *
 from nicer.fitsutils import *
 
 #def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
-def bkg_plots(etable, gtitable, args, mktable):
+def bkg_plots(etable, gtitable, args, mktable, ovbintable):
 
     # if args.eventshootrate:
     #     overshootrate = shoottable['EVENT_OVERSHOOTS']
@@ -64,7 +64,7 @@ def bkg_plots(etable, gtitable, args, mktable):
     plt.subplot(bkg_grid[5:9,:4])
     # if overshootrate is not None:
     # plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate, mktable)
-    plot_overshoot(mktable, gtitable, args)
+    plot_overshoot(mktable, ovbintable, gtitable, args)
     # plot_SAA(mktable, gtitable, overshootrate)
     plot_SAA(mktable, gtitable)
 

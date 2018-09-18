@@ -81,6 +81,7 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
         mktable = data.mktable
         #hkmet = data.hkmet
         basename = data.basename
+        ovbintable = data.ovbintable
     else:
         #Creating the data table for each separate file
         if args.useftools:
@@ -156,6 +157,17 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
         else:
             mktable = None
         # reset_rates = None
+
+        if args.bkg:
+            ovbinfile = '{0}_prefilt_ovbin.mkf'.format(basename.split('_cleanfilt')[0])
+            if path.isfile(ovbinfile):
+                log.info("Reading overshoots file present...Getting from {}".format(ovbinfile))
+                ovbintable = Table.read(ovbinfile,hdu=1)
+            else:
+                ovbintable = None
+        else:
+            ovbintable = None
+            
 else:
     log.warning('You have not specified any files, please input the path to the files you want to see. Exiting.')
     sys.exit()
@@ -332,7 +344,7 @@ if args.bkg:
     #     else:
     #         figure4 = bkg_plots(etable, data, gtitable, args, mktable, data.hkshoottable)
 
-    figure4 = bkg_plots(etable, gtitable, args, mktable)
+    figure4 = bkg_plots(etable, gtitable, args, mktable, ovbintable)
     figure4.set_size_inches(16,12)
     if args.save:
         log.info('Writing bkg plot {0}'.format(basename))

@@ -536,7 +536,7 @@ def convert_to_elapsed_goodtime(mets, vals, gtitable):
     return etimes, goodvals, cc
 
 #def plot_overshoot(etable, overshootrate, gtitable, args, hkmet, bothrate, mktable):
-def plot_overshoot(mktable, gtitable, args):
+def plot_overshoot(mktable, ovbintable, gtitable, args):
 
     #etime, overshoot, cc = convert_to_elapsed_goodtime(hkmet, overshootrate, gtitable)
     etime, overshoot, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_OVERONLY_COUNT'], gtitable)
@@ -552,16 +552,20 @@ def plot_overshoot(mktable, gtitable, args):
     plot.scatter(ovtime, overshoot, c=np.fmod(cc,len(colornames)), cmap=cmap,
         norm=norm, marker='+',label='Overshoot rate')
     
-    #if bothrate is not None:
-        #etime, both, cc = convert_to_elapsed_goodtime(hkmet, bothrate, gtitable)
-    etime, both, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_DOUBLE_COUNT'], gtitable)
-    plot.scatter(etime, both, color='c', marker='.', label='Both Under and Over Flags')
-    plot.legend(loc = 2)
+    if ovbintable is not None:
+        etime, binnedOV, cc = convert_to_elapsed_goodtime(ovbintable['TIME'], 52*ovbintable['FPM_OVERONLY_COUNT'], gtitable)
+        plot.plot(etime, binnedOV, linewidth=2.0)
+    else:
+        # if bothrate is not None:
+        #      etime, both, cc = convert_to_elapsed_goodtime(hkmet, bothrate, gtitable)
+        etime, both, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_DOUBLE_COUNT'], gtitable)
+        plot.scatter(etime, both, color='c', marker='.', label='Both Under and Over Flags')
+        plot.yscale('symlog',linthreshy=10.0)
 
+    plot.legend(loc = 2)
     plot.ylabel('Overshoot rate')
     plot.grid(True)
 
-    plot.yscale('symlog',linthreshy=10.0)
     return
 
 #def plot_SAA(mktable, gtitable, overshootrate):

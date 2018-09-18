@@ -58,6 +58,7 @@ parser.add_argument("--ephem", help="Ephem to use with photonphase", default="DE
 parser.add_argument("--outdir", help="Add name to output directories (by default: directories end in '_pipe')", default='pipe')
 parser.add_argument("--merge", help="Merge all ObsIDs provided into single event list, lightcurve and spectrum (outputdir called 'merged')", action='store_true')
 parser.add_argument("--crcut", help="perform count rate cut on merged event file (only if --merge)", action='store_true')
+parser.add_argument("--lcbinsize", help="Lightcurve bin size (sec, default=4.0)", type=float, default=4.0)
 # parser.add_argument("--crabnorm", help="normalize the spectrum with the crab (only if --merge)", action='store_true')
 args = parser.parse_args()
 
@@ -168,11 +169,14 @@ for obsdir in all_obsids:
         cmd.append("--mask")
         for detid in args.mask:
             cmd.append("{0}".format(detid))
+            
 #    if args.par is not None:
 #        cmd.append("--par")
 #        cmd.append("{0}".format(args.par))
-    if (args.maxovershoot>0) or (args.badcut>0):
+    # if (args.maxovershoot>0) or (args.badcut>0):
+    if (args.badcut>0):
         cmd.append("--writebkf")
+
     runcmd(cmd)
 
     # Get orbit file
@@ -192,7 +196,8 @@ for obsdir in all_obsids:
     log.info('ATT HK File: {0}'.format(attfile))
 
     #  Get BKF file for filtering based on background indicators
-    if (args.maxovershoot>0) or (args.badcut>0):
+    # if (args.maxovershoot>0) or (args.badcut>0):
+    if (args.badcut>0):
         bkffile = path.join(pipedir,basename)+'_prefilt.bkf'
         log.info('BKF File: {0}'.format(bkffile))
     else:
@@ -222,17 +227,69 @@ for obsdir in all_obsids:
         extragtis = gtiname2
 
     gtiname3 = None
+    # # Create GTI from overshoot file using overshoot rate
+    # if args.maxovershoot > 0:
+    #     gtiname3 = path.join(pipedir,'bkf.gti')
+    #     bkf_expr = 'EV_OVERSHOOT.lt.{0}'.format(args.maxovershoot)
+    #     cmd = ["maketime", bkffile, gtiname3, 'expr={0}'.format(bkf_expr),
+    #         "compact=no", "time=TIME", "prefr=0", "postfr=0", "clobber=yes"]
+    #     runcmd(cmd)
+    #     if len(Table.read(gtiname3,hdu=1))==0:
+    #         log.error('No good time left after filtering!')
+    #         continue
+
+    
     # Create GTI from overshoot file using overshoot rate
     if args.maxovershoot > 0:
-        gtiname3 = path.join(pipedir,'bkf.gti')
-        bkf_expr = 'EV_OVERSHOOT.lt.{0}'.format(args.maxovershoot)
-        cmd = ["maketime", bkffile, gtiname3, 'expr={0}'.format(bkf_expr),
-            "compact=no", "time=TIME", "prefr=0", "postfr=0", "clobber=yes"]
-        runcmd(cmd)
-        if len(Table.read(gtiname3,hdu=1))==0:
-            log.error('No good time left after filtering!')
-            continue
+        gticolumns = path.join(datadir,'gti_columns.txt')
+        gtiheader = path.join(datadir,'gti_header.txt')
 
+        if not os.path.isfile(gtiheader) or not os.path.isfile(gticolumns):
+            log.error('The files gti_header.txt or gti_columns.txt are missing. Check the {} directory'.format(os.path.abspath(datadir)))
+            log.error('No filtering on MaxOverShoot will be performed. Continuing...')
+            gtiname3 = None
+            continue
+        else:
+            ovbinfile = path.join(pipedir,basename)+'_prefilt_ovbin.mkf'
+            log.info("Filtering overshoots in {} with {} max overshoots/bin".format(ovbinfile,args.maxovershoot))
+            gtiname3 = path.join(pipedir,'max_overshoots.gti')
+            gtidata  = path.join(pipedir,'max_overshoots.txt')
+            filtovbinfile = path.join(pipedir,basename)+'_cleanfilt_maxovbin.mkf'
+
+            ## STEP 2 -- making cut with ftcopy, and conditions, e.g. < 20 and =/= 0.0
+            cmd = ['ftcopy', '{}[1][FPM_OVERONLY_COUNT<{} && FPM_OVERONLY_COUNT!=0]'.format(ovbinfile,args.maxovershoot/52.0),
+                   '{}'.format(filtovbinfile),'clobber=yes']
+            runcmd(cmd)
+
+            ## STEP 3 - calculate start and end times of remaining bins
+            cmd = ['ftcalc','{}'.format(filtovbinfile),'{}'.format(filtovbinfile),
+                   'TSTART', '\"TIME-(0.5*{0})+#TIMEZERO\"'.format(args.lcbinsize),'clobber=yes']
+            log.info('CMD: '+" ".join(cmd))
+            os.system(" ".join(cmd))
+            cmd = ['ftcalc','{}'.format(filtovbinfile),'{}'.format(filtovbinfile),
+                   'TEND', '\"TIME+(0.5*{0})+#TIMEZERO\"'.format(args.lcbinsize),'clobber=yes']
+            log.info('CMD: '+" ".join(cmd))
+            os.system(" ".join(cmd))
+
+            ## STEP 4 - dumping the TSTART and TEND into text file
+            cmd = ['ftlist', '{}[1]'.format(filtovbinfile), 'columns=TSTART,TEND',
+                   'rownum=no','colheader=no', 'opt=t', '>', '{}'.format(gtidata)]
+            log.info('CMD: '+" ".join(cmd))
+            os.system(" ".join(cmd))
+            # runcmd(cmd)
+
+            ##  STEP 6 - Making the GTI file from the text file
+            cmd = ['ftcreate', '{}'.format(gticolumns),'{}'.format(gtidata), '{}'.format(gtiname3),
+                   'headfile={}'.format(gtiheader), 'extname="GTI"', 'clobber=yes']
+            runcmd(cmd)
+        
+            if len(Table.read(gtiname3,hdu=1))==0:
+                log.error('No good time left after filtering!')
+                continue
+    else:
+        gtiname3 = None
+
+        
     # Create GTI from overshoot file using bad event lightcurve
     if args.badcut > 0:
         gtiname3 = path.join(pipedir,'bkf.gti')
@@ -243,6 +300,7 @@ for obsdir in all_obsids:
         if len(Table.read(gtiname3,hdu=1))==0:
             log.error('No good time left after filtering!')
             continue
+        
     # If either of the bkf filters were used, include that GTI
     # in the extragtis passed to nimaketime
     if gtiname3 is not None:
