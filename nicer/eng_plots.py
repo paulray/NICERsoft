@@ -117,18 +117,18 @@ def plot_all_lc(etable, args, filttable, gtitable):
         idx = np.where(filttable['DET_ID']==detid)[0]
         plot.subplot(lc_grid[row, col])
         if col==0:
-            meanrate, a = plot_light_curve(filttable[idx], args.lclog, gtitable, binsize=5*args.lcbinsize,plot_pos='left')
+            meanrate, a = plot_light_curve(filttable[idx], args.lclog, gtitable, binsize=args.lcbinsize,plot_pos='left')
 
         if row == ((nbDET // ncols)-1):
-            meanrate, a = plot_light_curve(filttable[idx], args.lclog, gtitable, binsize=5*args.lcbinsize,plot_pos='bottom')
+            meanrate, a = plot_light_curve(filttable[idx], args.lclog, gtitable, binsize=args.lcbinsize,plot_pos='bottom')
             plot.xlabel('Time (s)')
             
         if (col==0) and (row == ((nbDET // ncols)-1) ):
-            meanrate, a = plot_light_curve(filttable[idx], args.lclog, gtitable, binsize=5*args.lcbinsize,plot_pos='corner')
+            meanrate, a = plot_light_curve(filttable[idx], args.lclog, gtitable, binsize=args.lcbinsize,plot_pos='corner')
             plot.xlabel('Time (s)')
             
         if (col!=0) and (row != ((nbDET // ncols)-1) ):
-            meanrate, a = plot_light_curve(filttable[idx], args.lclog, gtitable, binsize=5*args.lcbinsize,plot_pos='center')
+            meanrate, a = plot_light_curve(filttable[idx], args.lclog, gtitable, binsize=args.lcbinsize,plot_pos='center')
 
         plot.title('DET_ID {0}'.format(detid))
 
