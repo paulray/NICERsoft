@@ -38,7 +38,7 @@ def bkg_plots(etable, gtitable, args, mktable, ovbintable):
     # badlightcurve = np.histogram(badtable['TIME'], hkmetbins)[0]
     # badlightcurve = np.array(badlightcurve,dtype=np.float)
 
-    badlightcurve = 52*mktable['FPM_RATIO_REJ_COUNT']
+    badlightcurve = mktable['NUM_FPM_ON']*mktable['FPM_RATIO_REJ_COUNT']
 
     colornames, cmap, norm = gti_colormap()
 
@@ -74,7 +74,7 @@ def bkg_plots(etable, gtitable, args, mktable, ovbintable):
     # if undershootrate is not None:
     #    plot_undershoot(etable, undershootrate, gtitable, args, hkmet, mktable)
     plot_undershoot(mktable, gtitable, args)
-    
+
     #Plot of Sun / Moon -- mktable
     log.info('Building Sun / Moon / Earth angle Plot')
     plt.subplot(bkg_grid[13:17,:4])
@@ -94,7 +94,7 @@ def bkg_plots(etable, gtitable, args, mktable, ovbintable):
     #Plot of event light curve
     plt.subplot(bkg_grid[25:29,:4])
     plot_light_curve(etable,False, gtitable)
-  
+
     figure.suptitle('Object: {0} at {1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS'].replace('T', ' at ')),
                     fontsize=16)
     #plt.subplots_adjust(left = .07, right = .99, bottom = .05, top = .9, wspace = .95, hspace = .95)

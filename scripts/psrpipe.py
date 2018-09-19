@@ -169,7 +169,7 @@ for obsdir in all_obsids:
         cmd.append("--mask")
         for detid in args.mask:
             cmd.append("{0}".format(detid))
-            
+
 #    if args.par is not None:
 #        cmd.append("--par")
 #        cmd.append("{0}".format(args.par))
@@ -238,7 +238,7 @@ for obsdir in all_obsids:
     #         log.error('No good time left after filtering!')
     #         continue
 
-    
+
     # Create GTI from overshoot file using overshoot rate
     if args.maxovershoot > 0:
         gticolumns = path.join(datadir,'gti_columns.txt')
@@ -282,14 +282,14 @@ for obsdir in all_obsids:
             cmd = ['ftcreate', '{}'.format(gticolumns),'{}'.format(gtidata), '{}'.format(gtiname3),
                    'headfile={}'.format(gtiheader), 'extname="GTI"', 'clobber=yes']
             runcmd(cmd)
-        
+
             if len(Table.read(gtiname3,hdu=1))==0:
                 log.error('No good time left after filtering!')
                 continue
     else:
         gtiname3 = None
 
-        
+
     # Create GTI from overshoot file using bad event lightcurve
     if args.badcut > 0:
         gtiname3 = path.join(pipedir,'bkf.gti')
@@ -300,7 +300,7 @@ for obsdir in all_obsids:
         if len(Table.read(gtiname3,hdu=1))==0:
             log.error('No good time left after filtering!')
             continue
-        
+
     # If either of the bkf filters were used, include that GTI
     # in the extragtis passed to nimaketime
     if gtiname3 is not None:

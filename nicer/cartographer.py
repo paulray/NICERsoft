@@ -19,7 +19,7 @@ from nicer.latloninterp import LatLonInterp
 def cartography(etable, mktable, gtitable, args):
 
     from mpl_toolkits.basemap import Basemap
-    
+
     #Getting the data
     log.info('Getting SAA data')
     saa_lon, saa_lat = np.loadtxt(path.join(datadir,'saa_lonlat.txt'),unpack=True)
@@ -47,7 +47,7 @@ def cartography(etable, mktable, gtitable, args):
     fig = plot.figure(figsize = (8,11), facecolor = 'white')
 
     # Get lat, lon, overshoots from the .mkf table
-    ovtime, overshootrate, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_OVERONLY_COUNT'], gtitable)
+    ovtime, overshootrate, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['NUM_FPM_ON']*mktable['FPM_OVERONLY_COUNT'], gtitable)
     ovtime, lat, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LAT'], gtitable)
     ovtime, lon, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)
 
@@ -77,7 +77,7 @@ def cartography(etable, mktable, gtitable, args):
     plot.ylabel('Overshoot Rate')
     #cbar.set_label('Overshoot Rate')
 
-    # Get lat, lon, undershoots from the .mkf table    
+    # Get lat, lon, undershoots from the .mkf table
     udtime, undershootrate, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_UNDERONLY_COUNT'], gtitable)
     udtime, lat, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LAT'], gtitable)
     udtime, lon, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)
@@ -88,7 +88,7 @@ def cartography(etable, mktable, gtitable, args):
     undershootrate=np.delete(undershootrate,udtimeNan)
     lat = np.delete(lat,udtimeNan)
     lon = np.delete(lon,udtimeNan)
-    
+
     # Plot Undershoot map
     undershoot = plot.subplot(3,1,2)
 
@@ -112,7 +112,7 @@ def cartography(etable, mktable, gtitable, args):
     map = Basemap(projection='cyl', resolution = 'l', llcrnrlon=-180, llcrnrlat=-61,
     urcrnrlon=180, urcrnrlat=61,lat_0 = 0, lon_0 = 0)
     map.drawcoastlines()
-    
+
     #etime, goodlon, cc = convert_to_elapsed_goodtime(hkmet, lon, gtitable)
     #etime, goodlat, cc = convert_to_elapsed_goodtime(hkmet, lat, gtitable)
     etime, goodlon, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)

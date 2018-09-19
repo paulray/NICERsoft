@@ -464,7 +464,7 @@ def pulse_profile(ax, etable, args):
 
 
     # Compute phases
-    phss = modelin.phase(ts)[1]
+    phss = modelin.phase(ts,abs_phase=True)[1]
     # Strip the units, because PINT may return u.cycle
     phss = np.array(phss)
     # ensure all postive
@@ -539,26 +539,26 @@ def convert_to_elapsed_goodtime(mets, vals, gtitable):
 def plot_overshoot(mktable, ovbintable, gtitable, args):
 
     #etime, overshoot, cc = convert_to_elapsed_goodtime(hkmet, overshootrate, gtitable)
-    etime, overshoot, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_OVERONLY_COUNT'], gtitable)
+    etime, overshoot, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['NUM_FPM_ON']*mktable['FPM_OVERONLY_COUNT'], gtitable)
 
     # Delete the nan values from undershoot and cc so they don't plot
     etimeNan = np.where(np.isnan(overshoot))
     ovtime=np.delete(etime,etimeNan)
     overshoot=np.delete(overshoot,etimeNan)
     cc=np.delete(cc,etimeNan)
-    
+
     colornames, cmap, norm = gti_colormap()
 
     plot.scatter(ovtime, overshoot, c=np.fmod(cc,len(colornames)), cmap=cmap,
         norm=norm, marker='+',label='Overshoot rate')
-    
+
     if ovbintable is not None:
-        etime, binnedOV, cc = convert_to_elapsed_goodtime(ovbintable['TIME'], 52*ovbintable['FPM_OVERONLY_COUNT'], gtitable)
+        etime, binnedOV, cc = convert_to_elapsed_goodtime(ovbintable['TIME'], mktable['NUM_FPM_ON'].max()*ovbintable['FPM_OVERONLY_COUNT'], gtitable)
         plot.plot(etime, binnedOV, linewidth=2.0)
     else:
         # if bothrate is not None:
         #      etime, both, cc = convert_to_elapsed_goodtime(hkmet, bothrate, gtitable)
-        etime, both, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_DOUBLE_COUNT'], gtitable)
+        etime, both, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['NUM_FPM_ON']*mktable['FPM_DOUBLE_COUNT'], gtitable)
         plot.scatter(etime, both, color='c', marker='.', label='Both Under and Over Flags')
         plot.yscale('symlog',linthreshy=10.0)
 
@@ -575,10 +575,10 @@ def plot_SAA(mktable, gtitable):
     insaa = np.delete(insaa, np.where(insaa == 0))
 
     # Get Overshoot Max, just to put the SAA on the same plot
-    ovtime, overshoot, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_OVERONLY_COUNT'], gtitable)
+    ovtime, overshoot, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['NUM_FPM_ON']*mktable['FPM_OVERONLY_COUNT'], gtitable)
     #insaa[np.where(insaa == 1)] = max(overshootrate)
     insaa[np.where(insaa == 1)] = np.nanmax(overshoot)
-    
+
     plot.scatter(time, insaa, color = 'y', label = 'In the SAA',marker = '_')
     plot.legend(loc = 2)
     return
@@ -588,14 +588,14 @@ def plot_SAA(mktable, gtitable):
 def plot_undershoot(mktable, gtitable, args):
 
     #etime, undershoot, cc = convert_to_elapsed_goodtime(hkmet, undershootrate, gtitable)
-    etime, undershoot, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_UNDERONLY_COUNT'], gtitable)
+    etime, undershoot, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['NUM_FPM_ON']*mktable['FPM_UNDERONLY_COUNT'], gtitable)
 
     # Delete the nan values from undershoot and cc so they don't plot
     etimeNan = np.where(np.isnan(undershoot))
     udtime=np.delete(etime,etimeNan)
     undershoot=np.delete(undershoot,etimeNan)
     cc=np.delete(cc,etimeNan)
-    
+
     colornames, cmap, norm = gti_colormap()
     plot.scatter(udtime, undershoot, c=np.fmod(cc,len(colornames)), cmap=cmap,
         norm=norm, marker='+')
@@ -710,7 +710,7 @@ def calc_nresets(mktable, IDS):
     MPU_ud_only = mktable['MPU_UNDERONLY_COUNT'].reshape((len(mktable['MPU_UNDERONLY_COUNT']),56))
     # Reshaping is necessary in the case of MPU_UNDERONLY_COUNT
     # given as a 7x8 matrix instead of 56 array in the mktable
-    
+
     for i in range(len(IDS)):
         nresets[i] = MPU_ud_only[:,i].sum()
 
