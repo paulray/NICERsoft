@@ -25,6 +25,7 @@ from pint.eventstats import hmw, hm, h2sig
 from astropy.time import Time, TimeDelta
 from pint.templates.lctemplate import LCTemplate,prim_io
 from pint.templates import lcfitters
+from copy import deepcopy
 import cPickle
 import cStringIO
 from collections import deque
@@ -50,14 +51,15 @@ parser.add_argument("--orbfile",help="Name of orbit file", default=None)
 parser.add_argument("--ephem",help="Planetary ephemeris to use (default=DE421)", default="DE421")
 parser.add_argument("--plot",help="Show phaseogram plot.", action='store_true', default=False)
 parser.add_argument("--plotfile",help="Output figure file name (default=None)", default=None)
-parser.add_argument("--fitbg",help="Fit an overall background level (e.g. for changing particle background level (default=False).",action='store_true',default=False)
+#parser.add_argument("--fitbg",help="Fit an overall background level (e.g. for changing particle background level (default=False).",action='store_true',default=False)
 parser.add_argument("--unbinned",help="Fit position with unbinned likelihood.  Don't use for large data sets. (default=False)",action='store_true',default=False)
 #parser.add_argument("--fix",help="Adjust times to fix 1.0 second offset in NICER data (default=False)", action='store_true',default=False)
 parser.add_argument("--tint",help="Integrate for tint seconds for each TOA, or until the total integration exceeds maxint.  The algorithm is based on GTI, so the integration will slightly exceed tint (default None; see maxint.)",default=None)
-parser.add_argument("--maxint",help="Maximum time interval to accumulate exposure for a single TOA (default=2*86400s)",default=2*86400.)
+parser.add_argument("--maxint",help="Maximum time interval to accumulate exposure for a single TOA (default=2*86400s)",type=float, default=2*86400.)
 parser.add_argument("--minexp",help="Minimum exposure (s) for which to include a TOA (default=None).",default=None)
 parser.add_argument("--use_bipm",help="Use BIPM clock corrections",action="store_true",default=False)
 parser.add_argument("--use_gps",help="Use GPS to UTC clock corrections",action="store_true",default=False)
+parser.add_argument("--outfile",help="Name of file to save TOAs to (default is STDOUT)",default=None)
 
 ## Parse arguments
 args = parser.parse_args()
@@ -127,7 +129,7 @@ ts.filename = args.eventname
 #        log.error('TIMEZERO<0 and --fix: You are trying to apply the 1-s offet twice!')
 #    ts.adjust_TOAs(TimeDelta(np.ones(len(ts.table))*-1.0*u.s,scale='tt'))
 
-print(ts.get_summary())
+#print(ts.get_summary())
 mjds = ts.get_mjds()
 print(mjds.min(),mjds.max())
 
@@ -156,11 +158,12 @@ def estimate_toa(mjds,phases,tdbs):
     # Given some subset of the event times, phases, and weights, compute
     # the TOA based on a reference event near the middle of the span.
     # Build the TOA as a PINT TOA() object
-    lcf = lcfitters.LCFitter(template,phases)
-    if args.fitbg:
-        for i in xrange(2):
-            lcf.fit_position(unbinned=False)
-            lcf.fit_background(unbinned=False)
+    lcf = lcfitters.LCFitter(deepcopy(template),phases)
+# fitbg does not work!  Disabling.
+#    if args.fitbg:
+#        for i in xrange(2):
+#            lcf.fit_position(unbinned=False)
+#            lcf.fit_background(unbinned=False)
     dphi,dphierr = lcf.fit_position(unbinned=args.unbinned)
     log.info('Measured phase shift dphi={0}, dphierr={1}'.format(dphi,dphierr))
 
@@ -170,10 +173,8 @@ def estimate_toa(mjds,phases,tdbs):
     tplus = tmid + TimeDelta(1*u.s,scale='tdb')
     toamid = pint.toa.TOA(tmid)
     toaplus = pint.toa.TOA(tplus)
-    toas = pint.toa.TOAs(toalist=[toamid,toaplus])
-    toas.apply_clock_corrections(include_gps=args.use_gps,include_bipm=args.use_bipm)
-    toas.compute_TDBs()
-    toas.compute_posvels(ephem=args.ephem,planets=planets)
+    toas = pint.toa.get_TOAs_list([toamid,toaplus],include_gps=args.use_gps,
+        include_bipm=args.use_bipm,ephem=args.ephem,planets=planets)
     phsi,phsf = modelin.phase(toas,abs_phase=True)
     fbary = (phsi[1]-phsi[0]) + (phsf[1]-phsf[0])
     fbary._unit = u.Hz
@@ -200,6 +201,7 @@ if args.tint is None:
 else:
     # Load in GTIs
     f = pyfits.open(args.eventname)
+    # Warning:: This is ignoring TIMEZERO!!!!
     gti_t0 = f['gti'].data.field('start')
     gti_t1 = f['gti'].data.field('stop')
     gti_dt = gti_t1-gti_t0
@@ -209,23 +211,25 @@ else:
     # until either the good time exceeds tint, or until the total time
     # interval exceeds maxint
     i0 = 0
-    current = 0
+    current = 0.0
     toas = deque()
     tint = float(args.tint)
     maxint = float(args.maxint)
     for i in xrange(len(gti_t0)):
-        #print('iteration=%d, current=%d'%(i,current))
         current += gti_dt[i]
+        #print('iteration=%d, current=%f'%(i,current))
         if (current >= tint) or ((gti_t1[i]-gti_t0[i0])>maxint) or (i==len(gti_t0)-1):
             # make a TOA
             ph0,ph1 = np.searchsorted(mets,[gti_t0[i0],gti_t1[i]])
-            m,p,t = mjds[ph0:ph1+1],phases[ph0:ph1+1],tdbs[ph0:ph1+1]
+            m,p,t = mjds[ph0:ph1],phases[ph0:ph1],tdbs[ph0:ph1]
+            #print('Generating TOA ph0={0}, ph1={1}, len(m)={2}, i0={3}, i={4}'.format(ph0,ph1,len(m),i0,i))
+            #print('m[0]={0}, m[1]={1}'.format(m[0],m[-1]))
             if len(m) > 0:
                 toas.append(estimate_toa(m,p,t))
                 # fix exposure
                 toas[-1][0].flags['exposure'] = current
-            current = 0
-            i0 = i
+            current = 0.0
+            i0 = i+1
     toafinal,toafinal_err = zip(*toas)
 
 if args.minexp is not None:
@@ -244,4 +248,7 @@ sio = cStringIO.StringIO()
 toas.write_TOA_file(sio,name='nicer',format='tempo2')
 output = sio.getvalue()
 output = output.replace('barycenter','@')
-print(output)
+if args.outfile is not None:
+    print(output,file=open(args.outfile,"w"))
+else:
+    print(output)
