@@ -59,6 +59,7 @@ parser.add_argument("--outdir", help="Add name to output directories (by default
 parser.add_argument("--merge", help="Merge all ObsIDs provided into single event list, lightcurve and spectrum (outputdir called 'merged')", action='store_true')
 parser.add_argument("--crcut", help="perform count rate cut on merged event file (only if --merge)", action='store_true')
 parser.add_argument("--lcbinsize", help="Lightcurve bin size (sec, default=4.0)", type=float, default=4.0)
+parser.add_argument("--filterbinsize", help="Bin size for Count rate and Overshoot rate filtering (sec, default=16.0)", type=float, default=16.0)
 # parser.add_argument("--crabnorm", help="normalize the spectrum with the crab (only if --merge)", action='store_true')
 args = parser.parse_args()
 
@@ -140,31 +141,39 @@ for obsdir in all_obsids:
     evfiles.sort()
     log.info('Cleaned Event Files: {0}'.format("\n" + "    \n".join(evfiles)))
 
-    # Get ufa file (unfiltered events)
-    ufafiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_ufa.evt*'))
-    ufafiles.sort()
-    log.info('Unfiltered Event Files: {0}'.format("\n" + "    \n".join(ufafiles)))
+    # # Get ufa file (unfiltered events)
+    # ufafiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_ufa.evt*'))
+    # ufafiles.sort()
+    # log.info('Unfiltered Event Files: {0}'.format("\n" + "    \n".join(ufafiles)))
 
-    ufaevents = 0
-    for ufafile in ufafiles:
-        hdulist = fits.open(ufafile, memmap=True)
-        nevents = hdulist[1].header['NAXIS2']
-        hdulist.close()
-        ufaevents = ufaevents + nevents
+    # ufaevents = 0
+    # for ufafile in ufafiles:
+    #     hdulist = fits.open(ufafile, memmap=True)
+    #     nevents = hdulist[1].header['NAXIS2']
+    #     hdulist.close()
+    #     ufaevents = ufaevents + nevents
 
-    if ufaevents < 10000000:
-        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "{}".format(args.lcbinsize), ##  "--allspec","--alllc",
-               "--lclog", "--useftools", "--extraphkshootrate",
-               "--eventshootrate",
-               "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
-               "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
-               "--basename", path.join(pipedir,basename)+'_prefilt']
-    else:
-        cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "{}".format(args.lcbinsize), ## "--allspec","--alllc",
-               "--lclog", "--useftools", "--extraphkshootrate",
-               "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
-               "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
-               "--basename", path.join(pipedir,basename)+'_prefilt']
+    # if ufaevents < 10000000:
+    #     cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "{}".format(args.lcbinsize), ##  "--allspec","--alllc",
+    #            "--lclog", "--useftools", "--extraphkshootrate",
+    #            "--eventshootrate",
+    #            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
+    #            "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
+    #            "--basename", path.join(pipedir,basename)+'_prefilt']
+    # else:
+    #     cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "{}".format(args.lcbinsize), ## "--allspec","--alllc",
+    #            "--lclog", "--useftools", "--extraphkshootrate",
+    #            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
+    #            "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
+    #            "--basename", path.join(pipedir,basename)+'_prefilt']
+    
+    cmd = ["nicerql.py", "--save", "--filtall",
+           "--lcbinsize", "{}".format(args.lcbinsize), "--lclog", "--useftools",
+           "--filterbinsize", "{}".format(args.filterbinsize), 
+           "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
+           "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
+           "--basename", path.join(pipedir,basename)+'_prefilt']
+
     if args.mask is not None:
         cmd.append("--mask")
         for detid in args.mask:
@@ -250,11 +259,11 @@ for obsdir in all_obsids:
             gtiname3 = None
             continue
         else:
-            ovbinfile = path.join(pipedir,basename)+'_prefilt_ovbin.mkf'
+            ovbinfile = path.join(pipedir,basename)+'_prefilt_ovbin.fits'
             log.info("Filtering overshoots in {} with {} max overshoots/bin".format(ovbinfile,args.maxovershoot))
             gtiname3 = path.join(pipedir,'max_overshoots.gti')
             gtidata  = path.join(pipedir,'max_overshoots.txt')
-            filtovbinfile = path.join(pipedir,basename)+'_cleanfilt_maxovbin.mkf'
+            filtovbinfile = path.join(pipedir,basename)+'_cleanfilt_maxovbin.fits'
 
             ## STEP 2 -- making cut with ftcopy, and conditions, e.g. < 20 and =/= 0.0
             cmd = ['ftcopy', '{}[1][FPM_OVERONLY_COUNT<{} && FPM_OVERONLY_COUNT!=0]'.format(ovbinfile,args.maxovershoot/52.0),
@@ -263,11 +272,11 @@ for obsdir in all_obsids:
 
             ## STEP 3 - calculate start and end times of remaining bins
             cmd = ['ftcalc','{}'.format(filtovbinfile),'{}'.format(filtovbinfile),
-                   'TSTART', '\"TIME-(0.5*{0})+#TIMEZERO\"'.format(args.lcbinsize),'clobber=yes']
+                   'TSTART', '\"TIME-(0.5*{0})+#TIMEZERO\"'.format(args.filterbinsize),'clobber=yes']
             log.info('CMD: '+" ".join(cmd))
             os.system(" ".join(cmd))
             cmd = ['ftcalc','{}'.format(filtovbinfile),'{}'.format(filtovbinfile),
-                   'TEND', '\"TIME+(0.5*{0})+#TIMEZERO\"'.format(args.lcbinsize),'clobber=yes']
+                   'TEND', '\"TIME+(0.5*{0})+#TIMEZERO\"'.format(args.filterbinsize),'clobber=yes']
             log.info('CMD: '+" ".join(cmd))
             os.system(" ".join(cmd))
 
@@ -367,7 +376,9 @@ for obsdir in all_obsids:
             log.info('Found hot detectors {0}!!'.format(bad_dets))
         # Make intermediate eng plot to show bad detectors
         cmd = ["nicerql.py", "--save",
-               "--eng", intermediatename, "--lcbinsize", "{}".format(args.lcbinsize), #"--allspec","--alllc",
+               "--eng", intermediatename,
+               "--lcbinsize", "{}".format(args.lcbinsize),
+               "--filterbinsize", "{}".format(args.filterbinsize), 
                "--basename", path.join(pipedir,basename)+"_intermediate"]
         runcmd(cmd)
 
@@ -400,7 +411,9 @@ for obsdir in all_obsids:
     # Make final clean plot
     cmd = ["nicerql.py", "--save",
            "--orb", path.join(pipedir,path.basename(orbfile)),
-           "--sci", "--eng", filteredname, "--lcbinsize", "{}".format(args.lcbinsize),"--allspec","--alllc",
+           "--sci", "--eng", filteredname,"--allspec","--alllc",
+           "--lcbinsize", "{}".format(args.lcbinsize),
+           "--filterbinsize", "{}".format(args.filterbinsize), 
            "--mkf", cleanfilt_mkf, "--bkg",
            "--basename", path.join(pipedir,basename)+"_cleanfilt"]
     if args.par is not None:
@@ -422,7 +435,7 @@ for obsdir in all_obsids:
     lcfile = path.splitext(filteredname)[0] + ".lc"
     cmd = ["extractor", filteredname, "eventsout=none", "imgfile=none",
         "phafile={0}".format(phafile), "fitsbinlc={0}".format(lcfile),
-        "binlc=1.0", "regionfile=none", "timefile=none",
+        "binlc={}".format(args.lcbinsize), "regionfile=none", "timefile=none",
         "xcolf=RAWX", "ycolf=RAWY", "tcol=TIME", "ecol=PI", "xcolh=RAWX",
         "ycolh=RAWY", "gti=GTI"]
     runcmd(cmd)
@@ -446,6 +459,9 @@ if args.merge and (len(all_evfiles)>1) :
     cmd.append("merged")
     cmd.append("merged_{0}".format(args.outdir))
     cmd.append("--clobber")
+    cmd.append("--lcbinsize")
+    cmd.append("{}".format(args.lcbinsize))
+    
     if args.par is not None:
         cmd.append("--par")
         cmd.append("{0}".format(args.par))
@@ -453,6 +469,9 @@ if args.merge and (len(all_evfiles)>1) :
         cmd.append("{0}".format(orbfiles_list))
     if args.crcut:
         cmd.append("--cut")
+        cmd.append("--filterbinsize")
+        cmd.append("{}".format(args.filterbinsize))
+        
     # if args.crabnorm:
     #     cmd.append("--crabnorm")
     # if args.dark:

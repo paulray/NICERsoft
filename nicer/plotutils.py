@@ -180,6 +180,10 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0, noplot=False, plot_po
         label = 'Mean Rate: {0:.3f} c/s'.format(mean_rate)
         # Plot line at mean counts per bin
         plot.axhline(y=mean_rate, xmin=bins[0], xmax=bins[-1], linestyle='dashed', label = label)
+
+        bininfo = "bin size = {} sec".format(binsize)
+        plot.annotate(bininfo, xy=(0.02, 0.85), xycoords='axes fraction')
+        
         #plot.legend(loc = 4)
         if lclog:
             plot.yscale('log')

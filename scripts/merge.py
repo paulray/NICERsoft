@@ -36,6 +36,8 @@ parser.add_argument("--par", help="Par file to use for phases (in nicerql.py)")
 parser.add_argument("--ephem", help="Ephem to use with photonphase", default="DE421")
 parser.add_argument("--orb", help="text file containing the paths to all orbits files")
 parser.add_argument("--cut", help="perform count rate cut at the end", action='store_true')
+parser.add_argument("--lcbinsize", help="Lightcurve bin size (sec, default=4.0)", type=float, default=4.0)
+parser.add_argument("--filterbinsize", help="Bin size for Count rate filtering (sec, default=16.0)", type=float, default=16.0)
 parser.add_argument("--clobber", help="replace existing merged files", action='store_true')
 args = parser.parse_args()
 
@@ -136,7 +138,8 @@ runcmd(cmd)
 # Make final merged clean plot
 log.info('Making Science Plots of merged event file')
 cmd = ["nicerql.py", "--save", "--merge",
-       "--sci", outname, "--lcbinsize", "4.0","--allspec","--alllc",
+       "--sci", outname,"--allspec","--alllc",
+       "--lcbinsize", "{}".format(args.lcbinsize),
        "--basename", path.splitext(outname)[0]]
 runcmd(cmd)
 
@@ -168,22 +171,24 @@ phafile = path.join(pipedir,"{}.pha".format(args.outroot))
 lcfile = path.join(pipedir,"{}.lc".format(args.outroot)) 
 cmd = ["extractor", outname, "eventsout=none", "imgfile=none",
        "phafile={0}".format(phafile), "fitsbinlc={0}".format(lcfile),
-       "binlc=1.0", "regionfile=none", "timefile=none",
+       "binlc={}".format(args.lcbinsize), "regionfile=none", "timefile=none",
        "xcolf=RAWX", "ycolf=RAWY", "tcol=TIME", "ecol=PI", "xcolh=RAWX",
        "ycolh=RAWY", "gti=GTI"]
 runcmd(cmd)
 
-
 # Call to cr_cut.py
 if args.cut:
-    cmd = ["cr_cut.py", "{}".format(outname), "--plotfilt"]
+    cmd = ["cr_cut.py", "{}".format(outname),
+           "--filterbinsize", "{}".format(args.filterbinsize),
+           "--plotfilt"]
     runcmd(cmd)
 
     outname_cut = path.join(pipedir,"{}_cut.evt".format(args.outroot))
     
     # Make final merged_cut clean plot
     cmd = ["nicerql.py", "--save", "--merge",
-           "--sci", outname_cut, "--lcbinsize", "4.0","--allspec","--alllc",
+           "--sci", outname_cut,"--allspec","--alllc",
+           "--lcbinsize", "{}".format(args.lcbinsize),
            "--basename", path.splitext(outname_cut)[0]]
     runcmd(cmd)
 
@@ -203,7 +208,8 @@ if args.cut:
     lcfile_cut = path.join(pipedir,"{}_cut.lc".format(args.outroot)) 
     cmd = ["extractor", outname_cut, "eventsout=none", "imgfile=none",
            "phafile={0}".format(phafile_cut), "fitsbinlc={0}".format(lcfile_cut),
-           "binlc=1.0", "regionfile=none", "timefile=none",
+           "binlc={}".format(args.lcbinsize),"regionfile=none", "timefile=none",
            "xcolf=RAWX", "ycolf=RAWY", "tcol=TIME", "ecol=PI", "xcolh=RAWX",
            "ycolh=RAWY", "gti=GTI"]
     runcmd(cmd)
+    
