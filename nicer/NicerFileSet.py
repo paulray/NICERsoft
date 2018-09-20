@@ -157,10 +157,10 @@ class NicerFileSet:
     def getbinnedovershoots(self):
         if self.basename.split('_')[-1] == 'prefilt':
             ## STEP 1 -- Make lightcurve of FPM_OVERONLY_COUNT from mktable, using fcurve
-            self.ovbinfile = '{}_ovbin.mkf'.format(self.basename)
-            log.info("Extracting overshoots from {}, binning by {} sec, saving to file {}".format(self.mkfile,self.args.lcbinsize,self.ovbinfile))
+            self.ovbinfile = '{}_ovbin.fits'.format(self.basename)
+            log.info("Extracting overshoots from {}, binning by {} sec, saving to file {}".format(self.mkfile,self.args.filterbinsize,self.ovbinfile))
             cmd = ['fcurve', 'infile="{}[1]"'.format(self.mkfile), 'outfile="{}"'.format(self.ovbinfile),
-                   'gtifile="-"','timecol="TIME"','columns="FPM_OVERONLY_COUNT"','binsz="{}"'.format(self.args.lcbinsize),
+                   'gtifile="-"','timecol="TIME"','columns="FPM_OVERONLY_COUNT"','binsz="{}"'.format(self.args.filterbinsize),
                    'lowval="INDEF"','highval="INDEF"','binmode="MEAN"','clobber=yes']
             log.info('CMD: '+" ".join(cmd))
             os.system(" ".join(cmd))
