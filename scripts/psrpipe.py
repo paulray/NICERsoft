@@ -53,6 +53,7 @@ parser.add_argument("--angdist",help="Set threshold for ANG_DIST in call to nima
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
     default=None)
 parser.add_argument("--dark", help="Apply SUNSHINE=0 filter to get only data in Earth shadow", action='store_true')
+parser.add_argument("--day", help="Apply SUNSHINE=1 filter to get only data in ISS-day", action='store_true')
 parser.add_argument("--par", help="Par file to use for phases")
 parser.add_argument("--ephem", help="Ephem to use with photonphase", default="DE421")
 parser.add_argument("--outdir", help="Add name to output directories (by default: directories end in '_pipe')", default='pipe')
@@ -141,6 +142,19 @@ for obsdir in all_obsids:
     evfiles.sort()
     log.info('Cleaned Event Files: {0}'.format("\n" + "    \n".join(evfiles)))
 
+    # Get filter file
+    mkfile = glob(path.join(obsdir,'auxil/ni*.mkf'))[0]
+    log.info('MKF File: {0}'.format(mkfile))
+    # Check if MKF file contains the new columns (try opening one of the new columns)
+    try:
+        mkftest = fits.open(mkfile)[1].data['FPM_OVERONLY_COUNT']
+    except:
+        log.error("New *mkf files needed in {}/auxil/. Please use niprefilter2.".format(obsdir))
+        exit()
+        
+    # Copy orbit file to results dir for pulsar analysis
+    shutil.copy(mkfile,pipedir)
+    
     # # Get ufa file (unfiltered events)
     # ufafiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_ufa.evt*'))
     # ufafiles.sort()
@@ -193,12 +207,6 @@ for obsdir in all_obsids:
     log.info('Orbit File: {0}'.format(orbfile))
     # Copy orbit file to results dir for pulsar analysis
     shutil.copy(orbfile,pipedir)
-
-    # Get filter file
-    mkfile = glob(path.join(obsdir,'auxil/ni*.mkf'))[0]
-    log.info('MKF File: {0}'.format(mkfile))
-    # Copy orbit file to results dir for pulsar analysis
-    shutil.copy(mkfile,pipedir)
 
     #  Get ATT hk files
     attfile = glob(path.join(obsdir,'auxil/ni*.att'))[0]
@@ -321,8 +329,16 @@ for obsdir in all_obsids:
     # Make final merged GTI using nimaketime
     gtiname_merged = path.join(pipedir,"tot.gti")
     extra_expr="NONE"
+
+    if args.dark and args.day:
+        log.warning("Both --dark and --day are requested")
+        args.dark = False
+        args.day = False
     if args.dark:
         extra_expr = "(SUNSHINE.eq.0)"
+    if args.day:
+        extra_expr = "(SUNSHINE.eq.1)"
+
     cor_string="-"
     if args.cormin is not None:
         cor_string = "{0}-".format(args.cormin)
