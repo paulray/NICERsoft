@@ -29,8 +29,3 @@ IDS = np.array([0, 1, 2, 3, 4, 5,6, 7,
                 60, 61, 62, 63, 64, 65, 66, 67])
 
 datadir = path.join(path.split(__file__)[0], '../data')
-
-# CrabResiduals
-CRAB_RES_ALL   = path.join(datadir,'CrabResiduals/residualstot_v1p02_06112018.pha')
-CRAB_RES_DAY   = path.join(datadir,'CrabResiduals/residualsday_v1p02_06112018.pha')
-CRAB_RES_NIGHT = path.join(datadir,'CrabResiduals/residualsnight_v1p02_06112018.pha')
