@@ -66,8 +66,8 @@ def sci_plots(etable, gtitable, args):
     exposure = float(etable.meta['EXPOSURE'])
     #tstart = etable.meta['DATE-OBS'].replace('T',' at ')
     #tend = etable.meta['DATE-END'].replace('T', ' at ')
-    tstart = TimeDelta(etable.meta['TSTART'], format='sec')+Time(etable.meta['MJDREFI']+etable.meta['MJDREFF'], format='mjd')
-    tend = TimeDelta(etable.meta['TSTOP'], format='sec')+Time(etable.meta['MJDREFI']+etable.meta['MJDREFF'], format='mjd')
+    tstart = TimeDelta(etable.meta['TSTART'], format='sec',scale='tt')+Time(etable.meta['MJDREFI']+etable.meta['MJDREFF'], format='mjd',scale='tt')
+    tend = TimeDelta(etable.meta['TSTOP'], format='sec',scale='tt')+Time(etable.meta['MJDREFI']+etable.meta['MJDREFF'], format='mjd',scale='tt')
     fraction = exposure/(float(etable.meta['TSTOP'])-float(etable.meta['TSTART']))
 
     # Add text info here:
