@@ -169,13 +169,14 @@ def estimate_toa(mjds,phases,tdbs):
 
     # find MJD closest to center of observation and turn it into a TOA
     argmid = np.searchsorted(mjds,0.5*(mjds.min()+mjds.max()))
-    tmid = tdbs[argmid]
+    tmid = tdbs[argmid] # Should we used tdbld?
     tplus = tmid + TimeDelta(1*u.s,scale='tdb')
     toamid = pint.toa.TOA(tmid)
     toaplus = pint.toa.TOA(tplus)
     toas = pint.toa.get_TOAs_list([toamid,toaplus],include_gps=args.use_gps,
         include_bipm=args.use_bipm,ephem=args.ephem,planets=planets)
     phsi,phsf = modelin.phase(toas,abs_phase=True)
+    # Compute frequency = d(phase)/dt, where t is time in TDB units.
     fbary = (phsi[1]-phsi[0]) + (phsf[1]-phsf[0])
     fbary._unit = u.Hz
     # First delta is to get time of phase 0.0 of initial model
