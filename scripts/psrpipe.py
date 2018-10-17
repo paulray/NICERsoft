@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function, division
 import os, sys
-import matplotlib.pyplot as plt
 import numpy as np
 import argparse
 from astropy import log
