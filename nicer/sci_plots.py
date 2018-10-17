@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.gridspec as gridspec
 from astropy import log
+from astropy.time import Time, TimeDelta
 
 from nicer.plotutils import *
 
@@ -63,12 +64,14 @@ def sci_plots(etable, gtitable, args):
 
     #tstart, tstop, exposure
     exposure = float(etable.meta['EXPOSURE'])
-    tstart = etable.meta['DATE-OBS'].replace('T',' at ')
-    tend = etable.meta['DATE-END'].replace('T', ' at ')
+    #tstart = etable.meta['DATE-OBS'].replace('T',' at ')
+    #tend = etable.meta['DATE-END'].replace('T', ' at ')
+    tstart = TimeDelta(etable.meta['TSTART'], format='sec',scale='tt')+Time(etable.meta['MJDREFI']+etable.meta['MJDREFF'], format='mjd',scale='tt')
+    tend = TimeDelta(etable.meta['TSTOP'], format='sec',scale='tt')+Time(etable.meta['MJDREFI']+etable.meta['MJDREFF'], format='mjd',scale='tt')
     fraction = exposure/(float(etable.meta['TSTOP'])-float(etable.meta['TSTART']))
 
     # Add text info here:
-    plt.figtext(.07, .93, 'Start time is {0}, End time is {1}'.format(tstart,tend), fontsize = 10)
+    plt.figtext(.07, .93, 'Start time is {0}, End time is {1}'.format(tstart.iso,tend.iso), fontsize = 10)
     plt.figtext(.07, .90, 'Exposure is {0:.1f} s, Good time fraction is {1:.3f}'.format(exposure, fraction),
         fontsize = 10)
     plt.figtext(.07, .87, 'Mean count rate {0:.3f} c/s'.format(meanrate), fontsize = 10)
