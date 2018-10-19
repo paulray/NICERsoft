@@ -179,7 +179,7 @@ def estimate_toa(mjds,phases,tdbs,topo,obs):
 
     # find MJD closest to center of observation and turn it into a TOA
     argmid = np.searchsorted(mjds,0.5*(mjds.min()+mjds.max()))
-    tmid = tdbs[argmid]
+    tmid = tdbs[argmid] # Should we used tdbld?
 
     if topo: #tdbs are topocentric TT MJD times
         tplus = tmid + TimeDelta(1*u.s,scale='tt')
@@ -198,9 +198,10 @@ def estimate_toa(mjds,phases,tdbs,topo,obs):
         sc = 'tt'
     else:
         sc = 'tdb'
-
+    # Compute frequency = d(phase)/dt
     f = (phsi[1]-phsi[0]) + (phsf[1]-phsf[0])
     f._unit = u.Hz
+
     # First delta is to get time of phase 0.0 of initial model
     # Second term corrects for the measured phase offset to align with template
     tfinal = tmid + TimeDelta(-phsf[0].value/f,scale=sc) + TimeDelta(dphi/f,scale=sc)
