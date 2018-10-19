@@ -327,16 +327,16 @@ for obsdir in all_obsids:
 
     # Make final merged GTI using nimaketime
     gtiname_merged = path.join(pipedir,"tot.gti")
-    extra_expr="NONE"
+    extra_expr="(ST_VALID.eq.1)"
 
     if args.dark and args.day:
         log.warning("Both --dark and --day are requested")
         args.dark = False
         args.day = False
     if args.dark:
-        extra_expr = "(SUNSHINE.eq.0)"
+        extra_expr = "(SUNSHINE.eq.0 && ST_VALID.eq.1)"
     if args.day:
-        extra_expr = "(SUNSHINE.eq.1)"
+        extra_expr = "(SUNSHINE.eq.1 && ST_VALID.eq.1)"
 
     cor_string="-"
     if args.cormin is not None:
