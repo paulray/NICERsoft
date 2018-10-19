@@ -2,6 +2,7 @@
 # Program: photon_toa.py
 # Authors: Paul S. Ray <paul.ray@nrl.navy.mil>
 #          Matthew Kerr <matthew.kerr@gmail.com>
+#          Julia Deneva <julia.deneva@gmail.com>
 # Description:
 # Reads a FITS file of photon event times (from NICER or another X-ray mission)
 # and generates TOAs from the unbined times using a pulsar timing model
@@ -29,6 +30,9 @@ from copy import deepcopy
 import cPickle
 import cStringIO
 from collections import deque
+import astropy.constants as const
+from pint.observatory import get_observatory
+from pint.observatory.special_locations import SpacecraftObs
 
 def local_load_NICER_TOAs(eventname):
     """ Local override to add MET field to each TOA object."""
@@ -40,6 +44,7 @@ def local_load_NICER_TOAs(eventname):
     for t,met in zip(tl,mets):
         t.met = met
     return tl
+# The returned tl has topocentric TT MJD photon times; TIMESYS=TT, TIMEREF=LOCAL in the .evt file
 
 desc="""Generate TOAs from photon event data."""
 
@@ -59,6 +64,7 @@ parser.add_argument("--maxint",help="Maximum time interval to accumulate exposur
 parser.add_argument("--minexp",help="Minimum exposure (s) for which to include a TOA (default=None).",default=None)
 parser.add_argument("--use_bipm",help="Use BIPM clock corrections",action="store_true",default=False)
 parser.add_argument("--use_gps",help="Use GPS to UTC clock corrections",action="store_true",default=False)
+parser.add_argument("--topo",help="Make topocentric TOAs; include the spacecraft ECI position on the TOA line",action="store_true",default=False)
 parser.add_argument("--outfile",help="Name of file to save TOAs to (default is STDOUT)",default=None)
 
 ## Parse arguments
@@ -69,7 +75,7 @@ modelin = pint.models.get_model(args.parname)
 log.info(str(modelin))
 
 # check for consistency between ephemeris and options
-if 'SolarSystemShapiro' in modelin.components.keys():
+if modelin.PLANET_SHAPIRO.quantity:
     planets=True
 else:
     planets=False
@@ -80,7 +86,7 @@ try:
 except:
     primitives,norms = prim_io(args.templatename)
     template = LCTemplate(primitives,norms)
-print(template)
+#print(template)
 
 # Load photons as PINT toas, and weights, if specified
 # Here I might loop over the files specified
@@ -94,7 +100,7 @@ if hdr['TELESCOP'] == 'NICER':
     # Instantiate NICERObs once so it gets added to the observatory registry
     if args.orbfile is not None:
         log.info('Setting up NICER observatory')
-        NICERObs(name='NICER',FPorbname=args.orbfile)
+        obs = NICERObs(name='NICER',FPorbname=args.orbfile)
     # Read event file and return list of TOA objects
     try:
         tl  = local_load_NICER_TOAs(args.eventname)
@@ -106,7 +112,7 @@ elif hdr['TELESCOP'] == 'XTE':
     if args.orbfile is not None:
         # Determine what observatory type is.
         log.info('Setting up RXTE observatory')
-        RXTEObs(name='RXTE',FPorbname=args.orbfile)
+        obs = RXTEObs(name='RXTE',FPorbname=args.orbfile)
     # Read event file and return list of TOA objects
     tl  = load_RXTE_TOAs(args.eventname)
 elif hdr['TELESCOP'].startswith('XMM'):
@@ -117,27 +123,31 @@ else:
         hdr['TELESCOP'], hdr['INSTRUME']))
     sys.exit(1)
 
+if args.topo: #for writing UTC topo toas
+    SpacecraftObs(name='spacecraft')
+
 if len(tl) <= 0:
     log.error('No TOAs found. Aborting.')
     sys.exit(1)
-# Now convert to TOAs object and compute TDBs and posvels
+
+# Now convert to TOAs object and compute TDBs and (SSB) posvels
 ts = pint.toa.get_TOAs_list(tl,ephem=args.ephem,planets=planets,include_bipm=False,include_gps=False)
-#del tl
 ts.filename = args.eventname
-#if args.fix:
-#    if hdr['TIMEZERO'] < 0.0:
-#        log.error('TIMEZERO<0 and --fix: You are trying to apply the 1-s offet twice!')
-#    ts.adjust_TOAs(TimeDelta(np.ones(len(ts.table))*-1.0*u.s,scale='tt'))
 
 #print(ts.get_summary())
-mjds = ts.get_mjds()
-print(mjds.min(),mjds.max())
+mjds = ts.get_mjds() # TT topocentric MJDs as floats; only used to find the index of the photon time closest to the middle of the MJD range
 
-# Compute model phase for each TOA
+# Compute model phase for each TOA; 
+#(TODO--'tdbs' var. needs to be renamed since it's TT and not TDB for the topocentric photon times in the if block)
 phss = modelin.phase(ts,abs_phase=True)[1].value # discard units
-# ensure all postive
+if args.topo: 
+    tdbs = ts.table['mjd']
+else:
+    tdbs = ts.table['tdb']
+
+# ensure all positive
 phases = np.where(phss < 0.0, phss + 1.0, phss)
-tdbs = ts.table['tdb']
+
 h = float(hm(phases))
 print("Htest : {0:.2f} ({1:.2f} sigma)".format(h,h2sig(h)))
 if args.plot:
@@ -152,7 +162,7 @@ except:
     exposure = 0
 
 
-def estimate_toa(mjds,phases,tdbs):
+def estimate_toa(mjds,phases,tdbs,topo,obs):
     """ Return a pint TOA object for the provided times and phases."""
 
     # Given some subset of the event times, phases, and weights, compute
@@ -170,30 +180,61 @@ def estimate_toa(mjds,phases,tdbs):
     # find MJD closest to center of observation and turn it into a TOA
     argmid = np.searchsorted(mjds,0.5*(mjds.min()+mjds.max()))
     tmid = tdbs[argmid] # Should we used tdbld?
-    tplus = tmid + TimeDelta(1*u.s,scale='tdb')
-    toamid = pint.toa.TOA(tmid)
-    toaplus = pint.toa.TOA(tplus)
+
+    if topo: #tdbs are topocentric TT MJD times
+        tplus = tmid + TimeDelta(1*u.s,scale='tt')
+        toamid = pint.toa.TOA(tmid,obs=obs.name)
+        toaplus = pint.toa.TOA(tplus,obs=obs.name)
+    else: #tdbs are TDB MJD times
+        tplus = tmid + TimeDelta(1*u.s,scale='tdb')
+        toamid = pint.toa.TOA(tmid)
+        toaplus = pint.toa.TOA(tplus)
+
     toas = pint.toa.get_TOAs_list([toamid,toaplus],include_gps=args.use_gps,
         include_bipm=args.use_bipm,ephem=args.ephem,planets=planets)
+
     phsi,phsf = modelin.phase(toas,abs_phase=True)
-    # Compute frequency = d(phase)/dt, where t is time in TDB units.
-    fbary = (phsi[1]-phsi[0]) + (phsf[1]-phsf[0])
-    fbary._unit = u.Hz
+    if topo:
+        sc = 'tt'
+    else:
+        sc = 'tdb'
+    # Compute frequency = d(phase)/dt
+    f = (phsi[1]-phsi[0]) + (phsf[1]-phsf[0])
+    f._unit = u.Hz
+
     # First delta is to get time of phase 0.0 of initial model
     # Second term corrects for the measured phase offset to align with template
-    tfinal = tmid + TimeDelta(-phsf[0].value/fbary,scale='tdb') + TimeDelta(dphi/fbary,scale='tdb')
-
+    tfinal = tmid + TimeDelta(-phsf[0].value/f,scale=sc) + TimeDelta(dphi/f,scale=sc)
+    
     # Use PINT's TOA writer to save the TOA
     nsrc = lcf.template.norm()*len(lcf.phases)
     nbkg = (1-lcf.template.norm())*len(lcf.phases)
-    toafinal = pint.toa.TOA(tfinal,
-            nsrc='%.2f'%nsrc,nbkg='%.2f'%nbkg,exposure='%.2f'%exposure,dphi='%.5f'%dphi)
+
+    if args.topo: #tfinal is a topocentric TT MJD
+        telposvel = obs.posvel_gcrs(tfinal)
+        x = telposvel.pos[0].to(u.km)
+        y = telposvel.pos[1].to(u.km)
+        z = telposvel.pos[2].to(u.km)
+        vx = telposvel.vel[0].to(u.km/u.s)
+        vy = telposvel.vel[1].to(u.km/u.s)
+        vz = telposvel.vel[2].to(u.km/u.s)
+        
+        toafinal = pint.toa.TOA(tfinal.utc,scale='utc',obs='spacecraft',nsrc='%.2f'%nsrc,nbkg='%.2f'%nbkg,exposure='%.2f'%exposure,dphi='%.5f'%dphi,mjdTT='%.8f'%tfinal.tt.mjd,
+                                telx='%.8f'%x.value,tely='%.8f'%y.value,telz='%.8f'%z.value,
+                                vx='%.8f'%vx.value,vy='%.8f'%vy.value,vz='%.8f'%vz.value)
+
+    else:
+        toafinal = pint.toa.TOA(tfinal,
+                                nsrc='%.2f'%nsrc,nbkg='%.2f'%nbkg,exposure='%.2f'%exposure,dphi='%.5f'%dphi)
+
+
     log.info("Src rate = {0} c/s, Bkg rate = {1} c/s".format(nsrc/exposure, nbkg/exposure))
-    return toafinal,dphierr/fbary*1e6
+    return toafinal,dphierr/f.value*1.e6
 
 if args.tint is None:
+
     # do a single TOA for table
-    toafinal,toafinal_err = estimate_toa(mjds,phases,tdbs)
+    toafinal,toafinal_err = estimate_toa(mjds,phases,tdbs,args.topo,obs)
     if 'OBS_ID' in hdr:
         # Add ObsID to the TOA flags
         toafinal.flags['-obsid'] = hdr['OBS_ID']
@@ -226,7 +267,7 @@ else:
             #print('Generating TOA ph0={0}, ph1={1}, len(m)={2}, i0={3}, i={4}'.format(ph0,ph1,len(m),i0,i))
             #print('m[0]={0}, m[1]={1}'.format(m[0],m[-1]))
             if len(m) > 0:
-                toas.append(estimate_toa(m,p,t))
+                toas.append(estimate_toa(m,p,t,args.topo,obs))
                 # fix exposure
                 toas[-1][0].flags['exposure'] = current
             current = 0.0
@@ -248,7 +289,12 @@ toas.table['error'][:] = np.asarray(toafinal_err)
 sio = cStringIO.StringIO()
 toas.write_TOA_file(sio,name='nicer',format='tempo2')
 output = sio.getvalue()
-output = output.replace('barycenter','@')
+
+if args.topo:
+    output = output.replace('spacecraft','STL_GEO')
+else:
+    output = output.replace('bat','@')
+
 if args.outfile is not None:
     print(output,file=open(args.outfile,"w"))
 else:
