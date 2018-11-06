@@ -351,9 +351,7 @@ for obsdir in all_obsids:
         list_extra_expr.append('FPM_OVERONLY_COUNT<1')
         list_extra_expr.append('FPM_OVERONLY_COUNT<(1.52*COR_SAX**(-0.633))')
 
-    log.error(list_extra_expr)
     extra_expr = "(" + " && ".join("%s" %expr for expr in list_extra_expr) + ")"
-    log.error(extra_expr)
     
     cor_string="-"
     if args.cormin is not None:
