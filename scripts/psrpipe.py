@@ -60,6 +60,7 @@ parser.add_argument("--merge", help="Merge all ObsIDs provided into single event
 parser.add_argument("--crcut", help="perform count rate cut on merged event file (only if --merge)", action='store_true')
 parser.add_argument("--lcbinsize", help="Lightcurve bin size (sec, default=4.0)", type=float, default=4.0)
 parser.add_argument("--filterbinsize", help="Bin size for Count rate and Overshoot rate filtering (sec, default=16.0)", type=float, default=16.0)
+parser.add_argument("--keith", help="Standard filters used by Keith Gendreau for Space-Weather backgrounds", action='store_true')
 # parser.add_argument("--crabnorm", help="normalize the spectrum with the crab (only if --merge)", action='store_true')
 args = parser.parse_args()
 
@@ -154,6 +155,15 @@ for obsdir in all_obsids:
     # Copy orbit file to results dir for pulsar analysis
     shutil.copy(mkfile,pipedir)
     
+    if args.keith:
+        args.mask   = [14,34,54]
+        args.cormin = 1.5
+
+    if args.dark and args.day:
+        log.warning("Both --dark and --day are requested")
+        args.dark = False
+        args.day = False   
+        
     # # Get ufa file (unfiltered events)
     # ufafiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_ufa.evt*'))
     # ufafiles.sort()
@@ -327,17 +337,24 @@ for obsdir in all_obsids:
 
     # Make final merged GTI using nimaketime
     gtiname_merged = path.join(pipedir,"tot.gti")
-    extra_expr="(ST_VALID.eq.1)"
 
-    if args.dark and args.day:
-        log.warning("Both --dark and --day are requested")
-        args.dark = False
-        args.day = False
+
+    # Manage extra_expr for nimaketime (ST_VALID, DARK/DAY, and FPM_OVER_ONLY filters from --KEITH)
+    list_extra_expr = ['ST_VALID.eq.1']
+    
     if args.dark:
-        extra_expr = "(SUNSHINE.eq.0 && ST_VALID.eq.1)"
+        list_extra_expr.append('SUNSHINE.eq.0')
     if args.day:
-        extra_expr = "(SUNSHINE.eq.1 && ST_VALID.eq.1)"
+        list_extra_expr.append('SUNSHINE.eq.1')
 
+    if args.keith:
+        list_extra_expr.append('FPM_OVERONLY_COUNT<1')
+        list_extra_expr.append('FPM_OVERONLY_COUNT<(1.52*COR_SAX**(-0.633))')
+
+    log.error(list_extra_expr)
+    extra_expr = "(" + " && ".join("%s" %expr for expr in list_extra_expr) + ")"
+    log.error(extra_expr)
+    
     cor_string="-"
     if args.cormin is not None:
         cor_string = "{0}-".format(args.cormin)
