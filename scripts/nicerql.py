@@ -69,6 +69,7 @@ parser.add_argument("--gtirows",help="Select GTI rows", nargs = '*', type=int, d
 parser.add_argument("--merge", help="when using a merged file, the OBSID keyword in header is updated (for plotting purposes)", action='store_true')
 parser.add_argument("--allspec",help = "Makes a figure will a spectrum for each DET_ID", action = 'store_true')
 parser.add_argument("--alllc",help = "Makes a figure will a lightcurve for each DET_ID", action = 'store_true')
+parser.add_argument("--keith", help="Standard filters used by Keith Gendreau for Space-Weather backgrounds", action='store_true')
 args = parser.parse_args()
 
 #------------------------------Getting the data and concatenating------------------------------
@@ -115,8 +116,9 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
         log.info('Got the good times from GTI')
         gtitable['DURATION'] = gtitable['STOP']- gtitable['START']
         # Only keep GTIs longer than 16 seconds
-        idx = np.where(gtitable['DURATION']>16.0)[0]
-        gtitable = gtitable[idx]
+        if not args.keith:
+            idx = np.where(gtitable['DURATION']>16.0)[0]
+            gtitable = gtitable[idx]
         print(gtitable)
         if len(gtitable) == 0:
             log.error('No Good Time left! Quitting...')
@@ -324,7 +326,8 @@ if args.applygti is not None:
     log.info('Applying external GTI from {0}'.format(args.applygti))
     g['DURATION'] = g['STOP']-g['START']
     # Only keep GTIs longer than 16 seconds
-    g = g[np.where(g['DURATION']>16.0)]
+    if not args.keith:
+        g = g[np.where(g['DURATION']>16.0)]
     print(g)
     etable = apply_gti(etable,g)
     # Replacing this GTI does not work. It needs to be ANDed with the existing GTI

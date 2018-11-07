@@ -90,7 +90,8 @@ class NicerFileSet:
             log.info('Applying external GTI from {0}'.format(args.applygti))
             g['DURATION'] = g['STOP']-g['START']
             # Only keep GTIs longer than 16 seconds
-            g = g[np.where(g['DURATION']>16.0)]
+            if not self.args.keith:
+                g = g[np.where(g['DURATION']>16.0)]
             log.info('Applying external GTI')
             print(g)
             self.etable = apply_gti(self.etable,g)
@@ -363,9 +364,10 @@ class NicerFileSet:
         log.info('Got the good times from GTI')
         self.gtitable['DURATION'] = self.gtitable['STOP']- self.gtitable['START']
         # Only keep GTIs longer than 16 seconds
-        log.info('Discarding GTI shorter than 16 seconds!')
-        idx = np.where(self.gtitable['DURATION']>16.0)[0]
-        self.gtitable = self.gtitable[idx]
+        if not self.args.keith:
+            log.info('Discarding GTI shorter than 16 seconds!')
+            idx = np.where(self.gtitable['DURATION']>16.0)[0]
+            self.gtitable = self.gtitable[idx]
         print(self.gtitable)
 
     def makebasename(self):

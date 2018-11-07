@@ -201,7 +201,9 @@ for obsdir in all_obsids:
         cmd.append("--mask")
         for detid in args.mask:
             cmd.append("{0}".format(detid))
-
+    if args.keith:
+        cmd.append("--keith")
+            
 #    if args.par is not None:
 #        cmd.append("--par")
 #        cmd.append("{0}".format(args.par))
@@ -410,6 +412,10 @@ for obsdir in all_obsids:
                "--lcbinsize", "{}".format(args.lcbinsize),
                "--filterbinsize", "{}".format(args.filterbinsize), 
                "--basename", path.join(pipedir,basename)+"_intermediate"]
+        
+        if args.keith:
+            cmd.append("--keith")
+
         runcmd(cmd)
 
     # Now filter any bad detectors
@@ -449,6 +455,8 @@ for obsdir in all_obsids:
     if args.par is not None:
         cmd.append("--par")
         cmd.append("{0}".format(args.par))
+    if args.keith:
+        cmd.append("--keith")
     runcmd(cmd)
 
     # Add phases
