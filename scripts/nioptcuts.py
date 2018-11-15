@@ -8,7 +8,7 @@ from astropy import log
 from nicer.values import *
 from astropy.table import Table, vstack
 import astropy.units as u
-from pint.eventstats import hm,z2m
+from pint.eventstats import hm,z2m, h2sig
 
 
 # Python 2 (xrange) and Python 3 (range) compatibility
@@ -35,6 +35,7 @@ def cached_zm(mask):
 parser = argparse.ArgumentParser(description="Read event file with phase and optimize cuts")
 parser.add_argument("evfiles", help="Name of event files to process", nargs='+')
 parser.add_argument("--noplot", help="Suppress plotting.", action="store_true",default=False)
+parser.add_argument("--grid", help="Shows grid of H-test", action="store_true",default=False)
 parser.add_argument("-m","--maxharm", help="Search up to harmonic m; [default=20, H-test]", default=20,type=int)
 parser.add_argument("-z","--ztest", help="Use Z-test rather than H-test; this searches with exactly the number of harmonics specified.  m=1 is Rayleigh, m=2 is Z^2_2, etc.", action="store_true",default=False)
 parser.add_argument("--min_good_time", help="Ignore files with GTI sum below specified value [default None; unit sec].", default=None,type=float)
@@ -68,8 +69,11 @@ hbest = z2m(phasesinitial,m=m)[-1] if args.ztest else hm(phasesinitial,m=m)
 eminbest = 0.0
 emaxbest = 100.0
 ts_name = "Ztest" if args.ztest else "Htest"
-print("Initial {0} = {1}".format(ts_name,hbest))
-
+if args.ztest:
+    print("Initial {0} = {1}".format(ts_name,np.round(hbest,3)))
+else:
+    print("Initial {0} = {1} ({2} sigma)".format(ts_name,np.round(hbest,3),np.round(h2sig(hbest),3)))
+    
 # assemble cache
 cache = np.empty([m,2,len(phasesinitial)],dtype=np.float32)
 for i in xrange(m):
@@ -77,21 +81,32 @@ for i in xrange(m):
     cache[i,1] = np.sin(phasesinitial*(2*np.pi*(i+1)))
 cached_hm._cache = cached_zm._cache = cache
 
+eminlist = []
+emaxlist = []
+hgrid = []
+
 emins = np.arange(0.25,4.00,0.02)
+#emins = np.arange(0.25,4.00,0.2)
 for emin in emins:
     emaxs = np.arange(emin+0.10,12.01,0.10)
     for emax in emaxs:
         mask = np.logical_and(etable['PI']*PI_TO_KEV>emin,
-            etable['PI']*PI_TO_KEV<emax)
+                              etable['PI']*PI_TO_KEV<emax)
         h = ts_func(mask)
+        eminlist.append(emin)
+        emaxlist.append(emax)
+        hgrid.append(h)
         if h>=hbest:
             hbest=h
             eminbest=emin
             emaxbest=emax
 
 
-print("Final {0} = {1}".format(ts_name,hbest))
-print("Best emin {0} emax {1}".format(eminbest,emaxbest))
+if args.ztest:
+    print("Initial {0} = {1}".format(ts_name,np.round(hbest,3)))
+else:
+    print("Initial {0} = {1} ({2} sigma)".format(ts_name,np.round(hbest,3),np.round(h2sig(hbest),3)))
+print("Best range:  emin {0} keV -- emax {1} keV".format(np.round(eminbest,3),np.round(emaxbest,3)))
 
 if not args.noplot:
     fig,ax = plt.subplots()
@@ -100,9 +115,19 @@ if not args.noplot:
          etable['PI']*PI_TO_KEV<emaxbest))[0]
     phases = etable['PULSE_PHASE'][idx]
     ax.hist(phases,bins=32)
-    ax.text(0.1, 0.1, '{0} = {1:.2f}'.format(ts_name,hbest), transform=ax.transAxes)
+    ax.text(0.1, 0.1, '{0} = {1:.2f}'.format(ts_name,np.round(hbest,3)), transform=ax.transAxes)
     ax.set_ylabel('Counts')
     ax.set_xlabel('Pulse Phase')
     ax.set_title('Pulse Profile')
 
+    plt.show()
+    plt.clf()
+
+
+if args.grid:
+    plt.scatter(eminlist,emaxlist, c=hgrid, s=5, edgecolor='')
+    cbar = plt.colorbar()
+    cbar.set_label('H-test')
+    plt.xlabel('Low Energy Cut (keV)')
+    plt.ylabel('High Energy Cut (keV)')
     plt.show()
