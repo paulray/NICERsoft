@@ -41,9 +41,13 @@ def getgti(evf):
     gtitable = Table.read(evf,hdu=2)
     # Apply TIMEZERO if needed
     if 'TIMEZERO' in gtitable.meta:
-        log.info('Applying TIMEZERO of {0} to gtitable'.format(gtitable.meta['TIMEZERO']))
-        gtitable['START'] += gtitable.meta['TIMEZERO']
-        gtitable['STOP'] += gtitable.meta['TIMEZERO']
+        tz = gtitable.meta['TIMEZERO']
+        # Deal with possibility that TIMEZERO has multiple values. Just take first one.
+        if hasattr(tz,'__len__'):
+            tz = tz[0]
+        log.info('Applying TIMEZERO of {0} to gtitable'.format(tz))
+        gtitable['START'] += tz
+        gtitable['STOP'] += tz
         gtitable.meta['TIMEZERO'] = 0.0
 
     return gtitable
