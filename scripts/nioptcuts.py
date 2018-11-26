@@ -34,6 +34,7 @@ def cached_zm(mask):
 
 parser = argparse.ArgumentParser(description="Read event file with phase and optimize cuts")
 parser.add_argument("evfiles", help="Name of event files to process", nargs='+')
+parser.add_argument("--maxlowE", help="maximum E for the low cut.", default=None, type=float)
 parser.add_argument("--noplot", help="Suppress plotting.", action="store_true",default=False)
 parser.add_argument("--grid", help="Shows grid of H-test", action="store_true",default=False)
 parser.add_argument("-m","--maxharm", help="Search up to harmonic m; [default=20, H-test]", default=20,type=int)
@@ -85,8 +86,11 @@ eminlist = []
 emaxlist = []
 hgrid = []
 
-emins = np.arange(0.25,4.00,0.02)
-#emins = np.arange(0.25,4.00,0.2)
+if args.maxlowE is not None:
+    emins = np.arange(0.25,args.maxlowE,0.02)
+else:
+    emins = np.arange(0.25,4.00,0.02)
+    
 for emin in emins:
     emaxs = np.arange(emin+0.10,12.01,0.10)
     for emax in emaxs:
@@ -103,9 +107,9 @@ for emin in emins:
 
 
 if args.ztest:
-    print("Initial {0} = {1}".format(ts_name,np.round(hbest,3)))
+    print("Final {0} = {1}".format(ts_name,np.round(hbest,3)))
 else:
-    print("Initial {0} = {1} ({2} sigma)".format(ts_name,np.round(hbest,3),np.round(h2sig(hbest),3)))
+    print("Final {0} = {1} ({2} sigma)".format(ts_name,np.round(hbest,3),np.round(h2sig(hbest),3)))
 print("Best range:  emin {0} keV -- emax {1} keV".format(np.round(eminbest,3),np.round(emaxbest,3)))
 
 if not args.noplot:
