@@ -122,7 +122,7 @@ elif hdr['TELESCOP'].startswith('XMM'):
 elif hdr['TELESCOP'].startswith('NuSTAR'):
     # Not loading orbit file here, since that is not yet supported.
     tl  = load_NuSTAR_TOAs(args.eventname)
-    f = pyfits.open(eventname)
+    f = pyfits.open(args.eventname)
     mets = f['events'].data.field('time')
     f.close()
     for t,met in zip(tl,mets):
