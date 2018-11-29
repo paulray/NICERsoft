@@ -51,6 +51,7 @@ parser.add_argument("--badcut",help="Select data where bad ratio event rate is b
 parser.add_argument("--angdist",help="Set threshold for ANG_DIST in call to nimaketime (degrees, default=0.015)", type=float, default=0.015)
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
     default=None)
+parser.add_argument("--shrinkelvcut", help="Shrink ELV cut to 20 deg and BR_EARTH cut to 30.0 deg to get more data", action='store_true')
 parser.add_argument("--dark", help="Apply SUNSHINE=0 filter to get only data in Earth shadow", action='store_true')
 parser.add_argument("--day", help="Apply SUNSHINE=1 filter to get only data in ISS-day", action='store_true')
 parser.add_argument("--par", help="Par file to use for phases")
@@ -60,7 +61,7 @@ parser.add_argument("--merge", help="Merge all ObsIDs provided into single event
 parser.add_argument("--crcut", help="perform count rate cut on merged event file (only if --merge)", action='store_true')
 parser.add_argument("--lcbinsize", help="Lightcurve bin size (sec, default=4.0)", type=float, default=4.0)
 parser.add_argument("--filterbinsize", help="Bin size for Count rate and Overshoot rate filtering (sec, default=16.0)", type=float, default=16.0)
-parser.add_argument("--keith", help="Standard filters used by Keith Gendreau for Space-Weather backgrounds", action='store_true')
+parser.add_argument("--keith", help="Standard filters used by Keith Gendreau for Space-Weather backgrounds (Masks detectors 14, 34, 54; cormin 1.5; custom cut on overshoot rate + COR_SAX)", action='store_true')
 # parser.add_argument("--crabnorm", help="normalize the spectrum with the crab (only if --merge)", action='store_true')
 args = parser.parse_args()
 
@@ -358,10 +359,16 @@ for obsdir in all_obsids:
     cor_string="-"
     if args.cormin is not None:
         cor_string = "{0}-".format(args.cormin)
+    elvcut = 30.0
+    brcut = 40.0
+    if args.shrinkelvcut:
+        # Keith suggests that these cuts can give more data without hurting data quality
+        elvcut = 20.0
+        brcut = 30.0
     cmd = ["nimaketime",  "infile={0}".format(mkfile),
         'outfile={0}'.format(gtiname_merged), 'nicersaafilt=YES',
-        'saafilt=NO', 'trackfilt=YES', 'ang_dist={0:.3f}'.format(args.angdist), 'elv=30',
-        'br_earth=40', 'cor_range={0}'.format(cor_string), 'min_fpm={0}'.format(args.minfpm),
+        'saafilt=NO', 'trackfilt=YES', 'ang_dist={0:.3f}'.format(args.angdist), 'elv={0}'.format(elvcut),
+        'br_earth={0}'.format(brcut), 'cor_range={0}'.format(cor_string), 'min_fpm={0}'.format(args.minfpm),
         'ingtis={0}'.format(extragtis), "clobber=yes",
         'expr={0}'.format(extra_expr),
         'outexprfile={0}'.format(path.join(pipedir,"psrpipe_expr.txt"))]
