@@ -17,6 +17,7 @@ import astropy.io.fits as pyfits
 import pint.residuals
 from pint.event_toas import load_NICER_TOAs
 from pint.event_toas import load_RXTE_TOAs
+from pint.event_toas import load_NuSTAR_TOAs
 from pint.event_toas import load_XMM_TOAs
 from pint.plot_utils import phaseogram_binned
 from pint.observatory.nicer_obs import NICERObs
@@ -32,7 +33,7 @@ import cStringIO
 from collections import deque
 import astropy.constants as const
 from pint.observatory import get_observatory
-from pint.observatory.special_locations import SpacecraftObs
+from pint.observatory.special_locations import SpacecraftObs, BarycenterObs
 
 def local_load_NICER_TOAs(eventname):
     """ Local override to add MET field to each TOA object."""
@@ -118,6 +119,14 @@ elif hdr['TELESCOP'] == 'XTE':
 elif hdr['TELESCOP'].startswith('XMM'):
     # Not loading orbit file here, since that is not yet supported.
     tl  = load_XMM_TOAs(args.eventname)
+elif hdr['TELESCOP'].startswith('NuSTAR'):
+    # Not loading orbit file here, since that is not yet supported.
+    tl  = load_NuSTAR_TOAs(args.eventname)
+    f = pyfits.open(args.eventname)
+    mets = f['events'].data.field('time')
+    f.close()
+    for t,met in zip(tl,mets):
+        t.met = met
 else:
     log.error("FITS file not recognized, TELESCOPE = {0}, INSTRUMENT = {1}".format(
         hdr['TELESCOP'], hdr['INSTRUME']))
@@ -125,6 +134,9 @@ else:
 
 if args.topo: #for writing UTC topo toas
     SpacecraftObs(name='spacecraft')
+
+if not args.topo and (args.orbfile is None):
+    obs = 'Barycenter'
 
 if len(tl) <= 0:
     log.error('No TOAs found. Aborting.')
