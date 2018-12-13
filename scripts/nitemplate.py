@@ -12,7 +12,6 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import range
 from builtins import object
-from past.utils import old_div
 import numpy as np
 import pylab as pl
 import os
@@ -27,13 +26,13 @@ def light_curve(phases,weights=None,nbins=25,ec='blue',ls='solid',label=None,axe
     if axes is None:
         pl.figure(fignum); axes = pl.gca()
     bins = np.linspace(0,1,nbins+1)
-    bcs = old_div((bins[1:]+bins[:-1]),2)
+    bcs = (bins[1:]+bins[:-1])/2.0
     nph = len(phases)
 
     cod = axes.hist(phases,bins=bins,weights=weights,normed=True,histtype='step',ec=ec)[0]
 
     if weights is None:
-        err = (old_div(cod*float(nbins),len(phases)))**0.5
+        err = (cod*float(nbins)/len(phases))**0.5
     else:
         err = np.empty([nbins,nmc])
         for i in range(nmc):
@@ -43,7 +42,7 @@ def light_curve(phases,weights=None,nbins=25,ec='blue',ls='solid',label=None,axe
     axes.errorbar(bcs,cod,yerr=err,color=ec,capsize=0,ls=' ',marker=' ')
 
     if (weights is not None):
-        bg_level = 1-old_div((weights**2).sum(),weights.sum())
+        bg_level = 1-(weights**2).sum()/weights.sum()
         axes.axhline(bg_level,color=ec)
     else: bg_level = 0
 
@@ -59,8 +58,8 @@ def light_curve(phases,weights=None,nbins=25,ec='blue',ls='solid',label=None,axe
     if template is not None:
         axes_resid = axes.twinx()
         model = (template(bcs)*(1-bg_level)+bg_level)
-        resids = old_div(cod,model)-1
-        axes_resid.errorbar(bcs,resids,yerr=old_div(err,model),
+        resids = cod/model-1
+        axes_resid.errorbar(bcs,resids,yerr=err/model,
                 color='green',ls=' ',marker='o',alpha=0.5)
         axes_resid.axhline(0)
         axes_resid.set_ylabel('Fractional Residuals')
@@ -176,7 +175,7 @@ class InteractiveFitter(object):
         phase = (x1 + self.x0)/2.
 
         # just Gaussian for now
-        sigma = old_div(fwhm,(8 * np.log(2))**0.5)
+        sigma = fwhm/(8 * np.log(2))**0.5
         # attempt a rough correction for existing template
         if len(self.primitives) > 0:
             template = LCTemplate(self.primitives,norms=self.norms)
