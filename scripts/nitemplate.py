@@ -6,6 +6,12 @@ Authors:
          Matthew Kerr <matthew.kerr@nrl.navy.mil>
          Paul S. Ray <paul.ray@nrl.navy.mil>
 """
+from __future__ import division
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from builtins import object
 import numpy as np
 import pylab as pl
 import os
@@ -14,13 +20,13 @@ from pint.templates.lcprimitives import LCGaussian,LCKernelDensity,LCEmpiricalFo
 from pint.templates.lcfitters import LCFitter
 from pint.templates.lctemplate import LCTemplate
 from optparse import OptionParser
-import cPickle
+import pickle
 
 def light_curve(phases,weights=None,nbins=25,ec='blue',ls='solid',label=None,axes=None,fignum=1,nmc=100,template=None):
     if axes is None:
         pl.figure(fignum); axes = pl.gca()
     bins = np.linspace(0,1,nbins+1)
-    bcs = (bins[1:]+bins[:-1])/2
+    bcs = (bins[1:]+bins[:-1])/2.0
     nph = len(phases)
 
     cod = axes.hist(phases,bins=bins,weights=weights,normed=True,histtype='step',ec=ec)[0]
@@ -29,7 +35,7 @@ def light_curve(phases,weights=None,nbins=25,ec='blue',ls='solid',label=None,axe
         err = (cod*float(nbins)/len(phases))**0.5
     else:
         err = np.empty([nbins,nmc])
-        for i in xrange(nmc):
+        for i in range(nmc):
             rweights = weights[np.argsort(np.random.rand(nph))]
             err[:,i] = np.histogram(phases,bins=bins,weights=rweights,normed=True)[0]
         err = np.std(err,axis=1)
@@ -65,7 +71,7 @@ def get_phases(ft1file,get_weights=False,weightcol='WEIGHT',tmax=999999999):
     f = pyfits.open(ft1file)
     phases = np.asarray(f['EVENTS'].data.field('PULSE_PHASE'),dtype=float)
     mask = f['events'].data.field("TIME") < tmax
-    print len(mask),mask.sum()
+    print(len(mask),mask.sum())
     phases = phases[mask]
     if get_weights:
         weights = np.asarray(f['EVENTS'].data.field(weightcol),dtype=float)
@@ -84,15 +90,15 @@ class InteractiveFitter(object):
         self.unbinned = False
 
     def welcome(self):
-        print 'Welcome to the interactive unbinned template fitter!'
-        print 'Displaying the profile... now, we will specify where to put Gaussians.'
-        print 'For each peak, drag a horizontal line'
-        print '         AT THE HIGHEST POINT ON THE PEAK'
-        print '         from HALF-MAX to HALF-MAX'
-        print 'After (left button) each drag, the plot will refresh with the current template.'
-        print 'To perform a fit, right click.'
-        print 'To undo a gaussian addition, press u.'
-        print 'To exit fitting, press c.'
+        print('Welcome to the interactive unbinned template fitter!')
+        print('Displaying the profile... now, we will specify where to put Gaussians.')
+        print('For each peak, drag a horizontal line')
+        print('         AT THE HIGHEST POINT ON THE PEAK')
+        print('         from HALF-MAX to HALF-MAX')
+        print('After (left button) each drag, the plot will refresh with the current template.')
+        print('To perform a fit, right click.')
+        print('To undo a gaussian addition, press u.')
+        print('To exit fitting, press c.')
 
     def __init__(self,phases,**kwargs):
         self.init()
@@ -111,12 +117,12 @@ class InteractiveFitter(object):
 
     def do_fit(self,doshow=False):
         ubstr = 'unbinned' if self.unbinned else 'binned'
-        print 'Fitting the template with %s likelihood...'%ubstr
+        print('Fitting the template with %s likelihood...'%ubstr)
         template = LCTemplate(self.primitives,norms=self.norms)
         fitter   = LCFitter(template,self.phases,weights=self.weights)
         fitter.fit(estimate_errors=self.errors,use_gradient=True,
                 unbinned=self.unbinned)
-        print fitter
+        print(fitter)
         self.fig = pl.figure(self.fignum)
         self.ax = pl.gca()
         light_curve(self.phases,weights=self.weights,nbins=self.nbins,template=template)
@@ -131,7 +137,7 @@ class InteractiveFitter(object):
 
     def on_key(self,event):
         if event.key=='u':
-            print 'Undoing last primitive.'
+            print('Undoing last primitive.')
             self.primitives = self.primitives[:-1]
             self.norms = self.norms[:-1]
             pl.clf()
@@ -140,13 +146,13 @@ class InteractiveFitter(object):
                     nbins=self.nbins,template=template)
             pl.draw()
         elif event.key=='c':
-            print 'Closing figure and saving profile.'
+            print('Closing figure and saving profile.')
             pl.close()
 
     def on_press(self,event):
         if event.button > 1:
             if len(self.primitives)==0:
-                print 'Must have at least one component to do fit.'
+                print('Must have at least one component to do fit.')
                 return
             # do a fit
             pl.clf()
@@ -189,12 +195,12 @@ class InteractiveFitter(object):
 
     def write_template(self,outfile):
         if not hasattr(self,'fitter'):
-            print 'Must do fit first!'; return
+            print('Must do fit first!'); return
         self.fitter.write_template(outfile)
 
     def write_profile(self,outfile,nbin,integral=True,suppress_bg=True):
         if not hasattr(self,'fitter'):
-            print 'Must do fit first!'; return
+            print('Must do fit first!'); return
         self.fitter.template.write_profile(outfile,nbin,integral=integral,
                 suppress_bg=suppress_bg)
 
@@ -223,7 +229,7 @@ if __name__ == '__main__':
 
     if options.weights:
         phases = phases[weights > options.min_weight]
-        print '%d of %d photons survive weight cut'%(len(phases),len(weights))
+        print('%d of %d photons survive weight cut'%(len(phases),len(weights)))
         weights = weights[weights > options.min_weight]
 
     """
@@ -278,7 +284,6 @@ if __name__ == '__main__':
             prof = 'itemplate'
         intf.write_template(prof+'.gauss')
         intf.write_profile(prof+'.prof',options.nprofbins)
-        cPickle.dump(intf.fitter.template,file(prof+'.pickle','w'),
-                protocol=2)
+        pickle.dump(intf.fitter.template,open(prof+'.pickle','wb'))
 
-    print 'Goodbye!'
+    print('Goodbye!')
