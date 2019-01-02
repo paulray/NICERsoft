@@ -13,6 +13,7 @@ from nicer.values import *
 
 def read_kpfiles():
     kpfiles = glob(path.join(datadir,'KP-potsdam','kp*.tab'))
+    kpfiles.sort()
     hours = np.array([0.0, 3.0, 6.0, 9.0, 12.0, 15.0, 18.0, 21.0])*u.hour
 
     kpdict = {            '0o': 0.0, '0+': 0.33, 
@@ -44,6 +45,7 @@ def read_kpfiles():
                         kpvals.append(kpval)
     kpmets = np.array(kpmets)
     kpvals = np.array(kpvals)
+    log.info('KP table goes from {0} to {1}'.format(kpmets[0],kpmets[-1]))
 
     return (kpmets,kpvals)
 
