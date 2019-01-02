@@ -8,6 +8,11 @@
 # and generates TOAs from the unbined times using a pulsar timing model
 # and an analytic template. The TOAs can be output them in Tempo2 format.
 from __future__ import division, print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import zip
+from builtins import range
 import os,sys
 import argparse
 import numpy as np
@@ -28,8 +33,8 @@ from astropy.time import Time, TimeDelta
 from pint.templates.lctemplate import LCTemplate,prim_io
 from pint.templates import lcfitters
 from copy import deepcopy
-import cPickle
-import cStringIO
+import pickle
+import io
 from collections import deque
 import astropy.constants as const
 from pint.observatory import get_observatory
@@ -83,7 +88,7 @@ else:
 
 # Load Template objects
 try:
-    template = cPickle.load(file(args.templatename))
+    template = pickle.load(file(args.templatename))
 except:
     primitives,norms = prim_io(args.templatename)
     template = LCTemplate(primitives,norms)
@@ -269,7 +274,7 @@ else:
     toas = deque()
     tint = float(args.tint)
     maxint = float(args.maxint)
-    for i in xrange(len(gti_t0)):
+    for i in range(len(gti_t0)):
         current += gti_dt[i]
         #print('iteration=%d, current=%f'%(i,current))
         if (current >= tint) or ((gti_t1[i]-gti_t0[i0])>maxint) or (i==len(gti_t0)-1):
@@ -284,12 +289,12 @@ else:
                 toas[-1][0].flags['exposure'] = current
             current = 0.0
             i0 = i+1
-    toafinal,toafinal_err = zip(*toas)
+    toafinal,toafinal_err = list(zip(*toas))
 
 if args.minexp is not None:
     x = [(t,e) for t,e in zip(toafinal,toafinal_err) if t.flags['exposure'] > args.minexp]
     if len(x) > 0:
-        toafinal,toafinal_err= zip(*x)
+        toafinal,toafinal_err= list(zip(*x))
     else:
         print('No TOAs passed exposure cut!')
         sys.exit(0)
@@ -298,7 +303,7 @@ for t in toafinal:
     t.flags["-t"] = hdr['TELESCOP']
 toas = pint.toa.TOAs(toalist=toafinal)
 toas.table['error'][:] = np.asarray(toafinal_err)
-sio = cStringIO.StringIO()
+sio = io.StringIO()
 toas.write_TOA_file(sio,name='nicer',format='tempo2')
 output = sio.getvalue()
 
