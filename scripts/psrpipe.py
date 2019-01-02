@@ -43,6 +43,7 @@ parser.add_argument("--emax", help="Maximum energy to include (kev, default=12.0
 parser.add_argument("--mask",help="Mask these IDS", nargs = '*', type=int, default=None)
 parser.add_argument("--filtpolar",help="Turn on  filtering polar horn regions from data",default=False,action='store_true')
 parser.add_argument("--cormin",help="Set minimum cutoff rigidity (COR_SAX) for nimaketime filtering (default=no COR filtering, typical value = 4)",default=None)
+parser.add_argument("--kpmax",help="Set maximum KP value for nimaketime filtering (default=no KP filtering, typical value = 5)",default=None)
 parser.add_argument("--minfpm",help="Set minimum of FPMs active for nimaketime filtering (default=38)",default=38)
 parser.add_argument("--maxovershoot",help="Select data where overshoot rate is below this limit (default: no filter)",
     type=float,default=-1)
@@ -53,6 +54,7 @@ parser.add_argument("--obsid", help="Use this as OBSID for directory and filenam
     default=None)
 parser.add_argument("--shrinkelvcut", help="Shrink ELV cut to 20 deg and BR_EARTH cut to 30.0 deg to get more data", action='store_true')
 parser.add_argument("--dark", help="Apply SUNSHINE=0 filter to get only data in Earth shadow", action='store_true')
+parser.add_argument("--minsun",help="Set minimum sun angle (SUN_ANGLE) for nimaketime filtering (default=no SUN_ANGLE filtering, typical values = 60, 70, 80, 90 deg)",default=None)
 parser.add_argument("--day", help="Apply SUNSHINE=1 filter to get only data in ISS-day", action='store_true')
 parser.add_argument("--par", help="Par file to use for phases")
 parser.add_argument("--ephem", help="Ephem to use with photonphase", default="DE421")
@@ -353,6 +355,12 @@ for obsdir in all_obsids:
     if args.keith:
         list_extra_expr.append('FPM_OVERONLY_COUNT<1')
         list_extra_expr.append('FPM_OVERONLY_COUNT<(1.52*COR_SAX**(-0.633))')
+
+    if args.kpmax:
+        list_extra_expr.append('KP.lt.{0}'.format(args.kpmax))
+
+    if args.minsun:
+        list_extra_expr.append('SUN_ANGLE.gt.{0}'.format(args.minsun))
 
     extra_expr = "(" + " && ".join("%s" %expr for expr in list_extra_expr) + ")"
     
