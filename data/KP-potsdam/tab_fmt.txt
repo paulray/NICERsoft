@@ -1,0 +1,96 @@
+Format Documentation of kpyymm.tab Files
+
+----------------------------------------------------------------------------
+
+Availability
+
+The most recent kpyymm.tab (yymm stands for year and month, each expressed
+with two digits) files are distributed per e-mail half-monthly by
+
+     Dr. J. Matzka, mailto:kp_index@gfz-potsdam.de
+
+Both recent and past tables (since 1994) are supplied as an archive on the FTP servers
+
+     
+     Germany: ftp://ftp.gfz-potsdam.de/pub/home/obs/kp-ap/
+     Denmark: ftp://ftp.dmi.min.dk/pub/Data/WDCC1/indices/kp-ap/
+
+Further tables (since 1932) and background information on geomagnetic indices and the classification of days can be found on this webpage (and links from there):
+http://www.gfz-potsdam.de/en/section/earths-magnetic-field/services/kp-index/
+
+Email distribution:
+
+   * half-monthly distribution: days 1 through 15 and days 1 through 28 / 29
+     / 30 / 31
+   * monthly distribution: days 1 through 28 / 29 / 30 / 31
+
+Format Description
+
+This format is intended to be easily readable for both humans and computer
+programs and have some resemblance to the regular mail distribution.
+
+Since many observatories are interested mainly in the international quietest
+and most disturbed days, beginning August 1996 three extra lines have been
+added to the end of the table containing these values in an easy to read
+form. The extra lines are included in the complete monthly tables only.
+
+The geomagnetic indices in the kpyymm.tab files are supplied in the
+following format.
+
+The table begins with the daily lines
+
+Column  Format  Description
+======  ======  ===========
+ 1- 2     i2    yy, last two digits of year
+ 3- 4     i2    mm, month (1-12)
+ 5- 6     i2    dd, day of month (1-31)
+ 8-19    4a3    3-hourly Kp indices, first 4 values
+21-32    4a3    3-hourly Kp indices,  last 4 values
+35-38     a4    Daily Kp sum (supplied only for tradition,
+                              use Ap scientific purposes!)
+39-42     a4    Most disturbed and quiet days;
+                Q: most quiet days (1-10, 10th quiet day is marked Q0)
+                D: most disturbed days (1-5)
+                A, K: not really quiet day
+                *: not really disturbed day
+43-45     i3    Ap index
+46-50     f5.2  Cp geomagnetic index.
+
+Either one line or four lines follow the daily lines
+
+1. This line contains the monthly mean values for Ap and Cp
+
+ 1- 2     i2    yy, last two digits of year
+ 3- 4     i2    mm, month (1-12)
+ 5- 6     i2    day is blank, may be read as zero
+39-42     a4    "Mean", denotes monthly mean average of Ap and Cp
+43-45     i3    Ap index (monthly mean)
+46-50     f5.2  Cp geomagnetic index (monthly mean).
+
+Lines 2-4 in monthly distribution only
+
+2. Empty line
+3. This line contains the ordered most quiet days
+
+ 1- 2     i2    yy, last two digits of year
+ 3- 4     i2    mm, month (1-12)
+ 5- 6     a2    " Q"
+ 7-46   10a4    most quiet days 1 to 10 (day of month)
+                A, K: not really quiet day
+
+4. This line contains the ordered most disturbed days
+
+ 1- 2     i2    yy, last two digits of year
+ 3- 4     i2    mm, month (1-12)
+ 5- 6     a2    " D"
+ 7-26    5a4    most disturbed days 1 to 5 (day of month)
+                *: not really disturbed day
+
+----------------------------------------------------------------------------
+For questions concerning specific data or the contents of this page, please
+contact:
+
+     Dr. J. Matzka, mailto:kp_index@gfz-potsdam.de
+
+Last modified: Aug 24 2015
+

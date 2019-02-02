@@ -29,7 +29,7 @@ def light_curve(phases,weights=None,nbins=25,ec='blue',ls='solid',label=None,axe
     bcs = (bins[1:]+bins[:-1])/2.0
     nph = len(phases)
 
-    cod = axes.hist(phases,bins=bins,weights=weights,normed=True,histtype='step',ec=ec)[0]
+    cod = axes.hist(phases,bins=bins,weights=weights,density=True,histtype='step',ec=ec)[0]
 
     if weights is None:
         err = (cod*float(nbins)/len(phases))**0.5
@@ -37,7 +37,7 @@ def light_curve(phases,weights=None,nbins=25,ec='blue',ls='solid',label=None,axe
         err = np.empty([nbins,nmc])
         for i in range(nmc):
             rweights = weights[np.argsort(np.random.rand(nph))]
-            err[:,i] = np.histogram(phases,bins=bins,weights=rweights,normed=True)[0]
+            err[:,i] = np.histogram(phases,bins=bins,weights=rweights,density=True)[0]
         err = np.std(err,axis=1)
     axes.errorbar(bcs,cod,yerr=err,color=ec,capsize=0,ls=' ',marker=' ')
 
