@@ -8,6 +8,7 @@ from pint.templates import lctemplate,lcprimitives,lcfitters
 from pint.eventstats import z2m,sf_z2m, hm, sf_hm, sig2sigma
 import sys
 from astropy import log
+import scipy.stats
 
 def compute_fourier(phases,nh=10,pow_phase=False):
     '''Compute Fourier amplitudes from an array of pulse phases
@@ -51,19 +52,32 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = "Fit a set of pulse phases to harmonics")
     parser.add_argument("evname", help="Input event file (must have PULSE_PHASE column)") 
     parser.add_argument("--white",help = "Replace phases with white random numbers, for testing", action="store_true")
+    parser.add_argument("--txt",help = "Assume input file is .txt instead of FITS", action="store_true")
+    parser.add_argument("--output",help = "Save figures with basename", default=None)
     parser.add_argument("--numharm",help="Max harmonic to use in analysis (1=Fundamental only)",default=4,type=int)
     parser.add_argument("--numbins",help="Number of bins for histograms",default=200,type=int)
+    parser.add_argument("--emin",help="Minimum energy to include (keV)",default=0.25,type=float)
+    parser.add_argument("--emax",help="Maximum energy to include (keV)",default=12.0,type=float)
     args = parser.parse_args()
 
-    f = fits.open(args.evname)
-    en = f['events'].data.field('pi')
+    if args.txt:
+        ph,en = np.loadtxt(args.evname,unpack=True,usecols=(1,2),skiprows=3)
+        log.info("Read {0} phases from .txt file".format(len(ph)))
+    else:
+        f = fits.open(args.evname)
+        en = f['events'].data.field('pi')
+        ph = f['events'].data.field('pulse_phase')
+        log.info("Read {0} phases from FITS file".format(len(ph)))
+
     if args.white:
         # Random phases uniform over [0,1)
         ph = np.random.random_sample(len(en))
-        log.info("Generated {0} random phases".format(len(en)))
-    else:
-        ph = f['events'].data.field('pulse_phase')
-        log.info("Read {0} phases".format(len(ph)))
+        log.info("Replaces with {0} random phases".format(len(en)))
+
+    # Filter on energy
+    idx = np.where(np.logical_and(en > int(args.emin*100), en < int(args.emax*100) ))[0]
+    ph = ph[idx]
+    en = en[idx]
 
     nbins = args.numbins
     bins,phist = compute_phist(ph,nbins=nbins)
@@ -79,14 +93,25 @@ if __name__ == '__main__':
 
     ax = axs[1]
     ax.errorbar(np.linspace(0.0,1.0,nbins),phist-model,yerr=np.sqrt(phist),fmt='.')
-    chisq = ((phist-model)**2/phist).sum()
+    chisq = ((phist-model)**2/model).sum()
     nparams = 1 + 2*args.numharm # 1 for DC + 2 for each sinusoidal component
     ax.set_xlabel('Pulse Phase')
+    ax.set_ylabel('Residuals (cnts)')
     ndof = len(phist)-nparams
     axs[0].set_title("NumHarm = {0}, Chisq = {1:.2f}, DOF = {2}".format(args.numharm,chisq,ndof))
     ax.grid(1)
     #ax.set_label("{0} Harmonic Fit to Profile".format(args.numharm))
 
+    if args.output:
+        fig.savefig("{0}_harmfit.pdf".format(args.output))
+
+    fig,ax = plt.subplots()
+    chi = (phist-model)/np.sqrt(model)
+    #x, y = np.histogram(chi,bins=np.linspace(-2.0,2.0,0.1))
+    x = np.linspace(-3.0,3.0,32,endpoint=True)
+    ax.hist(chi,bins=x,density=True)
+    ax.plot(x,scipy.stats.norm.pdf(x))
+    
 # Compute number of significant harmonics
 # First by plotting Leahy powers
 
@@ -99,7 +124,7 @@ if __name__ == '__main__':
     ax.axhline(2.0,color='b',ls='--')
     #ax.xaxis.set_ticks(np.arange(1,len(pow)+1))
     #ax.set_xlabel('Harmonic Number')
-    ax.set_ylabel('Leahy Normalized Power')
+    ax.set_ylabel('Leahy Power')
     ax.set_title("Power Spectrum")
     
     ax = axs[1]
@@ -110,7 +135,9 @@ if __name__ == '__main__':
     ax.set_ylim(0.0,8.0)
     ax.text(1.0,7.0,'Mean power {0:.3f}'.format(pow.mean()))
     ax.set_xlabel('Harmonic Number')
-    ax.set_ylabel('Leahy Normalized Power')
+    ax.set_ylabel('Leahy Power')
+    if args.output:
+        fig.savefig("{0}_leahy.pdf".format(args.output))
 
 
 # Then by computing chisq as a function of number of harmonics in model
@@ -121,7 +148,7 @@ if __name__ == '__main__':
     for maxharm in maxharms:
         n,c,s = compute_fourier(ph,nh=maxharm)
         model = evaluate_fourier(n,c,s,nbins)
-        chisq.append(((phist-model)**2/phist).sum())
+        chisq.append(((phist-model)**2/model).sum())
         nparams = 1 + 2*maxharm # 1 for DC + 2 for each sinusoidal component
         ndof.append(len(phist)-nparams)
     chisq = np.asarray(chisq)
@@ -136,6 +163,8 @@ if __name__ == '__main__':
     ax.xaxis.set_ticks(maxharms)
     #ax.semilogy(maxharms,ndof)
 
+    if args.output:
+        fig.savefig("{0}_chisq.pdf".format(args.output))
 
 # Then look at amplitudes and phases as a function of energy cuts
 
