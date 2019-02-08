@@ -76,6 +76,7 @@ if __name__ == '__main__':
         ph = f['events'].data.field('pulse_phase')
         log.info("Read {0} phases from FITS file".format(len(ph)))
         exposure = float(f['events'].header['EXPOSURE'])
+        log.info("Exposure = {0} s".format(exposure))
 
     if args.white:
         # Random phases uniform over [0,1)
@@ -146,12 +147,12 @@ if __name__ == '__main__':
     #  Plot histogram of phase differences to see if they are Poisson
     fig,ax = plt.subplots()
     ph.sort()
-    pdiffs = (ph[1:]-ph[:-1])*1.0e6
-    x = np.linspace(0.0,50.0,200,endpoint=True)
-    ax.hist(pdiffs,bins=x,density=True,log=True)
+    pdiffs = (ph[1:]-ph[:-1])*1.0
+    x = np.linspace(0.0,50.0e-6,200,endpoint=True)
+    histn, histbins, histpatches  = ax.hist(pdiffs,bins=x,density=True,log=True)
     ax.set_title('Histogram of phase differences')
-    ax.set_xlabel('Phase diff (x 1E-6))')
-    ax.plot(x,0.5*np.exp(-len(pdiffs)*(x*1.0e-6)))
+    ax.set_xlabel('Phase diff')
+    ax.plot(x,np.exp(-len(pdiffs)*(x*1.0))*n)
     
 # Compute number of significant harmonics
 # First by plotting Leahy powers
