@@ -78,7 +78,13 @@ if __name__ == '__main__':
     idx = np.where(np.logical_and(en > int(args.emin*100), en < int(args.emax*100) ))[0]
     ph = ph[idx]
     en = en[idx]
-
+    
+    # Hack to manually split out a segment
+    #q = 3  # Use 0, 1, 2, 3
+    #qn = len(ph)//4
+    #ph = ph[q*qn:(q+1)*qn]
+    #en = en[q*qn:(q+1)*qn]
+    
     nbins = args.numbins
     bins,phist = compute_phist(ph,nbins=nbins)
     fig,axs = plt.subplots(nrows=2,ncols=1)
@@ -105,12 +111,24 @@ if __name__ == '__main__':
     if args.output:
         fig.savefig("{0}_harmfit.pdf".format(args.output))
 
+    # Plot distribution of residuals to compare to a gaussian
     fig,ax = plt.subplots()
     chi = (phist-model)/np.sqrt(model)
     #x, y = np.histogram(chi,bins=np.linspace(-2.0,2.0,0.1))
     x = np.linspace(-3.0,3.0,32,endpoint=True)
     ax.hist(chi,bins=x,density=True)
+    ax.set_title('Histogram of residuals')
     ax.plot(x,scipy.stats.norm.pdf(x))
+
+    #  Plot histogram of phase differences to see if they are Poisson
+    fig,ax = plt.subplots()
+    ph.sort()
+    pdiffs = (ph[1:]-ph[:-1])*1.0e6
+    x = np.linspace(0.0,50.0,200,endpoint=True)
+    ax.hist(pdiffs,bins=x,density=True,log=True)
+    ax.set_title('Histogram of phase differences')
+    ax.set_xlabel('Phase diff (x 1E-6))')
+    ax.plot(x,0.5*np.exp(-len(pdiffs)*(x*1.0e-6)))
     
 # Compute number of significant harmonics
 # First by plotting Leahy powers
