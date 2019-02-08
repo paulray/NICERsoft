@@ -34,11 +34,16 @@ def compute_fourier(phases,nh=10,pow_phase=False):
     else:
         return n,c,s
 
-def evaluate_fourier(n,c,s,nbins):
+def evaluate_fourier(n,c,s,nbins,k=None):
+    # This should be updated to do a little integral over each bin. 
+    # Currently evaluates the model at the center of each bin
     model = np.zeros(nbins)+n/nbins
     theta = np.linspace(0.0,2.0*np.pi,nbins)+np.pi/nbins
-    for k in range(len(c)):
-        model += (n/nbins)*(c[k]*np.cos((k+1)*theta) + s[k]*np.sin((k+1)*theta)) 
+    if k is not None:
+        model += (n/nbins)*(c[k]*np.cos((k+1)*theta) + s[k]*np.sin((k+1)*theta))
+    else:
+        for k in range(len(c)):
+            model += (n/nbins)*(c[k]*np.cos((k+1)*theta) + s[k]*np.sin((k+1)*theta)) 
 
     return model
 
@@ -53,6 +58,7 @@ if __name__ == '__main__':
     parser.add_argument("evname", help="Input event file (must have PULSE_PHASE column)") 
     parser.add_argument("--white",help = "Replace phases with white random numbers, for testing", action="store_true")
     parser.add_argument("--txt",help = "Assume input file is .txt instead of FITS", action="store_true")
+    parser.add_argument("--showcomps",help = "Show individual components of harmonic fit on plot", action="store_true")
     parser.add_argument("--output",help = "Save figures with basename", default=None)
     parser.add_argument("--numharm",help="Max harmonic to use in analysis (1=Fundamental only)",default=4,type=int)
     parser.add_argument("--numbins",help="Number of bins for histograms",default=200,type=int)
@@ -61,6 +67,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.txt:
+        exposure = None
         ph,en = np.loadtxt(args.evname,unpack=True,usecols=(1,2),skiprows=3)
         log.info("Read {0} phases from .txt file".format(len(ph)))
     else:
@@ -68,6 +75,7 @@ if __name__ == '__main__':
         en = f['events'].data.field('pi')
         ph = f['events'].data.field('pulse_phase')
         log.info("Read {0} phases from FITS file".format(len(ph)))
+        exposure = float(f['events'].header['EXPOSURE'])
 
     if args.white:
         # Random phases uniform over [0,1)
@@ -95,7 +103,22 @@ if __name__ == '__main__':
 
     n,c,s = compute_fourier(ph,nh=args.numharm)
     model = evaluate_fourier(n,c,s,nbins)
-    ax.plot(np.linspace(0.0,1.0,nbins),model)
+    ax.plot(np.linspace(0.0,1.0,nbins),model,color='k',lw=2)
+    if args.showcomps:
+        for k in range(len(c)):
+            ax.plot(np.linspace(0.0,1.0,nbins),evaluate_fourier(n,c,s,nbins,k=k),ls='--')
+
+    fn,fpow,fphase = compute_fourier(ph,nh=args.numharm,pow_phase=True)
+    i=1
+    log.info("Harm  LeahyPower   Phase(deg)")
+    for fp, fph in zip(fpow,fphase):
+        log.info("{0:2d} {1:12.3f} {2:9.3f} deg".format(i,fp,np.rad2deg(fph)))
+        i+=1
+
+    pcounts = (model-model.min()).sum()
+    if exposure:
+        log.info("Pulsed counts = {0:.3f}, count rate = {1:.3f} c/s".format(pcounts, pcounts/exposure))
+        log.info("Total rate = {0:.3f} c/s, Unpulsed rate = {1:.3f} c/s".format(n/exposure, n/exposure-pcounts/exposure))
 
     ax = axs[1]
     ax.errorbar(np.linspace(0.0,1.0,nbins),phist-model,yerr=np.sqrt(phist),fmt='.')
