@@ -164,7 +164,7 @@ if __name__ == '__main__':
 
     fig,axs = plt.subplots(nrows=2,ncols=1)
     ax = axs[0]
-    n,pow,phases = compute_fourier(ph,nh=50,pow_phase=True)
+    n,pow,phases = compute_fourier(ph,nh=nbins//2,pow_phase=True)
     ax.semilogy(np.arange(len(pow))+1,pow,marker='o')
     # Leahy power of 5.99 corresponds to 2 sigma, I think
     ax.axhline(5.99,color='r')
@@ -179,7 +179,7 @@ if __name__ == '__main__':
     ax.axhline(5.99,color='r')
     ax.axhline(2.0,color='b',ls='--')
     #ax.xaxis.set_ticks(np.arange(1,len(pow)+1))
-    ax.set_ylim(0.0,8.0)
+    ax.set_ylim(0.0,10.0)
     ax.text(1.0,7.0,'Mean power {0:.3f}'.format(pow.mean()))
     ax.set_xlabel('Harmonic Number')
     ax.set_ylabel('Leahy Power')
@@ -191,10 +191,10 @@ if __name__ == '__main__':
 
     chisq = []
     ndof = []
-    maxharms = np.arange(1,20)
+    maxharms = np.arange(1,min(33,nbins//4+1))
+    n,c,s = compute_fourier(ph,nh=maxharms[-1])
     for maxharm in maxharms:
-        n,c,s = compute_fourier(ph,nh=maxharm)
-        model = evaluate_fourier(n,c,s,nbins)
+        model = evaluate_fourier(n,c[:maxharm],s[:maxharm],nbins)
         chisq.append(evaluate_chi2(phist,model))
         nparams = 1 + 2*maxharm # 1 for DC + 2 for each sinusoidal component
         ndof.append(len(phist)-nparams)
@@ -207,7 +207,7 @@ if __name__ == '__main__':
     ax.set_xlabel('Number of Harmonics')
     ax.set_ylabel('Chisq')
     ax.set_title("Chisq/DOF vs. Number of Harmonics")
-    ax.xaxis.set_ticks(maxharms)
+    #ax.xaxis.set_ticks(maxharms)
     #ax.semilogy(maxharms,ndof)
 
     if args.output:
