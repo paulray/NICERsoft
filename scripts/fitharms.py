@@ -38,7 +38,8 @@ def evaluate_fourier(n,c,s,nbins,k=None):
     # This should be updated to do a little integral over each bin. 
     # Currently evaluates the model at the center of each bin
     model = np.zeros(nbins)+n/nbins
-    theta = np.linspace(0.0,2.0*np.pi,nbins)+np.pi/nbins
+    theta = 2.0*np.pi*np.arange(nbins,dtype=np.float)/nbins
+    theta += theta[1]/2.0
     if k is not None:
         model += (n/nbins)*(c[k]*np.cos((k+1)*theta) + s[k]*np.sin((k+1)*theta))
     else:
@@ -46,6 +47,10 @@ def evaluate_fourier(n,c,s,nbins,k=None):
             model += (n/nbins)*(c[k]*np.cos((k+1)*theta) + s[k]*np.sin((k+1)*theta)) 
 
     return model
+
+def evaluate_chi2(hist,model):
+    # Question here is whether error should be sqrt(data) or sqrt(model)
+    return ((hist-model)**2/model).sum()
 
 def compute_phist(phases,nbins=200):
     h, edges = np.histogram(ph,bins=np.linspace(0.0,1.0,nbins+1,endpoint=True))
@@ -98,13 +103,13 @@ if __name__ == '__main__':
     bins,phist = compute_phist(ph,nbins=nbins)
     fig,axs = plt.subplots(nrows=2,ncols=1)
     ax=axs[0]
-    ax.step(bins,phist,where='post')
+    ax.step(np.concatenate((bins,np.ones(1))),np.concatenate((phist,phist[-1:])),where='post')
     ax.set_xlim(0.0,1.0)
     ax.set_ylabel('Counts')
 
     n,c,s = compute_fourier(ph,nh=args.numharm)
     model = evaluate_fourier(n,c,s,nbins)
-    ax.plot(np.linspace(0.0,1.0,nbins),model,color='k',lw=2)
+    ax.plot(bins+bins[1]/2.0,model,color='k',lw=2)
     if args.showcomps:
         for k in range(len(c)):
             ax.plot(np.linspace(0.0,1.0,nbins),evaluate_fourier(n,c,s,nbins,k=k),ls='--')
@@ -123,7 +128,7 @@ if __name__ == '__main__':
 
     ax = axs[1]
     ax.errorbar(np.linspace(0.0,1.0,nbins),phist-model,yerr=np.sqrt(phist),fmt='.')
-    chisq = ((phist-model)**2/model).sum()
+    chisq = evaluate_chi2(phist,model)
     nparams = 1 + 2*args.numharm # 1 for DC + 2 for each sinusoidal component
     ax.set_xlabel('Pulse Phase')
     ax.set_ylabel('Residuals (cnts)')
@@ -190,7 +195,7 @@ if __name__ == '__main__':
     for maxharm in maxharms:
         n,c,s = compute_fourier(ph,nh=maxharm)
         model = evaluate_fourier(n,c,s,nbins)
-        chisq.append(((phist-model)**2/model).sum())
+        chisq.append(evaluate_chi2(phist,model))
         nparams = 1 + 2*maxharm # 1 for DC + 2 for each sinusoidal component
         ndof.append(len(phist)-nparams)
     chisq = np.asarray(chisq)
