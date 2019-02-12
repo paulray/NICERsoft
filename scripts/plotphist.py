@@ -33,7 +33,10 @@ if rates:
     ax.set_ylabel('Rate (c/s)')
 else:
     ax.set_ylabel('Counts')
-ax.set_title("{0} : {1}".format(hdr['OBS_ID'],hdr['DATE-OBS']))
+try:
+    ax.set_title("{0} : {1}".format(hdr['OBS_ID'],hdr['DATE-OBS']))
+except:
+    ax.set_title("{0}".format(hdr['DATE-OBS']))
 ax.set_xlim((0.0,2.0))
 if args.outfile is not None:
     plt.savefig(args.outfile)
