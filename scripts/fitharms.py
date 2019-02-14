@@ -4,6 +4,7 @@ from __future__ import print_function,division
 from astropy.io import fits
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib
 from pint.templates import lctemplate,lcprimitives,lcfitters
 from pint.eventstats import z2m,sf_z2m, hm, sf_hm, sig2sigma
 import sys
@@ -88,6 +89,11 @@ if __name__ == '__main__':
         ph = np.random.random_sample(len(en))
         log.info("Replaces with {0} random phases".format(len(en)))
 
+ 
+    matplotlib.rcParams['font.family'] = "serif"
+    matplotlib.rcParams.update({'font.size': 13})
+    matplotlib.rc('axes', linewidth=1.5)
+        
     # Filter on energy
     idx = np.where(np.logical_and(en > int(args.emin*100), en < int(args.emax*100) ))[0]
     ph = ph[idx]
@@ -102,14 +108,21 @@ if __name__ == '__main__':
     nbins = args.numbins
     bins,phist = compute_phist(ph,nbins=nbins)
     fig,axs = plt.subplots(nrows=2,ncols=1)
+    plt.subplots_adjust(left=0.15, bottom=0.1, right=0.97, top=0.94,hspace=0.001)
     ax=axs[0]
-    ax.step(np.concatenate((bins,np.ones(1))),np.concatenate((phist,phist[-1:])),where='post')
+    ax.tick_params(direction='in', length=6, width=2, colors='k',top=True, right=True, labelbottom=False)
+#    ax.text(.5,.8,'PSR J0030+0451', horizontalalignment='center', transform=ax.transAxes)
+#    ax.text(.5,.8,'PSR J0437-4715', horizontalalignment='center', transform=ax.transAxes)
+#    ax.text(.2,.8,'PSR J1231-1411', horizontalalignment='center', transform=ax.transAxes)
+#    ax.text(.8,.8,'PSR J2124-3358', horizontalalignment='center', transform=ax.transAxes)
+    ax.step(np.concatenate((bins,np.ones(1))),np.concatenate((phist,phist[-1:])),color='k',where='post')
     ax.set_xlim(0.0,1.0)
-    ax.set_ylabel('Counts')
+    ax.set_ylabel('Counts per bin')
+
 
     n,c,s = compute_fourier(ph,nh=args.numharm)
     model = evaluate_fourier(n,c,s,nbins)
-    ax.plot(bins+bins[1]/2.0,model,color='k',lw=2)
+    ax.plot(bins+bins[1]/2.0,model,color='r',lw=2)
     if args.showcomps:
         for k in range(len(c)):
             ax.plot(np.linspace(0.0,1.0,nbins),evaluate_fourier(n,c,s,nbins,k=k),ls='--')
@@ -127,30 +140,37 @@ if __name__ == '__main__':
         log.info("Total rate = {0:.3f} c/s, Unpulsed rate = {1:.3f} c/s".format(n/exposure, n/exposure-pcounts/exposure))
 
     ax = axs[1]
-    ax.errorbar(np.linspace(0.0,1.0,nbins),phist-model,yerr=np.sqrt(phist),fmt='.')
+    ax.tick_params(direction='in', length=6, width=2, colors='k',top=True, right=True)
+    ax.errorbar(np.linspace(0.0,1.0,nbins),phist-model,yerr=np.sqrt(phist),fmt='.',ecolor='k')
     chisq = evaluate_chi2(phist,model)
     nparams = 1 + 2*args.numharm # 1 for DC + 2 for each sinusoidal component
+    ax.set_xlim(0.0,1.0)
     ax.set_xlabel('Pulse Phase')
-    ax.set_ylabel('Residuals (cnts)')
+    ax.set_ylabel('Residuals (counts)')
+    ax.tick_params(direction='in', length=6, width=2, colors='k',top=True)
     ndof = len(phist)-nparams
     axs[0].set_title("NumHarm = {0}, Chisq = {1:.2f}, DOF = {2}".format(args.numharm,chisq,ndof))
     ax.grid(1)
-    #ax.set_label("{0} Harmonic Fit to Profile".format(args.numharm))
-
+#    ax.set_label("{0} Harmonic Fit to Profile".format(args.numharm))
+    plt.tight_layout()
+    
     if args.output:
         fig.savefig("{0}_harmfit.pdf".format(args.output))
 
     # Plot distribution of residuals to compare to a gaussian
     fig,ax = plt.subplots()
+    ax.tick_params(direction='in', length=6, width=2, colors='k',top=True, right=True)
     chi = (phist-model)/np.sqrt(model)
     #x, y = np.histogram(chi,bins=np.linspace(-2.0,2.0,0.1))
     x = np.linspace(-3.0,3.0,32,endpoint=True)
     ax.hist(chi,bins=x,density=True)
     ax.set_title('Histogram of residuals')
     ax.plot(x,scipy.stats.norm.pdf(x))
-
+    plt.tight_layout()
+    
     #  Plot histogram of phase differences to see if they are Poisson
     fig,ax = plt.subplots()
+    ax.tick_params(direction='in', length=6, width=2, colors='k',top=True, right=True)
     ph.sort()
     pdiffs = (ph[1:]-ph[:-1])*1.0
     x = np.linspace(0.0,50.0e-6,200,endpoint=True)
@@ -158,12 +178,14 @@ if __name__ == '__main__':
     ax.set_title('Histogram of phase differences')
     ax.set_xlabel('Phase diff')
     ax.plot(x,np.exp(-len(pdiffs)*(x*1.0))*n)
-    
+    plt.tight_layout()
+
 # Compute number of significant harmonics
 # First by plotting Leahy powers
 
     fig,axs = plt.subplots(nrows=2,ncols=1)
     ax = axs[0]
+    ax.tick_params(direction='in', length=6, width=2, colors='k',top=True, right=True)
     n,pow,phases = compute_fourier(ph,nh=nbins//2,pow_phase=True)
     ax.semilogy(np.arange(len(pow))+1,pow,marker='o')
     # Leahy power of 5.99 corresponds to 2 sigma, I think
@@ -173,8 +195,10 @@ if __name__ == '__main__':
     #ax.set_xlabel('Harmonic Number')
     ax.set_ylabel('Leahy Power')
     ax.set_title("Power Spectrum")
+    plt.tight_layout()
     
     ax = axs[1]
+    ax.tick_params(direction='in', length=6, width=2, colors='k',top=True, right=True)
     ax.plot(np.arange(len(pow))+1,pow,marker='o')
     ax.axhline(5.99,color='r')
     ax.axhline(2.0,color='b',ls='--')
@@ -185,7 +209,7 @@ if __name__ == '__main__':
     ax.set_ylabel('Leahy Power')
     if args.output:
         fig.savefig("{0}_leahy.pdf".format(args.output))
-
+    plt.tight_layout()
 
 # Then by computing chisq as a function of number of harmonics in model
 
@@ -201,7 +225,8 @@ if __name__ == '__main__':
     chisq = np.asarray(chisq)
     ndof = np.asarray(ndof)
     fig,ax = plt.subplots()
-    ax.plot(maxharms,chisq/ndof)
+    ax.tick_params(direction='in', length=6, width=2, colors='k',top=True, right=True)
+    ax.plot(maxharms,chisq/ndof,'o',ls='-')
     ax.set_ylim(0.5,3.0)
     ax.axhline(1.0,color='r',ls='--')
     ax.set_xlabel('Number of Harmonics')
@@ -209,10 +234,12 @@ if __name__ == '__main__':
     ax.set_title("Chisq/DOF vs. Number of Harmonics")
     #ax.xaxis.set_ticks(maxharms)
     #ax.semilogy(maxharms,ndof)
-
+    plt.tight_layout()
+    
     if args.output:
         fig.savefig("{0}_chisq.pdf".format(args.output))
 
 # Then look at amplitudes and phases as a function of energy cuts
 
     plt.show()
+    
