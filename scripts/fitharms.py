@@ -87,7 +87,7 @@ if __name__ == '__main__':
     if args.white:
         # Random phases uniform over [0,1)
         ph = np.random.random_sample(len(en))
-        log.info("Replaces with {0} random phases".format(len(en)))
+        log.info("Replaced with {0} random phases".format(len(en)))
 
  
     matplotlib.rcParams['font.family'] = "serif"
@@ -249,10 +249,12 @@ if __name__ == '__main__':
     colorbins = 32
     softbins, softn = compute_phist(ph[softidx],nbins=colorbins)
     hardbins, hardn = compute_phist(ph[hardidx],nbins=colorbins)
+    softn = np.asarray(softn,dtype=np.float)
+    hardn = np.asarray(hardn,dtype=np.float)
     fig,ax = plt.subplots()
-    color = np.asarray(hardn,dtype=np.float)/softn
+    color = hardn/softn
     # Propagate Poisson errors to get error in ratio
-    cerr = color*np.sqrt(1/softn + 1/hardn)
+    cerr = color*np.sqrt(1.0/softn + 1.0/hardn)
     #ax.step(np.concatenate((softbins,np.ones(1))),np.concatenate((color,color[-1:])),color='C0',where='post')
     ax.errorbar(softbins+0.5*softbins[1],color,yerr=cerr,color='k',fmt='.')
     ax.set_xlim(0.0,1.0)
