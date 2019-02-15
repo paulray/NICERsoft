@@ -54,7 +54,7 @@ def evaluate_chi2(hist,model):
     return ((hist-model)**2/model).sum()
 
 def compute_phist(phases,nbins=200):
-    h, edges = np.histogram(ph,bins=np.linspace(0.0,1.0,nbins+1,endpoint=True))
+    h, edges = np.histogram(phases,bins=np.linspace(0.0,1.0,nbins+1,endpoint=True))
     return edges[:-1], h
     
     
@@ -240,6 +240,25 @@ if __name__ == '__main__':
         fig.savefig("{0}_chisq.pdf".format(args.output))
 
 # Then look at amplitudes and phases as a function of energy cuts
+
+# Look at color oscillations
+# Select photons above and below some energy cut and look at the ratio
+    ensplit = 55
+    softidx = np.where(en<ensplit)[0]
+    hardidx = np.where(en>=ensplit)[0]
+    colorbins = 32
+    softbins, softn = compute_phist(ph[softidx],nbins=colorbins)
+    hardbins, hardn = compute_phist(ph[hardidx],nbins=colorbins)
+    fig,ax = plt.subplots()
+    color = np.asarray(hardn,dtype=np.float)/softn
+    # Propagate Poisson errors to get error in ratio
+    cerr = color*np.sqrt(1/softn + 1/hardn)
+    #ax.step(np.concatenate((softbins,np.ones(1))),np.concatenate((color,color[-1:])),color='C0',where='post')
+    ax.errorbar(softbins+0.5*softbins[1],color,yerr=cerr,color='k',fmt='.')
+    ax.set_xlim(0.0,1.0)
+    ax.set_xlabel('Pulse Phase')
+    ax.set_ylabel('Spectral Color')
+    
 
     plt.show()
     
