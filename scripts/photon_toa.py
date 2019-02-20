@@ -67,7 +67,7 @@ parser.add_argument("--unbinned",help="Fit position with unbinned likelihood.  D
 #parser.add_argument("--fix",help="Adjust times to fix 1.0 second offset in NICER data (default=False)", action='store_true',default=False)
 parser.add_argument("--tint",help="Integrate for tint seconds for each TOA, or until the total integration exceeds maxint.  The algorithm is based on GTI, so the integration will slightly exceed tint (default None; see maxint.)",default=None)
 parser.add_argument("--maxint",help="Maximum time interval to accumulate exposure for a single TOA (default=2*86400s)",type=float, default=2*86400.)
-parser.add_argument("--minexp",help="Minimum exposure (s) for which to include a TOA (default=None).",default=None)
+parser.add_argument("--minexp",help="Minimum exposure (s) for which to include a TOA (default=0.0).",default=0.0,type=float)
 parser.add_argument("--use_bipm",help="Use BIPM clock corrections",action="store_true",default=False)
 parser.add_argument("--use_gps",help="Use GPS to UTC clock corrections",action="store_true",default=False)
 parser.add_argument("--topo",help="Make topocentric TOAs; include the spacecraft ECI position on the TOA line",action="store_true",default=False)
@@ -291,7 +291,7 @@ else:
             i0 = i+1
     toafinal,toafinal_err = list(zip(*toas))
 
-if args.minexp is not None:
+if args.minexp > 0.0:
     x = [(t,e) for t,e in zip(toafinal,toafinal_err) if t.flags['exposure'] > args.minexp]
     if len(x) > 0:
         toafinal,toafinal_err= list(zip(*x))
