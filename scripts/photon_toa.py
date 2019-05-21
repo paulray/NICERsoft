@@ -285,6 +285,7 @@ else:
             #print('m[0]={0}, m[1]={1}'.format(m[0],m[-1]))
             if len(m) > 0:
                 toas.append(estimate_toa(m,p,t,args.topo,obs))
+                toas[-1][0].flags['htest'] = hm(p)
                 # fix exposure
                 toas[-1][0].flags['exposure'] = current
             current = 0.0
