@@ -30,6 +30,7 @@ parser.add_option("-e","--emin",type="float",default=0.25,help="Minimum energy t
 parser.add_option("-x","--emax",type="float",default=12.0,help="Maximum energy to include.")
 parser.add_option("-o","--outfile",type="string",default=None,help="File name for plot file.  Type comes from extension.")
 parser.add_option("-r","--radio",type="string",default=None,help="Radio profile to overplot.")
+parser.add_option("-B","--radiobins",type="int",default=128,help="Number of bins in each profile (default=128)")
 parser.add_option("-w","--weights",type="string",default=None,help="FITS column to use as photon weight.")
 parser.add_option("-t","--tmin",type="float",default=0.0,help="Minimum time to include (MJD)")
 #parser.add_option("-t","--tmax",type="float",default=0.0,help="Maximum time to include (MJD)")
@@ -169,9 +170,9 @@ if options.radio is not None:
     #y = psr_utils.fft_rotate(y,0.2498*len(x))
     #y=y-y[20:50].mean()
 
-    if len(y) > options.nbins:
-	    # Average every N points to bring the profile down to nbins
-	    y = y.reshape((options.nbins,int(len(y)/options.nbins)))
+    if len(y) > options.radiobins:
+	    # Average every N points to bring the profile down to number of radiobins
+	    y = y.reshape((options.radiobins,int(len(y)/options.radiobins)))
 	    y = np.mean(y,1)
     y = y-y.min()
     y = y/y.max()
