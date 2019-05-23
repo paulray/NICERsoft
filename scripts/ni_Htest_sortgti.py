@@ -276,7 +276,6 @@ for emin in all_emin:
             plt.axvline(gti_rts_s[Hmax],color='r',ls='--')
             plt.xlabel('Background Rate (ct/s)')
             plt.ylabel('Significance (sigma)')
-            plt.title('PSR J0636')
             plt.title('{} - [{},{}]'.format(args.name,emin,emax))
             plt.legend(loc='lower right')
             plt.savefig('{}_sig.png'.format(args.outfile))
@@ -368,8 +367,10 @@ if args.gridsearch or args.coarsegridsearch:
     print("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
     print("Maximum significance: {:0.3f} sigma".format(hbest))
     print("   obtained in {:0.3f} ksec".format(exposure[Hmax]))
+    print("   for {} events".format(len(select_ph)))
     
 else:
     
     print("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
     print("   obtained in {:0.3f} ksec".format(exposure[Hmax]))
+    print("   for {} events".format(len(select_ph)))
