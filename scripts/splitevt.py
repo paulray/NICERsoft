@@ -16,12 +16,19 @@ import string
 # MJDREF from the GTI header
 MJDREF = 56658.0 + 7.775925925925930E-04
 
+# Checking the presence of HEASOFT
+try:
+    check_call('nicerversion',env=os.environ)
+except:
+    print("You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!", file=sys.stderr)
+    exit()
+
 def mjd2met(m):
     return (m-MJDREF)*86400.0
     
 def runcmd(cmd):
     # CMD should be a list of strings since it is not processed by a shell
-    #log.info('CMD: '+" ".join(cmd))
+    log.info('CMD: '+" ".join(cmd))
     #log.info(cmd)
     check_call(cmd,env=os.environ)
 
