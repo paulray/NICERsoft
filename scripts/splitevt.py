@@ -41,7 +41,7 @@ def write_chunk(evname,met0,met1,basename,index):
     # Build GTI file
     gticolumns = path.join(datadir,'gti_columns.txt')
     gtiheader = path.join(datadir,'gti_header.txt')
-    fp = tempfile.NamedTemporaryFile()
+    fp = tempfile.NamedTemporaryFile(mode='w+')
     fp.write('{0} {1}\n'.format(met0,met1))
     fp.flush()
     gtiname = 'temp{0}.gti'.format(randomString())
