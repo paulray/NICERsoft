@@ -56,7 +56,7 @@ epoch_met = gtitable['START'][0]
 # WARNING: This loses precision! Should be done with astropy times
 # Should make utility routine to convert FITS TIME column to astropy times properly
 epoch_mjd = (etable.meta['MJDREFI'] + etable.meta['MJDREFF']
-    + etable.meta['TIMEZERO'] + epoch_met/86400.0)
+    + (etable.meta['TIMEZERO'] + epoch_met)/86400.0)
 
 # Write event times to bin file
 eventtimes = np.array(etable['TIME'],dtype=np.float)-epoch_met
