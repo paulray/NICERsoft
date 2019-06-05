@@ -463,6 +463,7 @@ for obsdir in all_obsids:
     # Make final clean plot
     cmd = ["nicerql.py", "--save",
            "--orb", path.join(pipedir,path.basename(orbfile)),
+           "--map",
            "--sci", "--eng", filteredname,"--allspec","--alllc",
            "--lcbinsize", "{}".format(args.lcbinsize),
            "--filterbinsize", "{}".format(args.filterbinsize), 

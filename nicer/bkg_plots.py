@@ -93,7 +93,7 @@ def bkg_plots(etable, gtitable, args, mktable, ovbintable):
 
     #Plot of event light curve
     plt.subplot(bkg_grid[25:29,:4])
-    plot_light_curve(etable,False, gtitable)
+    plot_light_curve(etable,False, gtitable,binsize=4.0)
 
     figure.suptitle('Object: {0} at {1}'.format(etable.meta['OBJECT'],etable.meta['DATE-OBS'].replace('T', ' at ')),
                     fontsize=16)
