@@ -154,6 +154,12 @@ for obsdir in all_obsids:
     except:
         log.error("New *mkf files needed in {}/auxil/. Please use niprefilter2.".format(obsdir))
         exit()
+    try:
+        mkftest = fits.open(mkfile)[1].data['KP']
+        has_KP = True
+    except:
+        log.warning('No KP column in MKF file. Will not use any KP based filters!')
+        has_KP = False
         
     # Copy orbit file to results dir for pulsar analysis
     shutil.copy(mkfile,pipedir)
@@ -355,8 +361,11 @@ for obsdir in all_obsids:
     if args.keith:
         list_extra_expr.append('FPM_OVERONLY_COUNT<1')
         list_extra_expr.append('FPM_OVERONLY_COUNT<(1.52*COR_SAX**(-0.633))')
+        list_extra_expr.append('FPM_UNDERONLY_COUNT<200')
+        if has_KP:
+            list_extra_expr.append('(COR_SAX.gt.(1.914*KP**0.684+0.25)).and.KP.lt.5')
 
-    if args.kpmax:
+    if args.kpmax and has_KP:
         list_extra_expr.append('KP.lt.{0}'.format(args.kpmax))
 
     if args.minsun:
