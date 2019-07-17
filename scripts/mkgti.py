@@ -45,17 +45,22 @@ desc = """
 Create a simple GTI file from a pair of NICER METs. This is handy as an input file to niextract-events timefile=xxx.gti
 """
 parser = argparse.ArgumentParser(description = desc)
-parser.add_argument("startmet", help="Starting MET for GTI", type=float)
-parser.add_argument("stopmet", help="Ending MET for GTI", type=float)
+parser.add_argument("startmet", help="Starting MET for GTI", type=np.float64)
+parser.add_argument("stopmet", help="Ending MET for GTI", type=np.float64)
 parser.add_argument("--gtiname", help="Name of output GTI FITS file (default gti.fits)", default="gti.fits")
 
 args = parser.parse_args()
 
 ################################################
 ## STEP 5 - dumping the TSTART and TEND into text file
+## Made the following alteration on July 15 2019 (Mason Ng):
+## Wrapped "repr" around the arguments, in addition to explicitly specifying double-precision for startmet and stopmet.
+## This is because fp.write was somehow truncating the number of digits to millisecond precision, instead of sub-ms!
+## Also note that in Python3, repr is renamed to reprlib.
+
 import tempfile
 fp = tempfile.NamedTemporaryFile()
-fp.write('{0} {1}\n'.format(args.startmet,args.stopmet))
+fp.write('{0} {1}\n'.format(repr(args.startmet),repr(args.stopmet)))
 fp.flush()
 
 ################################################
