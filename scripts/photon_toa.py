@@ -68,6 +68,7 @@ parser.add_argument("--unbinned",help="Fit position with unbinned likelihood.  D
 parser.add_argument("--tint",help="Integrate for tint seconds for each TOA, or until the total integration exceeds maxint.  The algorithm is based on GTI, so the integration will slightly exceed tint (default None; see maxint.)",default=None)
 parser.add_argument("--maxint",help="Maximum time interval to accumulate exposure for a single TOA (default=2*86400s)",type=float, default=2*86400.)
 parser.add_argument("--minexp",help="Minimum exposure (s) for which to include a TOA (default=0.0).",default=0.0,type=float)
+parser.add_argument("--track",help="Assume model is close to good and only search near 0 phase (to avoid getting TOAs off by 0.5 in double peaked pulsars)",action="store_true",default=False)
 parser.add_argument("--use_bipm",help="Use BIPM clock corrections",action="store_true",default=False)
 parser.add_argument("--use_gps",help="Use GPS to UTC clock corrections",action="store_true",default=False)
 parser.add_argument("--topo",help="Make topocentric TOAs; include the spacecraft ECI position on the TOA line",action="store_true",default=False)
@@ -191,7 +192,7 @@ def estimate_toa(mjds,phases,tdbs,topo,obs):
 #        for i in xrange(2):
 #            lcf.fit_position(unbinned=False)
 #            lcf.fit_background(unbinned=False)
-    dphi,dphierr = lcf.fit_position(unbinned=args.unbinned)
+    dphi,dphierr = lcf.fit_position(unbinned=args.unbinned,track=args.track)
     log.info('Measured phase shift dphi={0}, dphierr={1}'.format(dphi,dphierr))
 
     # find MJD closest to center of observation and turn it into a TOA

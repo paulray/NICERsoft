@@ -52,7 +52,7 @@ parser.add_argument("--badcut",help="Select data where bad ratio event rate is b
 parser.add_argument("--angdist",help="Set threshold for ANG_DIST in call to nimaketime (degrees, default=0.015)", type=float, default=0.015)
 parser.add_argument("--obsid", help="Use this as OBSID for directory and filenames",
     default=None)
-parser.add_argument("--shrinkelvcut", help="Shrink ELV cut to 20 deg and BR_EARTH cut to 30.0 deg to get more data", action='store_true')
+parser.add_argument("--shrinkelvcut", help="Shrink ELV cut to 20 deg and BR_EARTH cut to 30.0 deg to get more data (this is now ignored since it is the default)", action='store_true')
 parser.add_argument("--dark", help="Apply SUNSHINE=0 filter to get only data in Earth shadow", action='store_true')
 parser.add_argument("--minsun",help="Set minimum sun angle (SUN_ANGLE) for nimaketime filtering (default=no SUN_ANGLE filtering, typical values = 60, 70, 80, 90 deg)",default=None)
 parser.add_argument("--day", help="Apply SUNSHINE=1 filter to get only data in ISS-day", action='store_true')
@@ -154,6 +154,12 @@ for obsdir in all_obsids:
     except:
         log.error("New *mkf files needed in {}/auxil/. Please use niprefilter2.".format(obsdir))
         exit()
+    try:
+        mkftest = fits.open(mkfile)[1].data['KP']
+        has_KP = True
+    except:
+        log.warning('No KP column in MKF file. Will not use any KP based filters!')
+        has_KP = False
         
     # Copy orbit file to results dir for pulsar analysis
     shutil.copy(mkfile,pipedir)
@@ -355,8 +361,11 @@ for obsdir in all_obsids:
     if args.keith:
         list_extra_expr.append('FPM_OVERONLY_COUNT<1')
         list_extra_expr.append('FPM_OVERONLY_COUNT<(1.52*COR_SAX**(-0.633))')
+        list_extra_expr.append('FPM_UNDERONLY_COUNT<200')
+        if has_KP:
+            list_extra_expr.append('(COR_SAX.gt.(1.914*KP**0.684+0.25)).and.KP.lt.5')
 
-    if args.kpmax:
+    if args.kpmax and has_KP:
         list_extra_expr.append('KP.lt.{0}'.format(args.kpmax))
 
     if args.minsun:
@@ -367,12 +376,13 @@ for obsdir in all_obsids:
     cor_string="-"
     if args.cormin is not None:
         cor_string = "{0}-".format(args.cormin)
-    elvcut = 30.0
-    brcut = 40.0
-    if args.shrinkelvcut:
-        # Keith suggests that these cuts can give more data without hurting data quality
-        elvcut = 20.0
-        brcut = 30.0
+## Default is now 20 and 30 since that is standard processing as of 2019 May.  Option now ignored
+    elvcut = 20.0
+    brcut = 30.0
+#    if args.shrinkelvcut:
+#        # Keith suggests that these cuts can give more data without hurting data quality
+#        elvcut = 20.0
+#        brcut = 30.0
     cmd = ["nimaketime",  "infile={0}".format(mkfile),
         'outfile={0}'.format(gtiname_merged), 'nicersaafilt=YES',
         'saafilt=NO', 'trackfilt=YES', 'ang_dist={0:.3f}'.format(args.angdist), 'elv={0}'.format(elvcut),
@@ -462,6 +472,7 @@ for obsdir in all_obsids:
     # Make final clean plot
     cmd = ["nicerql.py", "--save",
            "--orb", path.join(pipedir,path.basename(orbfile)),
+           "--map",
            "--sci", "--eng", filteredname,"--allspec","--alllc",
            "--lcbinsize", "{}".format(args.lcbinsize),
            "--filterbinsize", "{}".format(args.filterbinsize), 

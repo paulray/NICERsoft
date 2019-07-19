@@ -16,6 +16,13 @@ from astropy.time import Time
 from astropy.table import Table
 from nicer.values import *
 from nicer.plotutils import choose_N
+from subprocess import check_call
+
+def runcmd(cmd):
+    # CMD should be a list of strings since it is not processed by a shell
+    log.info('CMD: '+" ".join(cmd))
+    #log.info(cmd)
+    check_call(cmd,env=os.environ)
 
 desc="""Convert NICER events to PRESTO bin+inf files. """
 
@@ -27,6 +34,10 @@ parser.add_argument("--dec",help="DEC in DD:MM:SS.s", default="00:00:00")
 
 parser.add_argument("--observer",help="Name of person analyzing data",default=None)
 parser.add_argument("--force",help="Force processing even if not barycentered",default=False,action="store_true")
+parser.add_argument("--search",help="Do an FFT and search the data after creating it",default=False,action="store_true")
+parser.add_argument("--numharm",help="Number of harmonics to sum in search",default="2")
+parser.add_argument("--zmax",help="Max z for acceleration search",default="50")
+parser.add_argument("--flo",help="Lowest freq (of highest harmonic) to search",default="0.02")
 args = parser.parse_args()
 if args.observer is None:
     import getpass
@@ -45,7 +56,7 @@ epoch_met = gtitable['START'][0]
 # WARNING: This loses precision! Should be done with astropy times
 # Should make utility routine to convert FITS TIME column to astropy times properly
 epoch_mjd = (etable.meta['MJDREFI'] + etable.meta['MJDREFF']
-    + etable.meta['TIMEZERO'] + epoch_met/86400.0)
+    + (etable.meta['TIMEZERO'] + epoch_met)/86400.0)
 
 # Write event times to bin file
 eventtimes = np.array(etable['TIME'],dtype=np.float)-epoch_met
@@ -88,3 +99,16 @@ bins = np.arange(nbins+1,dtype=np.float)*args.dt
 sums, edges = np.histogram(eventtimes, bins=bins)
 dat = np.array(sums,np.float32)
 dat.tofile('{0}.dat'.format(base))
+
+
+if args.search:
+    cmd = ['realfft', '{0}.dat'.format(base)]
+    runcmd(cmd)
+    cmd = ['accelsearch', '-zmax', args.zmax, '-flo',args.flo, '-numharm', args.numharm,'-sigma','1.5','-photon','{0}.fft'.format(base)]
+    runcmd(cmd)
+    # If candidates are found, fold the most significant one
+    if os.path.isfile('{0}_ACCEL_{1}.cand'.format(base,args.zmax)):
+        cmd = ['prepfold', '-noxwin', '-events', '-double', '-accelcand', '1', 
+            '-accelfile', '{0}_ACCEL_{1}.cand'.format(base,args.zmax), 
+            '{0}.events'.format(base)]
+        runcmd(cmd)

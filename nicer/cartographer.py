@@ -57,6 +57,8 @@ def cartography(etable, mktable, gtitable, args):
     overshootrate=np.delete(overshootrate,ovtimeNan)
     lat = np.delete(lat,ovtimeNan)
     lon = np.delete(lon,ovtimeNan)
+    # Adjust lon to be -180 to 180 instead of 0 to 360
+    lon[lon>180.0] -= 360.0
 
     # Plot Overshoot map
     overshoot = plot.subplot(3,1,1)
@@ -88,6 +90,8 @@ def cartography(etable, mktable, gtitable, args):
     undershootrate=np.delete(undershootrate,udtimeNan)
     lat = np.delete(lat,udtimeNan)
     lon = np.delete(lon,udtimeNan)
+    # Adjust lon to be -180 to 180 instead of 0 to 360
+    lon[lon>180.0] -= 360.0
 
     # Plot Undershoot map
     undershoot = plot.subplot(3,1,2)
@@ -117,6 +121,8 @@ def cartography(etable, mktable, gtitable, args):
     #etime, goodlat, cc = convert_to_elapsed_goodtime(hkmet, lat, gtitable)
     etime, goodlon, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)
     etime, goodlat, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LAT'], gtitable)
+    # Adjust lon to be -180 to 180 instead of 0 to 360
+    goodlon[goodlon>180.0] -= 360.0
 
     colornames, cmap, norm = gti_colormap()
     sc = map.scatter(goodlon, goodlat,c=np.fmod(cc,len(colornames)),s=2.0,cmap=cmap,
