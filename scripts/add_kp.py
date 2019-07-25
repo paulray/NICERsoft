@@ -3,7 +3,7 @@ from __future__ import print_function, division
 import numpy as np
 import argparse
 from astropy import log
-from os import path
+from os import path, environ
 from glob import glob
 import astropy.io.fits as pyfits
 from astropy.time import Time
@@ -11,7 +11,7 @@ import astropy.units as u
 
 from nicer.values import *
 
-def read_kpfiles():
+def read_kpfiles_potsdam():
     kpfiles = glob(path.join(datadir,'KP-potsdam','kp*.tab'))
     kpfiles.sort()
     hours = np.array([0.0, 3.0, 6.0, 9.0, 12.0, 15.0, 18.0, 21.0])*u.hour
@@ -49,15 +49,31 @@ def read_kpfiles():
 
     return (kpmets,kpvals)
 
+def read_kp_GOF(fname):
+    dat = pyfits.getdata(fname,extname='KP')
+    return (dat['TIME'], dat['KP'])
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Add Kp values as a column to an existing MKF file')
     parser.add_argument("mkf", help="Input MKF file process (will be modified)", nargs='+')
-    #parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.25)", type=float, default=0.25)
+    parser.add_argument("--potsdam",help="Use Potsdam Kp values from NICERsoft data (default is NOA data from NICER GOF)",action="store_true",default=False)
+    parser.add_argument("--nearest",help="Use nearest Kp value, instead of the default linear interpolation",action="store_true",default=False)
+    parser.add_argument("--kp", help="Path to NICER GOF kp.fits file (default $CALDB/data/gen/pcf/kp.fits). Only used if not --potsdam.", default=None)
     args = parser.parse_args()
 
     # Read the Pottsdam Kp index data files
-    log.info('Reading Pottsdam Kp files...')
-    kpmets, kpvals = read_kpfiles()
+    if args.potsdam:
+        log.info('Reading Potsdam Kp files...')
+        kpmets, kpvals = read_kpfiles_potsdam()
+    else:
+        log.info('Reading NICER GOF KP files')
+        if args.kp is None:
+            args.kp = path.join(environ['CALDB'],"data/gen/pcf/kp.fits")
+            if not path.isfile(args.kp):
+                log.error("KP file {0} does not exist.  Please download https://heasarc.gsfc.nasa.gov/FTP/caldb/data/gen/pcf/kp.fits",args.kp)
+                raise RuntimeError
+        kpmets, kpvals = read_kp_GOF(args.kp)
+                
 
     for mkf in args.mkf:
         # Read the METs from the MKF file
@@ -66,8 +82,11 @@ if __name__ == '__main__':
             #mkfdat = pyfits.getdata(mkf,extname='PREFILTER')
             mkfmets = hdulist[1].data['TIME']
 
-            # Look up all the Kp values
-            kp = np.array([kpvals[kpmets.searchsorted(m)] for m in mkfmets])
+            # Look up, or interpolate, all the Kp values
+            if args.nearest:
+                kp = np.array([kpvals[kpmets.searchsorted(m)] for m in mkfmets])
+            else:   
+                kp = np.interp(mkfmets, kpmets, kpvals)
 
             names     = hdulist[1].data.names
 
