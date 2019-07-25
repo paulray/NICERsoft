@@ -1,11 +1,19 @@
 #!/usr/bin/env python
 from xspec import *
 import argparse
-import os
+import os, sys
 from os import path
 import matplotlib.pyplot as plt
 import numpy as np
 import astropy.io.fits as pyfits
+from subprocess import check_call
+
+# Checking the presence of HEASOFT
+try:
+    check_call('nicerversion',env=os.environ)
+except:
+    print("You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!", file=sys.stderr)
+    exit()
 
 parser = argparse.ArgumentParser(description="Plot source and background spectra")
 parser.add_argument("tot",help="PHA file name with src+bkg spectrum")
