@@ -25,3 +25,9 @@ cloned NICERsoft.
 * Importable python modules go in the `nicer` subdirectory
 
 * Scripts in any language (Python, PERL, bash, tcsh, etc...) are OK to contribute!
+
+## PREREQUISITES:
+
+* Heasoft (with NICER Data Analysis Software)
+
+* Scripts using PyXspec require Heasoft to be compiled from source.
