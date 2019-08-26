@@ -18,6 +18,7 @@ except:
 parser = argparse.ArgumentParser(description="Plot source and background spectra")
 parser.add_argument("tot",help="PHA file name with src+bkg spectrum")
 parser.add_argument("bkg",help="PHA file name with bkg estimate spectrum")
+parser.add_argument("--outfile",help="Output plot file name.")
 args = parser.parse_args()
 
 tot = Spectrum(args.tot)
@@ -58,4 +59,6 @@ axs[1].errorbar(energies, p_tot-p_bkg, yerr=p_toterr)
 axs[1].set_xlabel('Energy (keV)')
 axs[1].set_xscale('log')
 axs[1].grid(True)
+if args.outfile is not None:
+    plt.savefig(args.outfile)
 plt.show()

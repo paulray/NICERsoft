@@ -59,7 +59,7 @@ args = parser.parse_args()
 ## Also note that in Python3, repr is renamed to reprlib.
 
 import tempfile
-fp = tempfile.NamedTemporaryFile()
+fp = tempfile.NamedTemporaryFile(mode='w')
 fp.write('{0} {1}\n'.format(repr(args.startmet),repr(args.stopmet)))
 fp.flush()
 
