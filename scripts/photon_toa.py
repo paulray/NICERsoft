@@ -69,6 +69,7 @@ parser.add_argument("--tint",help="Integrate for tint seconds for each TOA, or u
 parser.add_argument("--maxint",help="Maximum time interval to accumulate exposure for a single TOA (default=2*86400s)",type=float, default=2*86400.)
 parser.add_argument("--minexp",help="Minimum exposure (s) for which to include a TOA (default=0.0).",default=0.0,type=float)
 parser.add_argument("--track",help="Assume model is close to good and only search near 0 phase (to avoid getting TOAs off by 0.5 in double peaked pulsars)",action="store_true",default=False)
+parser.add_argument("--dice",help="Dice up long GTIs into chunks of length <= tint",action="store_true",default=False)
 parser.add_argument("--use_bipm",help="Use BIPM clock corrections",action="store_true",default=False)
 parser.add_argument("--use_gps",help="Use GPS to UTC clock corrections",action="store_true",default=False)
 parser.add_argument("--topo",help="Make topocentric TOAs; include the spacecraft ECI position on the TOA line",action="store_true",default=False)
@@ -267,13 +268,35 @@ else:
     gti_dt = gti_t1-gti_t0
     mets = np.asarray([t.met for t in tl])
 
+    tint = float(args.tint)
+
+    if args.dice:
+        # Break up larger GTIs into small chunks
+        new_t0s = deque()
+        new_t1s = deque()
+        for t0,t1 in zip(gti_t0,gti_t1):
+            dt = t1-t0
+            if dt < tint:
+                new_t0s.append(t0)
+                new_t1s.append(t1)
+            else:
+                # break up GTI in such a way to avoid losing time (to tmin) and
+                # to avoid having pieces longer than tint
+                npiece = int(np.floor(dt/tint))+1
+                new_edges = np.linspace(t0,t1,npiece+1)
+                for it0,it1 in zip(new_edges[:-1],new_edges[1:]):
+                    new_t0s.append(it0)
+                    new_t1s.append(it1)
+        gti_t0 = np.asarray(new_t0s)
+        gti_t1 = np.asarray(new_t1s)
+        gti_dt = gti_t1-gti_t0
+
     # the algorithm here is simple -- go through the GTI and add them up
     # until either the good time exceeds tint, or until the total time
     # interval exceeds maxint
     i0 = 0
     current = 0.0
     toas = deque()
-    tint = float(args.tint)
     maxint = float(args.maxint)
     for i in range(len(gti_t0)):
         current += gti_dt[i]

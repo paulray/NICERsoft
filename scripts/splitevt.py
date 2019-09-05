@@ -3,7 +3,7 @@ from __future__ import print_function, division
 
 import numpy as np
 import astropy.units as u
-import os
+import os,sys
 from astropy import log
 import astropy.io.fits as pyfits
 import argparse
@@ -21,7 +21,7 @@ try:
     check_call('nicerversion',env=os.environ)
 except:
     print("You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!", file=sys.stderr)
-    exit()
+    sys.exit(1)
 
 def mjd2met(m):
     return (m-MJDREF)*86400.0
