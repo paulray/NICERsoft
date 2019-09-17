@@ -160,10 +160,10 @@ for obsdir in all_obsids:
     except:
         log.warning('No KP column in MKF file. Will not use any KP based filters!')
         has_KP = False
-        
+
     # Copy orbit file to results dir for pulsar analysis
     shutil.copy(mkfile,pipedir)
-    
+
     if args.keith:
         args.mask   = [14,34,54]
         args.cormin = 1.5
@@ -171,8 +171,8 @@ for obsdir in all_obsids:
     if args.dark and args.day:
         log.warning("Both --dark and --day are requested")
         args.dark = False
-        args.day = False   
-        
+        args.day = False
+
     # # Get ufa file (unfiltered events)
     # ufafiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_ufa.evt*'))
     # ufafiles.sort()
@@ -198,10 +198,10 @@ for obsdir in all_obsids:
     #            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
     #            "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
     #            "--basename", path.join(pipedir,basename)+'_prefilt']
-    
+
     cmd = ["nicerql.py", "--save", "--filtall",
            "--lcbinsize", "{}".format(args.lcbinsize), "--lclog", "--useftools",
-           "--filterbinsize", "{}".format(args.filterbinsize), 
+           "--filterbinsize", "{}".format(args.filterbinsize),
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
            "--basename", path.join(pipedir,basename)+'_prefilt']
@@ -212,7 +212,7 @@ for obsdir in all_obsids:
             cmd.append("{0}".format(detid))
     if args.keith:
         cmd.append("--keith")
-            
+
 #    if args.par is not None:
 #        cmd.append("--par")
 #        cmd.append("{0}".format(args.par))
@@ -352,7 +352,7 @@ for obsdir in all_obsids:
 
     # Manage extra_expr for nimaketime (ST_VALID, DARK/DAY, and FPM_OVER_ONLY filters from --KEITH)
     list_extra_expr = ['ST_VALID.eq.1']
-    
+
     if args.dark:
         list_extra_expr.append('SUNSHINE.eq.0')
     if args.day:
@@ -369,10 +369,11 @@ for obsdir in all_obsids:
         list_extra_expr.append('KP.lt.{0}'.format(args.kpmax))
 
     if args.minsun:
-        list_extra_expr.append('SUN_ANGLE.gt.{0}'.format(args.minsun))
+        # Exclude data that is at a Sun angle less that some value, unless it is in eclipse
+        list_extra_expr.append('(SUN_ANGLE.gt.{0}.or.SUNSHINE.eq.0)'.format(args.minsun))
 
     extra_expr = "(" + " && ".join("%s" %expr for expr in list_extra_expr) + ")"
-    
+
     cor_string="-"
     if args.cormin is not None:
         cor_string = "{0}-".format(args.cormin)
@@ -435,9 +436,9 @@ for obsdir in all_obsids:
         cmd = ["nicerql.py", "--save",
                "--eng", intermediatename,
                "--lcbinsize", "{}".format(args.lcbinsize),
-               "--filterbinsize", "{}".format(args.filterbinsize), 
+               "--filterbinsize", "{}".format(args.filterbinsize),
                "--basename", path.join(pipedir,basename)+"_intermediate"]
-        
+
         if args.keith:
             cmd.append("--keith")
 
@@ -475,7 +476,7 @@ for obsdir in all_obsids:
            "--map",
            "--sci", "--eng", filteredname,"--allspec","--alllc",
            "--lcbinsize", "{}".format(args.lcbinsize),
-           "--filterbinsize", "{}".format(args.filterbinsize), 
+           "--filterbinsize", "{}".format(args.filterbinsize),
            "--mkf", cleanfilt_mkf, "--bkg",
            "--basename", path.join(pipedir,basename)+"_cleanfilt"]
     if args.par is not None:
@@ -525,7 +526,7 @@ if args.merge and (len(all_evfiles)>1) :
     cmd.append("--clobber")
     cmd.append("--lcbinsize")
     cmd.append("{}".format(args.lcbinsize))
-    
+
     if args.par is not None:
         cmd.append("--par")
         cmd.append("{0}".format(args.par))
@@ -535,7 +536,7 @@ if args.merge and (len(all_evfiles)>1) :
         cmd.append("--cut")
         cmd.append("--filterbinsize")
         cmd.append("{}".format(args.filterbinsize))
-        
+
     # if args.crabnorm:
     #     cmd.append("--crabnorm")
     # if args.dark:
