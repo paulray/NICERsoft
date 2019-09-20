@@ -54,7 +54,8 @@ parser.add_argument("--obsid", help="Use this as OBSID for directory and filenam
     default=None)
 parser.add_argument("--shrinkelvcut", help="Shrink ELV cut to 20 deg and BR_EARTH cut to 30.0 deg to get more data (this is now ignored since it is the default)", action='store_true')
 parser.add_argument("--dark", help="Apply SUNSHINE=0 filter to get only data in Earth shadow", action='store_true')
-parser.add_argument("--minsun",help="Set minimum sun angle (SUN_ANGLE) for nimaketime filtering (default=no SUN_ANGLE filtering, typical values = 60, 70, 80, 90 deg)",default=None)
+parser.add_argument("--nounderfilt", help="Don't filter good times based on UNDERONLY rate", action='store_true')
+parser.add_argument("--minsun",help="Set minimum sun angle (SUN_ANGLE) for nimaketime filtering (default=no SUN_ANGLE filtering, typical values = 60, 70, 80, 90 deg). Note: Allows dark time at any Sun angle!",default=None)
 parser.add_argument("--day", help="Apply SUNSHINE=1 filter to get only data in ISS-day", action='store_true')
 parser.add_argument("--par", help="Par file to use for phases")
 parser.add_argument("--ephem", help="Ephem to use with photonphase", default="DE421")
@@ -361,7 +362,7 @@ for obsdir in all_obsids:
     if args.keith:
         list_extra_expr.append('FPM_OVERONLY_COUNT<1')
         list_extra_expr.append('FPM_OVERONLY_COUNT<(1.52*COR_SAX**(-0.633))')
-        list_extra_expr.append('FPM_UNDERONLY_COUNT<200')
+        #list_extra_expr.append('FPM_UNDERONLY_COUNT<200')
         if has_KP:
             list_extra_expr.append('(COR_SAX.gt.(1.914*KP**0.684+0.25)).and.KP.lt.5')
 
@@ -384,11 +385,15 @@ for obsdir in all_obsids:
 #        # Keith suggests that these cuts can give more data without hurting data quality
 #        elvcut = 20.0
 #        brcut = 30.0
+    maxunder = 200.0
+    if args.nounderfilt:
+        maxunder=650.0
     cmd = ["nimaketime",  "infile={0}".format(mkfile),
         'outfile={0}'.format(gtiname_merged), 'nicersaafilt=YES',
         'saafilt=NO', 'trackfilt=YES', 'ang_dist={0:.3f}'.format(args.angdist), 'elv={0}'.format(elvcut),
         'br_earth={0}'.format(brcut), 'cor_range={0}'.format(cor_string), 'min_fpm={0}'.format(args.minfpm),
-        'ingtis={0}'.format(extragtis), "clobber=yes",
+        'underonly_range=0-{0}'.format(maxunder),
+        'ingtis={0}'.format(extragtis), "clobber=yes", 
         'expr={0}'.format(extra_expr),
         'outexprfile={0}'.format(path.join(pipedir,"psrpipe_expr.txt"))]
     runcmd(cmd)
