@@ -317,7 +317,7 @@ else:
     toafinal,toafinal_err = list(zip(*toas))
 
 if args.minexp > 0.0:
-    x = [(t,e) for t,e in zip(toafinal,toafinal_err) if t.flags['exposure'] > args.minexp]
+    x = [(t,e) for t,e in zip(toafinal,toafinal_err) if float(t.flags['exposure']) > args.minexp]
     if len(x) > 0:
         toafinal,toafinal_err= list(zip(*x))
     else:
