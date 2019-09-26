@@ -107,7 +107,7 @@ def runcmd(cmd):
 if args.outdir:
     names = ['none', 'None', 'NONE']
     if any(st in args.outdir for st in names):
-        log.error("Due to a current bug in ni-extractevents, --outdir cannot contain 'none', 'None', or 'NONE'.  Existing...")
+        log.error("Due to a current bug in ni-extractevents, --outdir cannot contain 'none', 'None', or 'NONE'.  Exiting...")
         shutil.rmtree(tempdir)
         exit()
 
@@ -468,6 +468,11 @@ for obsdir in all_obsids:
     runcmd(cmd)
     # Remove intermediate file
     #os.remove(intermediatename)
+
+    # Check that there are events left after hot detector cut
+    if len(Table.read(filteredname,hdu=1))==0:
+        log.error('No events left after hot detector filtering!')
+        continue
 
     # Make cleanfilt.mkf file from ObsID .mkf file and merged_GTI
     cleanfilt_mkf = path.join(pipedir,"cleanfilt.mkf")
