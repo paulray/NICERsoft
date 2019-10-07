@@ -44,6 +44,7 @@ parser.add_argument("--emax", help="Maximum energy to include (keV, default=2.00
 parser.add_argument("--gridsearch", help="Search over energies to find max H-test", action="store_true",default=False)
 parser.add_argument("--coarsegridsearch", help="Search over energies to find max H-test", action="store_true",default=False)
 parser.add_argument("--savefile", help="Saving optimized event file", action="store_true",default=False)
+parser.add_argument("--usez", help="Use Z^2_2 test instead of H test.", action="store_true",default=False)
 parser.add_argument("--nbins", help="Number of bins for plotting pulse profile (default=16)", type=int, default=16)
 parser.add_argument("--name", help="Pulsar name for output figure", type=str, default='')
 args = parser.parse_args()
@@ -122,6 +123,29 @@ def ensemble_htest(phases,slices,m=20,c=4):
         rvals[isl] = np.max(t-penalty)
     return rvals
 
+def ensemble_ztest(phases,slices,m=2,c=4):
+    """ Calculate H-test statistic for subsets of a set of phases.
+        Cache intermediate products to avoid O(N^2) complexity!
+    """
+    
+    phases = np.asarray(phases)*(2*np.pi) # in radians and copy
+    cache = np.empty((2*m,len(phases)))
+    for i in range(m):
+        cache[2*i] = np.cos((i+1)*phases)
+        cache[2*i+1] = np.sin((i+1)*phases)
+
+    rvals = np.empty(len(slices))
+    for isl,sl in enumerate(slices):
+        x = cache[:,sl]
+        nph = x.shape[1]
+        if nph == 0:
+            rvals[isl] = 0.01
+            continue
+        t = np.sum(cache[:,sl],axis=1)**2
+        t = np.sum(t[::2] + t[1::2])*(2./nph)
+        rvals[isl] = t
+    return rvals
+
 def make_sn(data,mask=None,rate=0.1,min_gti=5):
     """ data -- output of load_local
         mask -- optional mask to select events (e.g. on PI)
@@ -166,7 +190,10 @@ def make_sn(data,mask=None,rate=0.1,min_gti=5):
         slices = [slice(0,n) for n in nph]
         assert(len(slices)==len(ph_gti))
         # calculate H test
-        hs = ensemble_htest(np.concatenate(ph_gti),slices)
+        if usez:
+            hs = ensemble_ztest(np.concatenate(ph_gti),slices)
+        else:
+            hs = ensemble_htest(np.concatenate(ph_gti),slices)
 
     else:
         hs = None
@@ -203,12 +230,20 @@ def get_optimal_cuts(data,pred_rate = 0.017):
 
     print('Found %d photons satisfying 0.25 keV cut; exposure = %.1fs'%(len(ph1),np.sum(np.asarray(gti_len_s)[mask_025])))
     print('Found %d photons satisfying 0.40 keV cut; exposure = %.1fs'%(len(ph2),np.sum(np.asarray(gti_len_s_40)[mask_040])))
-    print('H-test 1: %.2f'%hm(ph1))
-    if len(ph2)>0:
-        print('H-test 2: %.2f'%hm(ph2))
+    if usez:
+        print('Z-test 1: %.2f'%hm(ph1))
+        if len(ph2)>0:
+            print('Z-test 2: %.2f'%hm(ph2))
+        else:
+            print('Z-test 2: no photons!')
+        print('Z-test joint: %.2f'%hm(np.append(ph1,ph2)))
     else:
-        print('H-test 2: no photons!')
-    print('H-test joint: %.2f'%hm(np.append(ph1,ph2)))
+        print('H-test 1: %.2f'%hm(ph1))
+        if len(ph2)>0:
+            print('H-test 2: %.2f'%hm(ph2))
+        else:
+            print('H-test 2: no photons!')
+        print('H-test joint: %.2f'%hm(np.append(ph1,ph2)))
 
 
 
@@ -271,7 +306,10 @@ for emin in all_emin:
         if not args.gridsearch and not args.coarsegridsearch:
             #plt.plot(gti_rts_s,exposure**0.5*exposure_scale,label='scaled exposure')
             #plt.plot(gti_rts_s,sn,label='predicted S/N')
-            plt.plot(gti_rts_s,hsig,label='H-test significance')
+            if usez:
+                plt.plot(gti_rts_s,hsig,label='Z-test significance')
+            else:
+                plt.plot(gti_rts_s,hsig,label='H-test significance')
             plt.axvline(gti_rts_s[amax],color='k',ls='--')
             plt.axvline(gti_rts_s[Hmax],color='r',ls='--')
             plt.xlabel('Background Rate (ct/s)')
@@ -282,6 +320,7 @@ for emin in all_emin:
             
             plt.clf()
             nbins=args.nbins
+            usez=args.usez
             select_ph = np.concatenate(ph_gti[:Hmax]).ravel()
             profbins = np.linspace(0.0,1.0,nbins+1,endpoint=True)
             profile, edges = np.histogram(select_ph,bins=profbins)
