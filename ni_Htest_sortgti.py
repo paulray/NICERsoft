@@ -46,6 +46,7 @@ parser.add_argument("--maxemin", help="Maximum emin to use in fine grid search (
 parser.add_argument("--minemax", help="Minimum emax to use in fine grid search (keV, default=1.00)", type=float, default=1.00)
 parser.add_argument("--gridsearch", help="Search over energies to find max H-test", action="store_true",default=False)
 parser.add_argument("--coarsegridsearch", help="Search over energies to find max H-test", action="store_true",default=False)
+parser.add_argument("--nopulsetest", help="Only use the predicted S/N to determine the GTIs to use.", action="store_true",default=False)
 parser.add_argument("--savefile", help="Saving optimized event file", action="store_true",default=False)
 parser.add_argument("--usez", help="Use Z^2_2 test instead of H test.", action="store_true",default=False)
 parser.add_argument("--nbins", help="Number of bins for plotting pulse profile (default=16)", type=int, default=16)
@@ -149,13 +150,12 @@ def ensemble_ztest(phases,slices,m=2):
         rvals[isl] = t
     return rvals
 
-def make_sn(data,mask=None,rate=0.1,min_gti=5,usez=False):
+def make_sn(data,mask=None,rate=0.1,min_gti=5,usez=False,snonly=False):
     """ data -- output of load_local
         mask -- optional mask to select events (e.g. on PI)
         rate -- assumed rate for S/N calculation in ct/sec
         min_gti -- minimum GTI length in seconds
     """
-
     times,phases,pis,t0s,t1s = data
     if mask is not None:
         times = times[mask]
@@ -178,7 +178,7 @@ def make_sn(data,mask=None,rate=0.1,min_gti=5,usez=False):
     rate = 0
     sn0 = np.cumsum(gti_len_s)/np.sqrt(np.cumsum(gti_cts_s))
 
-    if phases is not None:
+    if (not snonly) and (phases is not None):
         counter = 0
         ph_gti = deque()
         for i,ct in enumerate(gti_cts):
@@ -292,14 +292,15 @@ for emin in all_emin:
     else:
         all_emax = np.array([args.emax])
 
+    print("Energy ranges: {:0.2f} to {:0.2f}-{:0.2f} keV".format(emin,all_emax[0],all_emax[-1]))
+        
+
     for emax in all_emax:
 
-        print("Energy range: {:0.2f}-{:0.2f} keV".format(emin,emax))
-        
         pi_mask = (data[2]>emin*KEV_TO_PI) & (data[2]<emax*KEV_TO_PI)
         pred_rate = 0.05/10.0 # 2241
         sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s = make_sn(data_diced,mask=pi_mask,rate=pred_rate,usez=args.usez)
-        
+
         if args.usez:
             hsig = sig2sigma(chi2.sf(hs,4))
         else:
@@ -311,7 +312,10 @@ for emin in all_emin:
         amax = np.argmax(sn)
         exposure_scale = sn[amax]/exposure[amax]**0.5
 
-        Hmax = np.argmax(hsig)
+        if args.nopulsetest:
+            Hmax = amax
+        else:
+            Hmax = np.argmax(hsig)
         
         if not args.gridsearch and not args.coarsegridsearch:
             #plt.plot(gti_rts_s,exposure**0.5*exposure_scale,label='scaled exposure')
@@ -375,7 +379,10 @@ if args.gridsearch or args.coarsegridsearch:
     amax = np.argmax(sn)
     exposure_scale = sn[amax]/exposure[amax]**0.5
     
-    Hmax = np.argmax(hsig)
+    if args.nopulsetest:
+        Hmax = amax
+    else:
+        Hmax = np.argmax(hsig)
 
     if args.usez:
         plt.plot(gti_rts_s,hsig,label='Z-test significance')
