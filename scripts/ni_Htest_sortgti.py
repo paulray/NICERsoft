@@ -6,6 +6,7 @@ from __future__ import division, print_function
 import sys, math, os
 import numpy as np
 import scipy.stats
+from scipy.stats import chi2
 import datetime
 import matplotlib.pyplot as plt
 import glob
@@ -16,7 +17,7 @@ from astropy.io import fits
 from astropy.time import Time
 from nicer.values import *
 from pint.fits_utils import read_fits_event_mjds
-from pint.eventstats import h2sig,hm
+from pint.eventstats import h2sig,hm,sig2sigma
 import argparse
 
 desc= """
@@ -41,9 +42,13 @@ parser.add_argument("infile", help="file or text file with list of event file", 
 parser.add_argument("outfile", help="name for output files")
 parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.25)", type=float, default=0.25)
 parser.add_argument("--emax", help="Maximum energy to include (keV, default=2.00)", type=float, default=2.00)
+parser.add_argument("--maxemin", help="Maximum emin to use in fine grid search (keV, default=1.00)", type=float, default=1.00)
+parser.add_argument("--minemax", help="Minimum emax to use in fine grid search (keV, default=1.00)", type=float, default=1.00)
 parser.add_argument("--gridsearch", help="Search over energies to find max H-test", action="store_true",default=False)
 parser.add_argument("--coarsegridsearch", help="Search over energies to find max H-test", action="store_true",default=False)
+parser.add_argument("--nopulsetest", help="Only use the predicted S/N to determine the GTIs to use.", action="store_true",default=False)
 parser.add_argument("--savefile", help="Saving optimized event file", action="store_true",default=False)
+parser.add_argument("--usez", help="Use Z^2_2 test instead of H test.", action="store_true",default=False)
 parser.add_argument("--nbins", help="Number of bins for plotting pulse profile (default=16)", type=int, default=16)
 parser.add_argument("--name", help="Pulsar name for output figure", type=str, default='')
 args = parser.parse_args()
@@ -122,13 +127,35 @@ def ensemble_htest(phases,slices,m=20,c=4):
         rvals[isl] = np.max(t-penalty)
     return rvals
 
-def make_sn(data,mask=None,rate=0.1,min_gti=5):
+def ensemble_ztest(phases,slices,m=2):
+    """ Calculate H-test statistic for subsets of a set of phases.
+        Cache intermediate products to avoid O(N^2) complexity!
+    """
+    
+    phases = np.asarray(phases)*(2*np.pi) # in radians and copy
+    cache = np.empty((2*m,len(phases)))
+    for i in range(m):
+        cache[2*i] = np.cos((i+1)*phases)
+        cache[2*i+1] = np.sin((i+1)*phases)
+
+    rvals = np.empty(len(slices))
+    for isl,sl in enumerate(slices):
+        x = cache[:,sl]
+        nph = x.shape[1]
+        if nph == 0:
+            rvals[isl] = 0.01
+            continue
+        t = np.sum(cache[:,sl],axis=1)**2
+        t = np.sum(t[::2] + t[1::2])*(2./nph)
+        rvals[isl] = t
+    return rvals
+
+def make_sn(data,mask=None,rate=0.1,min_gti=5,usez=False,snonly=False):
     """ data -- output of load_local
         mask -- optional mask to select events (e.g. on PI)
         rate -- assumed rate for S/N calculation in ct/sec
         min_gti -- minimum GTI length in seconds
     """
-
     times,phases,pis,t0s,t1s = data
     if mask is not None:
         times = times[mask]
@@ -151,7 +178,7 @@ def make_sn(data,mask=None,rate=0.1,min_gti=5):
     rate = 0
     sn0 = np.cumsum(gti_len_s)/np.sqrt(np.cumsum(gti_cts_s))
 
-    if phases is not None:
+    if (not snonly) and (phases is not None):
         counter = 0
         ph_gti = deque()
         for i,ct in enumerate(gti_cts):
@@ -166,7 +193,10 @@ def make_sn(data,mask=None,rate=0.1,min_gti=5):
         slices = [slice(0,n) for n in nph]
         assert(len(slices)==len(ph_gti))
         # calculate H test
-        hs = ensemble_htest(np.concatenate(ph_gti),slices)
+        if usez:
+            hs = ensemble_ztest(np.concatenate(ph_gti),slices)
+        else:
+            hs = ensemble_htest(np.concatenate(ph_gti),slices)
 
     else:
         hs = None
@@ -175,18 +205,21 @@ def make_sn(data,mask=None,rate=0.1,min_gti=5):
     return sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s
 
 ## UNUSED...
-def get_optimal_cuts(data,pred_rate = 0.017):
+def get_optimal_cuts(data,pred_rate = 0.017,usez=False):
     """ Determine rates from analytic prediction for both 0.25 and 0.40 keV
         cuts, and use these to estimate an optimal H test.
     """
     pi_mask = (data[2]>25) & (data[2]<100)
-    sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s = make_sn(data,mask=pi_mask,rate=pred_rate)
+    sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s = make_sn(data,mask=pi_mask,rate=pred_rate,usez=usez)
     amax = np.argmax(sn)
 
     pi_mask = (data[2]>40) & (data[2]<100)
     pred_rate *= 3./5
-    sn_40,sn0_40,hs_40,ph_gti_40,gti_rts_s_40,gti_len_s_40 = make_sn(data,mask=pi_mask,rate=pred_rate)
-    hsig_40 = [h2sig(h) for h in hs]
+    sn_40,sn0_40,hs_40,ph_gti_40,gti_rts_s_40,gti_len_s_40 = make_sn(data,mask=pi_mask,rate=pred_rate,usez=usez)
+    if usez:
+        hsig_40 = sig2sigma(chi2.sf(hs,4))
+    else:
+        hsig_40 = [h2sig(h) for h in hs]
     exposure = np.cumsum(gti_len_s)
     amax_40 = np.argmax(sn_40)
 
@@ -203,12 +236,20 @@ def get_optimal_cuts(data,pred_rate = 0.017):
 
     print('Found %d photons satisfying 0.25 keV cut; exposure = %.1fs'%(len(ph1),np.sum(np.asarray(gti_len_s)[mask_025])))
     print('Found %d photons satisfying 0.40 keV cut; exposure = %.1fs'%(len(ph2),np.sum(np.asarray(gti_len_s_40)[mask_040])))
-    print('H-test 1: %.2f'%hm(ph1))
-    if len(ph2)>0:
-        print('H-test 2: %.2f'%hm(ph2))
+    if usez:
+        print('Z-test 1: %.2f'%z2m(ph1,m=2)[-1])
+        if len(ph2)>0:
+            print('Z-test 2: %.2f'%z2m(ph2,m=2)[-1])
+        else:
+            print('Z-test 2: no photons!')
+        print('Z-test joint: %.2f'%z2m(np.append(ph1,ph2),m=2)[-1])
     else:
-        print('H-test 2: no photons!')
-    print('H-test joint: %.2f'%hm(np.append(ph1,ph2)))
+        print('H-test 1: %.2f'%hm(ph1))
+        if len(ph2)>0:
+            print('H-test 2: %.2f'%hm(ph2))
+        else:
+            print('H-test 2: no photons!')
+        print('H-test joint: %.2f'%hm(np.append(ph1,ph2)))
 
 
 
@@ -224,12 +265,13 @@ else:
 
 data = load_files(all_files)
 data_diced = dice_gtis(data)
-#get_optimal_cuts(data_diced)
+#get_optimal_cuts(data_diced,usez=args.usez)
 
 if args.gridsearch:
-    all_emin = np.arange(0.24,1.0,0.01)
+    #all_emin = np.arange(0.24,1.0,0.01)
+    all_emin = np.arange(max(0.24,args.emin),args.maxemin+0.01,0.01)
 elif args.coarsegridsearch:
-    all_emin = np.arange(0.3,2.0,0.1)
+    all_emin = np.arange(max(0.24,args.emin),2.0,0.1)
 else:
     all_emin = np.array([args.emin])
 
@@ -244,21 +286,25 @@ hgrid = []
 for emin in all_emin:
     
     if args.gridsearch:
-        all_emax = np.arange(1.0,3.0,0.01)
+        all_emax = np.arange(args.minemax,min(3.0,args.emax)+0.01,0.02)
     elif args.coarsegridsearch:
-        all_emax = np.arange(emin+0.1,7.0,0.2)
+        all_emax = np.arange(emin+0.1,min(7.0,args.emax)+0.01,0.2)
     else:
         all_emax = np.array([args.emax])
 
+    print("Energy ranges: {:0.2f} to {:0.2f}-{:0.2f} keV".format(emin,all_emax[0],all_emax[-1]))
+        
+
     for emax in all_emax:
 
-        print("Energy range: {:0.2f}-{:0.2f} keV".format(emin,emax))
-        
         pi_mask = (data[2]>emin*KEV_TO_PI) & (data[2]<emax*KEV_TO_PI)
         pred_rate = 0.05/10.0 # 2241
-        sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s = make_sn(data_diced,mask=pi_mask,rate=pred_rate)
-        
-        hsig = [h2sig(h) for h in hs]
+        sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s = make_sn(data_diced,mask=pi_mask,rate=pred_rate,usez=args.usez)
+
+        if args.usez:
+            hsig = sig2sigma(chi2.sf(hs,4))
+        else:
+            hsig = [h2sig(h) for h in hs]
         exposure = np.cumsum(gti_len_s)
         
         plt.figure(5); plt.clf()
@@ -266,12 +312,18 @@ for emin in all_emin:
         amax = np.argmax(sn)
         exposure_scale = sn[amax]/exposure[amax]**0.5
 
-        Hmax = np.argmax(hsig)
+        if args.nopulsetest:
+            Hmax = amax
+        else:
+            Hmax = np.argmax(hsig)
         
         if not args.gridsearch and not args.coarsegridsearch:
             #plt.plot(gti_rts_s,exposure**0.5*exposure_scale,label='scaled exposure')
             #plt.plot(gti_rts_s,sn,label='predicted S/N')
-            plt.plot(gti_rts_s,hsig,label='H-test significance')
+            if args.usez:
+                plt.plot(gti_rts_s,hsig,label='Z-test significance')
+            else:
+                plt.plot(gti_rts_s,hsig,label='H-test significance')
             plt.axvline(gti_rts_s[amax],color='k',ls='--')
             plt.axvline(gti_rts_s[Hmax],color='r',ls='--')
             plt.xlabel('Background Rate (ct/s)')
@@ -315,8 +367,11 @@ if args.gridsearch or args.coarsegridsearch:
 
     pi_mask = (data[2]>eminbest*KEV_TO_PI) & (data[2]<emaxbest*KEV_TO_PI)
     pred_rate = 0.05/10.0 # 2241
-    sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s = make_sn(data_diced,mask=pi_mask,rate=pred_rate)
-    hsig = [h2sig(h) for h in hs]
+    sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s = make_sn(data_diced,mask=pi_mask,rate=pred_rate,usez=args.usez)
+    if args.usez:
+        hsig = sig2sigma(chi2.sf(hs,4))
+    else:
+        hsig = [h2sig(h) for h in hs]
     exposure = np.cumsum(gti_len_s)
     
     plt.figure(5); plt.clf()
@@ -324,9 +379,15 @@ if args.gridsearch or args.coarsegridsearch:
     amax = np.argmax(sn)
     exposure_scale = sn[amax]/exposure[amax]**0.5
     
-    Hmax = np.argmax(hsig)
+    if args.nopulsetest:
+        Hmax = amax
+    else:
+        Hmax = np.argmax(hsig)
 
-    plt.plot(gti_rts_s,hsig,label='H-test significance')
+    if args.usez:
+        plt.plot(gti_rts_s,hsig,label='Z-test significance')
+    else:
+        plt.plot(gti_rts_s,hsig,label='H-test significance')
     plt.axvline(gti_rts_s[amax],color='k',ls='--')
     plt.axvline(gti_rts_s[Hmax],color='r',ls='--')
     plt.xlabel('Background Rate (ct/s)')
@@ -338,7 +399,10 @@ if args.gridsearch or args.coarsegridsearch:
     plt.clf()
     plt.scatter(eminlist,emaxlist, c=hgrid, s=10, edgecolor='')
     cbar = plt.colorbar()
-    cbar.set_label('H-test')
+    if args.usez:
+        cbar.set_label('Z-test')
+    else:
+        cbar.set_label('H-test')
     plt.xlabel('Low Energy Cut (keV)')
     plt.ylabel('High Energy Cut (keV)')
     plt.savefig('{}_grid.png'.format(args.outfile))
@@ -367,6 +431,7 @@ if args.gridsearch or args.coarsegridsearch:
     print("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
     print("Maximum significance: {:0.3f} sigma".format(hbest))
     print("   obtained in {:0.3f} ksec".format(exposure[Hmax]))
+    print("   between {:0.2f} and {:0.2f} keV".format(eminbest,emaxbest))
     print("   for {} events".format(len(select_ph)))
     
 else:
