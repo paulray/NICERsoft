@@ -142,10 +142,11 @@ if __name__ == '__main__':
             print("{0:2d} {1:12.3f} {2:9.3f}".format(i,fp,np.rad2deg(fph)),file=resultsfile)
         i+=1
 
-
     pcounts = (model-model.min()).sum()
+    pcounts_err = np.sqrt(model.sum() + model.min()*len(model))
+
     if exposure:
-        log.info("Pulsed counts = {0:.3f}, count rate = {1:.3f} c/s".format(pcounts, pcounts/exposure))
+        log.info("Pulsed counts = {0:.3f}, count rate = {1:.3f}+/-{2:.4f} c/s".format(pcounts, pcounts/exposure, pcounts_err/exposure))
         log.info("Total rate = {0:.3f} c/s, Unpulsed rate = {1:.3f} c/s".format(n/exposure, n/exposure-pcounts/exposure))
 
     ax = axs[1]
