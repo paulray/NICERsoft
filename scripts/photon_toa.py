@@ -256,7 +256,8 @@ if args.tint is None:
     toafinal,toafinal_err = estimate_toa(mjds,phases,tdbs,args.topo,obs)
     if 'OBS_ID' in hdr:
         # Add ObsID to the TOA flags
-        toafinal.flags['-obsid'] = hdr['OBS_ID']
+        toafinal.flags['obsid'] = hdr['OBS_ID']
+        toafinal.flags['htest'] = "{0:.2f}".format(hm(phases))
     toafinal = [toafinal]
     toafinal_err = [toafinal_err]
 else:
@@ -309,7 +310,7 @@ else:
             #print('m[0]={0}, m[1]={1}'.format(m[0],m[-1]))
             if len(m) > 0:
                 toas.append(estimate_toa(m,p,t,args.topo,obs))
-                toas[-1][0].flags['htest'] = hm(p)
+                toas[-1][0].flags['htest'] = "{0:.2f}".format(hm(p))
                 # fix exposure
                 toas[-1][0].flags['exposure'] = current
             current = 0.0
