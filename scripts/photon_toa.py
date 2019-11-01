@@ -199,7 +199,7 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin):
             ephem=args.ephem,
             planets=planets,
         )
-        log.error(
+        log.debug(
             "Modelin final phase {}".format(modelin.phase(toasfinal, abs_phase=True))
         )
     log.info(
