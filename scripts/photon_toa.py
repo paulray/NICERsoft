@@ -41,6 +41,8 @@ import astropy.constants as const
 from pint.observatory import get_observatory
 from pint.observatory.special_locations import SpacecraftObs, BarycenterObs
 
+log.setLevel("INFO")
+
 
 def local_load_NICER_TOAs(eventname):
     """ Local override to add MET field to each TOA object."""
@@ -51,10 +53,162 @@ def local_load_NICER_TOAs(eventname):
     f.close()
     for t, met in zip(tl, mets):
         t.met = met
+    # The returned tl has topocentric TT MJD photon times; TIMESYS=TT, TIMEREF=LOCAL in the .evt file
     return tl
 
 
-# The returned tl has topocentric TT MJD photon times; TIMESYS=TT, TIMEREF=LOCAL in the .evt file
+def estimate_toa(mjds, phases, ph_times, topo, obs, modelin):
+    """ Return a pint TOA object for the provided times and phases.
+
+    Longer description here.
+
+    Parameters
+    ----------
+    mjds : array of floats
+        The MJD times of each photon. These are for sorting the TOAs into
+        groups and making plots, not for precision work! The timescale
+        may be different for different datasets (see pint.toa.get_mjds)
+    phases : array
+        Array of model-computed phase values for each photon. Should be floats
+        between 0.0 and 1.0
+    ph_times : array of astropy.Time objects
+        Array of photon times, as recorded at Observatory obs
+        If obs=="Barycenter" then these should be BAT times in the TDB timescale
+        with the Roemer delays removed (the usual sense of "barycentered" times)
+    topo : bool
+        If True, then TOA will be computed for the arrival time at the Spacecraft
+        and the TOA line will have the spacecraft ECI position included.
+        If False, then the TOA will be a Barycentric Arrival Time (BAT)
+    obs : pint.observatory.Observatory
+        The observatory corresponding to the photon event times.
+        This is NOT necessarily the observatory for the output TOAs,
+        which can be the Barycenter.
+"""
+
+    # Given some subset of the event times, phases, and weights, compute
+    # the TOA based on a reference event near the middle of the span.
+    # Build the TOA as a PINT TOA() object
+    lcf = lcfitters.LCFitter(deepcopy(template), phases)
+    # fitbg does not work!  Disabling.
+    #    if args.fitbg:
+    #        for i in xrange(2):
+    #            lcf.fit_position(unbinned=False)
+    #            lcf.fit_background(unbinned=False)
+    dphi, dphierr = lcf.fit_position(unbinned=args.unbinned, track=args.track)
+    log.info("Measured phase shift dphi={0}, dphierr={1}".format(dphi, dphierr))
+
+    # find time of event closest to center of observation and turn it into a TOA
+    argmid = np.searchsorted(mjds, 0.5 * (mjds.min() + mjds.max()))
+    tmid = ph_times[argmid]
+    # So, tmid should be a time at the observatory if topo, otherwise
+    # it should be a BAT (in TDB timescale with delays applied)
+    # Here, convert tmid if not topo and data not barycentered
+
+    # If input data were not barycentered but we want barycentric TOAs
+    # then make TMID into a BAT
+    if tmid.scale not in ("tdb", "tcb"):
+        log.debug(
+            "Making TOA, tmid {}, tmid.scale {}, obs {}".format(
+                tmid, tmid.scale, obs.name
+            )
+        )
+        toas = pint.toa.get_TOAs_list(
+            [pint.toa.TOA(tmid, obs=obs.name)],
+            include_gps=args.use_gps,
+            include_bipm=args.use_bipm,
+            ephem=args.ephem,
+            planets=planets,
+        )
+        tmid = Time(modelin.get_barycentric_toas(toas), format="mjd", scale="tdb")[0]
+        log.debug("New tmid {}, tmid.scale {}".format(tmid, tmid.scale))
+
+    tplus = tmid + TimeDelta(1 * u.s, scale=tmid.scale)
+    if topo:
+        toamid = pint.toa.TOA(tmid, obs=obs.name)
+        toaplus = pint.toa.TOA(tplus, obs=obs.name)
+    else:
+        toamid = pint.toa.TOA(tmid, obs="Barycenter")
+        toaplus = pint.toa.TOA(tplus, obs="Barycenter")
+
+    toas = pint.toa.get_TOAs_list(
+        [toamid, toaplus],
+        include_gps=args.use_gps,
+        include_bipm=args.use_bipm,
+        ephem=args.ephem,
+        planets=planets,
+    )
+
+    phsi, phsf = modelin.phase(toas, abs_phase=True)
+    if topo:
+        sc = "tt"
+    else:
+        sc = "tdb"
+    # Compute frequency = d(phase)/dt
+    f = (phsi[1] - phsi[0]) + (phsf[1] - phsf[0])
+    f._unit = u.Hz
+
+    # First delta is to get time of phase 0.0 of initial model
+    # Second term corrects for the measured phase offset to align with template
+    tfinal = (
+        tmid + TimeDelta(-phsf[0].value / f, scale=sc) + TimeDelta(dphi / f, scale=sc)
+    )
+
+    # Use PINT's TOA writer to save the TOA
+    nsrc = lcf.template.norm() * len(lcf.phases)
+    nbkg = (1 - lcf.template.norm()) * len(lcf.phases)
+
+    if args.topo:  # tfinal is a topocentric TT MJD
+        telposvel = obs.posvel_gcrs(tfinal)
+        x = telposvel.pos[0].to(u.km)
+        y = telposvel.pos[1].to(u.km)
+        z = telposvel.pos[2].to(u.km)
+        vx = telposvel.vel[0].to(u.km / u.s)
+        vy = telposvel.vel[1].to(u.km / u.s)
+        vz = telposvel.vel[2].to(u.km / u.s)
+
+        toafinal = pint.toa.TOA(
+            tfinal.utc,
+            obs="spacecraft",
+            nsrc="%.2f" % nsrc,
+            nbkg="%.2f" % nbkg,
+            exposure="%.2f" % exposure,
+            dphi="%.5f" % dphi,
+            mjdTT="%.8f" % tfinal.tt.mjd,
+            telx="%.8f" % x.value,
+            tely="%.8f" % y.value,
+            telz="%.8f" % z.value,
+            vx="%.8f" % vx.value,
+            vy="%.8f" % vy.value,
+            vz="%.8f" % vz.value,
+        )
+
+    else:
+        # Make a TOA for the Barycenter, which is the default obs
+        toafinal = pint.toa.TOA(
+            tfinal,
+            obs="Barycenter",
+            nsrc="%.2f" % nsrc,
+            nbkg="%.2f" % nbkg,
+            exposure="%.2f" % exposure,
+            dphi="%.5f" % dphi,
+        )
+        toasfinal = pint.toa.get_TOAs_list(
+            [toafinal],
+            include_gps=args.use_gps,
+            include_bipm=args.use_bipm,
+            ephem=args.ephem,
+            planets=planets,
+        )
+        log.error(
+            "Modelin final phase {}".format(modelin.phase(toasfinal, abs_phase=True))
+        )
+    log.info(
+        "Src rate = {0} c/s, Bkg rate = {1} c/s".format(
+            nsrc / exposure, nbkg / exposure
+        )
+    )
+    return toafinal, dphierr / f.value * 1.0e6
+
 
 desc = """Generate TOAs from photon event data."""
 
@@ -153,18 +307,46 @@ except:
 # Here I might loop over the files specified
 # Read event file header to figure out what instrument is is from
 hdr = pyfits.getheader(args.eventname, ext=1)
-
 log.info(
     "Event file TELESCOPE = {0}, INSTRUMENT = {1}".format(
         hdr["TELESCOP"], hdr["INSTRUME"]
     )
 )
 
+# If the FITS events are barycentered then these keywords should be set
+# TIMESYS = 'TDB     '           / All times in this file are TDB
+# TIMEREF = 'SOLARSYSTEM'        / Times are pathlength-corrected to barycenter
+if hdr["TIMESYS"].startswith("TDB"):
+    barydata = True
+else:
+    barydata = False
+log.info(
+    "Event time system = {0}, reference = {1}".format(hdr["TIMESYS"], hdr["TIMEREF"])
+)
+
+if args.topo and barydata:
+    log.error("Can't compute topocentric TOAs from barycentered events!")
+    sys.exit(1)
+
+if (args.orbfile is not None) and barydata:
+    log.warning("Data are barycentered, so ignoring orbfile!")
+
 if hdr["TELESCOP"] == "NICER":
     # Instantiate NICERObs once so it gets added to the observatory registry
-    if args.orbfile is not None:
-        log.info("Setting up NICER observatory")
-        obs = NICERObs(name="NICER", FPorbname=args.orbfile)
+    # Bug! It should not do this if the events have already been barycentered!
+    if barydata:
+        obs = "Barycenter"
+    else:
+        if args.orbfile is not None:
+            log.info("Setting up NICER observatory")
+            obs = NICERObs(name="NICER", FPorbname=args.orbfile)
+        else:
+            log.error(
+                "NICER .orb file required for non-barycentered events!\n"
+                "Please specify with --orbfile"
+            )
+            sys.exit(2)
+
     # Read event file and return list of TOA objects
     try:
         tl = local_load_NICER_TOAs(args.eventname)
@@ -174,18 +356,37 @@ if hdr["TELESCOP"] == "NICER":
         )
         raise
 elif hdr["TELESCOP"] == "XTE":
-    # Instantiate RXTEObs once so it gets added to the observatory registry
-    if args.orbfile is not None:
-        # Determine what observatory type is.
-        log.info("Setting up RXTE observatory")
-        obs = RXTEObs(name="RXTE", FPorbname=args.orbfile)
+    if barydata:
+        obs = "Barycenter"
+    else:
+        # Instantiate RXTEObs once so it gets added to the observatory registry
+        if args.orbfile is not None:
+            # Determine what observatory type is.
+            log.info("Setting up RXTE observatory")
+            obs = RXTEObs(name="RXTE", FPorbname=args.orbfile)
+        else:
+            log.error(
+                "RXTE FPorbit file required for non-barycentered events!\n"
+                "Please specify with --orbfile"
+            )
+            sys.exit(2)
     # Read event file and return list of TOA objects
     tl = load_RXTE_TOAs(args.eventname)
 elif hdr["TELESCOP"].startswith("XMM"):
     # Not loading orbit file here, since that is not yet supported.
+    if barydata:
+        obs = "Barycenter"
+    else:
+        log.error("Non-barycentered XMM data not yet supported")
+        sys.exit(3)
     tl = load_XMM_TOAs(args.eventname)
 elif hdr["TELESCOP"].startswith("NuSTAR"):
     # Not loading orbit file here, since that is not yet supported.
+    if barydata:
+        obs = "Barycenter"
+    else:
+        log.error("Non-barycentered NuSTAR data not yet supported")
+        sys.exit(3)
     tl = load_NuSTAR_TOAs(args.eventname)
     f = pyfits.open(args.eventname)
     mets = f["events"].data.field("time")
@@ -203,9 +404,6 @@ else:
 if args.topo:  # for writing UTC topo toas
     SpacecraftObs(name="spacecraft")
 
-if not args.topo and (args.orbfile is None):
-    obs = "Barycenter"
-
 if len(tl) <= 0:
     log.error("No TOAs found. Aborting.")
     sys.exit(1)
@@ -222,12 +420,14 @@ mjds = (
 )  # TT topocentric MJDs as floats; only used to find the index of the photon time closest to the middle of the MJD range
 
 # Compute model phase for each TOA;
-# (TODO--'tdbs' var. needs to be renamed since it's TT and not TDB for the topocentric photon times in the if block)
 phss = modelin.phase(ts, abs_phase=True)[1].value  # discard units
-if args.topo:
-    tdbs = ts.table["mjd"]
+
+# Note that you can compute barycentric TOAs from topocentric data, so
+# just because topo is False does NOT mean that data are barycentered!
+if barydata:
+    ph_times = ts.table["tdb"]
 else:
-    tdbs = ts.table["tdb"]
+    ph_times = ts.table["mjd"]
 
 # ensure all positive
 phases = np.where(phss < 0.0, phss + 1.0, phss)
@@ -246,108 +446,12 @@ except:
     exposure = 0
 
 
-def estimate_toa(mjds, phases, tdbs, topo, obs):
-    """ Return a pint TOA object for the provided times and phases."""
-
-    # Given some subset of the event times, phases, and weights, compute
-    # the TOA based on a reference event near the middle of the span.
-    # Build the TOA as a PINT TOA() object
-    lcf = lcfitters.LCFitter(deepcopy(template), phases)
-    # fitbg does not work!  Disabling.
-    #    if args.fitbg:
-    #        for i in xrange(2):
-    #            lcf.fit_position(unbinned=False)
-    #            lcf.fit_background(unbinned=False)
-    dphi, dphierr = lcf.fit_position(unbinned=args.unbinned, track=args.track)
-    log.info("Measured phase shift dphi={0}, dphierr={1}".format(dphi, dphierr))
-
-    # find MJD closest to center of observation and turn it into a TOA
-    argmid = np.searchsorted(mjds, 0.5 * (mjds.min() + mjds.max()))
-    tmid = tdbs[argmid]  # Should we used tdbld?
-
-    if topo:  # tdbs are topocentric TT MJD times
-        tplus = tmid + TimeDelta(1 * u.s, scale="tt")
-        toamid = pint.toa.TOA(tmid, obs=obs.name)
-        toaplus = pint.toa.TOA(tplus, obs=obs.name)
-    else:  # tdbs are TDB MJD times
-        tplus = tmid + TimeDelta(1 * u.s, scale="tdb")
-        toamid = pint.toa.TOA(tmid)
-        toaplus = pint.toa.TOA(tplus)
-
-    toas = pint.toa.get_TOAs_list(
-        [toamid, toaplus],
-        include_gps=args.use_gps,
-        include_bipm=args.use_bipm,
-        ephem=args.ephem,
-        planets=planets,
-    )
-
-    phsi, phsf = modelin.phase(toas, abs_phase=True)
-    if topo:
-        sc = "tt"
-    else:
-        sc = "tdb"
-    # Compute frequency = d(phase)/dt
-    f = (phsi[1] - phsi[0]) + (phsf[1] - phsf[0])
-    f._unit = u.Hz
-
-    # First delta is to get time of phase 0.0 of initial model
-    # Second term corrects for the measured phase offset to align with template
-    tfinal = (
-        tmid + TimeDelta(-phsf[0].value / f, scale=sc) + TimeDelta(dphi / f, scale=sc)
-    )
-
-    # Use PINT's TOA writer to save the TOA
-    nsrc = lcf.template.norm() * len(lcf.phases)
-    nbkg = (1 - lcf.template.norm()) * len(lcf.phases)
-
-    if args.topo:  # tfinal is a topocentric TT MJD
-        telposvel = obs.posvel_gcrs(tfinal)
-        x = telposvel.pos[0].to(u.km)
-        y = telposvel.pos[1].to(u.km)
-        z = telposvel.pos[2].to(u.km)
-        vx = telposvel.vel[0].to(u.km / u.s)
-        vy = telposvel.vel[1].to(u.km / u.s)
-        vz = telposvel.vel[2].to(u.km / u.s)
-
-        toafinal = pint.toa.TOA(
-            tfinal.utc,
-            scale="utc",
-            obs="spacecraft",
-            nsrc="%.2f" % nsrc,
-            nbkg="%.2f" % nbkg,
-            exposure="%.2f" % exposure,
-            dphi="%.5f" % dphi,
-            mjdTT="%.8f" % tfinal.tt.mjd,
-            telx="%.8f" % x.value,
-            tely="%.8f" % y.value,
-            telz="%.8f" % z.value,
-            vx="%.8f" % vx.value,
-            vy="%.8f" % vy.value,
-            vz="%.8f" % vz.value,
-        )
-
-    else:
-        toafinal = pint.toa.TOA(
-            tfinal,
-            nsrc="%.2f" % nsrc,
-            nbkg="%.2f" % nbkg,
-            exposure="%.2f" % exposure,
-            dphi="%.5f" % dphi,
-        )
-
-    log.info(
-        "Src rate = {0} c/s, Bkg rate = {1} c/s".format(
-            nsrc / exposure, nbkg / exposure
-        )
-    )
-    return toafinal, dphierr / f.value * 1.0e6
-
-
 if args.tint is None:
 
     # do a single TOA for table
-    toafinal, toafinal_err = estimate_toa(mjds, phases, tdbs, args.topo, obs)
+    toafinal, toafinal_err = estimate_toa(
+        mjds, phases, ph_times, args.topo, obs, modelin
+    )
     if "OBS_ID" in hdr:
         # Add ObsID to the TOA flags
         toafinal.flags["obsid"] = hdr["OBS_ID"]
@@ -403,11 +507,11 @@ else:
         ):
             # make a TOA
             ph0, ph1 = np.searchsorted(mets, [gti_t0[i0], gti_t1[i]])
-            m, p, t = mjds[ph0:ph1], phases[ph0:ph1], tdbs[ph0:ph1]
+            m, p, t = mjds[ph0:ph1], phases[ph0:ph1], ph_times[ph0:ph1]
             # print('Generating TOA ph0={0}, ph1={1}, len(m)={2}, i0={3}, i={4}'.format(ph0,ph1,len(m),i0,i))
             # print('m[0]={0}, m[1]={1}'.format(m[0],m[-1]))
             if len(m) > 0:
-                toas.append(estimate_toa(m, p, t, args.topo, obs))
+                toas.append(estimate_toa(m, p, t, args.topo, obs, modelin))
                 toas[-1][0].flags["htest"] = "{0:.2f}".format(hm(p))
                 # fix exposure
                 toas[-1][0].flags["exposure"] = current
@@ -432,7 +536,7 @@ for t in toafinal:
 toas = pint.toa.TOAs(toalist=toafinal)
 toas.table["error"][:] = np.asarray(toafinal_err)
 sio = io.StringIO()
-toas.write_TOA_file(sio, name="nicer", format="tempo2")
+toas.write_TOA_file(sio, name="photon_toa", format="tempo2")
 output = sio.getvalue()
 
 if args.topo:
