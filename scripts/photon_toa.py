@@ -104,29 +104,32 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin):
     # it should be a BAT (in TDB timescale with delays applied)
     # Here, convert tmid if not topo and data not barycentered
 
-    # If input data were not barycentered but we want barycentric TOAs
-    # then make TMID into a BAT
-    if tmid.scale not in ("tdb", "tcb"):
-        log.debug(
-            "Making TOA, tmid {}, tmid.scale {}, obs {}".format(
-                tmid, tmid.scale, obs.name
-            )
-        )
-        toas = pint.toa.get_TOAs_list(
-            [pint.toa.TOA(tmid, obs=obs.name)],
-            include_gps=args.use_gps,
-            include_bipm=args.use_bipm,
-            ephem=args.ephem,
-            planets=planets,
-        )
-        tmid = Time(modelin.get_barycentric_toas(toas), format="mjd", scale="tdb")[0]
-        log.debug("New tmid {}, tmid.scale {}".format(tmid, tmid.scale))
-
-    tplus = tmid + TimeDelta(1 * u.s, scale=tmid.scale)
     if topo:
+        tplus = tmid + TimeDelta(1 * u.s, scale=tmid.scale)
         toamid = pint.toa.TOA(tmid, obs=obs.name)
         toaplus = pint.toa.TOA(tplus, obs=obs.name)
     else:
+        # If input data were not barycentered but we want barycentric TOAs
+        # then make TMID into a BAT
+        if tmid.scale not in ("tdb", "tcb"):
+            log.debug(
+                "Making TOA, tmid {}, tmid.scale {}, obs {}".format(
+                    tmid, tmid.scale, obs.name
+                )
+            )
+            toas = pint.toa.get_TOAs_list(
+                [pint.toa.TOA(tmid, obs=obs.name)],
+                include_gps=args.use_gps,
+                include_bipm=args.use_bipm,
+                ephem=args.ephem,
+                planets=planets,
+            )
+            tmid = Time(modelin.get_barycentric_toas(toas), format="mjd", scale="tdb")[
+                0
+            ]
+            log.debug("New tmid {}, tmid.scale {}".format(tmid, tmid.scale))
+
+        tplus = tmid + TimeDelta(1 * u.s, scale=tmid.scale)
         toamid = pint.toa.TOA(tmid, obs="Barycenter")
         toaplus = pint.toa.TOA(tplus, obs="Barycenter")
 
@@ -413,7 +416,7 @@ ts = pint.toa.get_TOAs_list(
     tl, ephem=args.ephem, planets=planets, include_bipm=False, include_gps=False
 )
 ts.filename = args.eventname
-
+log.info(ts.print_summary())
 # print(ts.get_summary())
 mjds = (
     ts.get_mjds()
