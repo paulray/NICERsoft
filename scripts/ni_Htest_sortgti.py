@@ -437,12 +437,12 @@ if args.gridsearch or args.coarsegridsearch:
 
     print("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
     print("Maximum significance: {:0.3f} sigma".format(hbest))
-    print("   obtained in {:0.3f} ksec".format(exposure[Hmax]))
+    print("   obtained in {:0.2f} ksec".format(exposure[Hmax]/1000))
     print("   between {:0.2f} and {:0.2f} keV".format(eminbest,emaxbest))
     print("   for {} events".format(len(select_ph)))
     
 else:
     
     print("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
-    print("   obtained in {:0.3f} ksec".format(exposure[Hmax]))
+    print("   obtained in {:0.2f} ksec".format(exposure[Hmax]/1000))
     print("   for {} events".format(len(select_ph)))
