@@ -272,7 +272,7 @@ data_diced = dice_gtis(data)
 
 if args.gridsearch:
     #all_emin = np.arange(0.24,1.0,0.01)
-    all_emin = np.arange(max(0.24,args.emin),args.maxemin+0.01,0.01)
+    all_emin = np.arange(max(0.24,args.emin),args.maxemin+0.005,0.01)
 elif args.coarsegridsearch:
     all_emin = np.arange(max(0.24,args.emin),2.0,0.1)
 else:
@@ -289,17 +289,20 @@ hgrid = []
 for emin in all_emin:
     
     if args.gridsearch:
-        all_emax = np.arange(args.minemax,min(3.0,args.emax)+0.01,0.02)
+        delta_e = 0.02
+        all_emax = np.arange(args.minemax,min(3.0,args.emax)+0.005,delta_e)
     elif args.coarsegridsearch:
+        delta_e = 0.1
         hilimit = min(7.0,args.emax)
-        all_emax = np.arange(emin+0.1,hilimit+0.01,0.1)
+        all_emax = np.arange(emin+0.1,hilimit+0.01,delta_e)
     else:
+        delta_e = 0
         all_emax = np.array([args.emax])
 
     if len(all_emax) == 0:
         break
 
-    print("emin={:0.2f}, emax ranging from {:0.2f}-{:0.2f} by 0.1 keV".format(emin,all_emax[0],all_emax[-1]))
+    print("emin={:0.2f}, emax ranging from {:0.2f}-{:0.2f} by {:0.2f} keV".format(emin,all_emax[0],all_emax[-1],delta_e))
         
 
     for emax in all_emax:
