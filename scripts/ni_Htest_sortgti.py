@@ -176,7 +176,10 @@ def make_sn(data,mask=None,rate=0.1,min_gti=5,usez=False,snonly=False):
 
     sn = rate*np.cumsum(gti_len_s)/np.sqrt(np.cumsum(gti_cts_s)+rate*gti_len_s)
     rate = 0
-    sn0 = np.cumsum(gti_len_s)/np.sqrt(np.cumsum(gti_cts_s))
+    zero_mask = gti_cts_s > 0
+    sn0 = np.empty(len(gti_len_s))
+    sn0[zero_mask] = np.cumsum(gti_len_s[zero_mask])/np.sqrt(np.cumsum(gti_cts_s[zero_mask]))
+    sn0[~zero_mask] = np.inf
 
     if (not snonly) and (phases is not None):
         counter = 0
@@ -269,7 +272,7 @@ data_diced = dice_gtis(data)
 
 if args.gridsearch:
     #all_emin = np.arange(0.24,1.0,0.01)
-    all_emin = np.arange(max(0.24,args.emin),args.maxemin+0.01,0.01)
+    all_emin = np.arange(max(0.24,args.emin),args.maxemin+0.005,0.01)
 elif args.coarsegridsearch:
     all_emin = np.arange(max(0.24,args.emin),2.0,0.1)
 else:
@@ -286,13 +289,20 @@ hgrid = []
 for emin in all_emin:
     
     if args.gridsearch:
-        all_emax = np.arange(args.minemax,min(3.0,args.emax)+0.01,0.02)
+        delta_e = 0.02
+        all_emax = np.arange(args.minemax,min(3.0,args.emax)+0.005,delta_e)
     elif args.coarsegridsearch:
-        all_emax = np.arange(emin+0.1,min(7.0,args.emax)+0.01,0.2)
+        delta_e = 0.1
+        hilimit = min(7.0,args.emax)
+        all_emax = np.arange(emin+0.1,hilimit+0.01,delta_e)
     else:
+        delta_e = 0
         all_emax = np.array([args.emax])
 
-    print("Energy ranges: {:0.2f} to {:0.2f}-{:0.2f} keV".format(emin,all_emax[0],all_emax[-1]))
+    if len(all_emax) == 0:
+        break
+
+    print("emin={:0.2f}, emax ranging from {:0.2f}-{:0.2f} by {:0.2f} keV".format(emin,all_emax[0],all_emax[-1],delta_e))
         
 
     for emax in all_emax:
