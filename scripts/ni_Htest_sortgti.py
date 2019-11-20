@@ -26,6 +26,14 @@ to sort GTI by background rate
 and evaluate H-test
 """
 
+def local_h2sig(h):
+    h = np.atleast_1d(h)
+    rvals = np.zeros_like(h)
+    for ix,x in enumerate(h):
+        if x > 0:
+            rvals[ix] = h2sig(x)
+    return rvals
+
 plt.rc('font', size=14)          # controls default text sizes
 plt.rc('axes', labelsize=13)    # fontsize of the x and y labels
 plt.rc('xtick', labelsize=13)    # fontsize of the tick labels
@@ -225,7 +233,7 @@ def get_optimal_cuts(data,pred_rate = 0.017,usez=False):
     if usez:
         hsig_40 = sig2sigma(chi2.sf(hs,4))
     else:
-        hsig_40 = [h2sig(h) for h in hs]
+        hsig_40 = local_h2sig(hs)
     exposure = np.cumsum(gti_len_s)
     amax_40 = np.argmax(sn_40)
 
@@ -327,6 +335,8 @@ for emin in all_emin:
         sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s = make_sn(data_diced,mask=pi_mask,rate=pred_rate,usez=args.usez)
 
         exposure = np.cumsum(gti_len_s)
+        #idx = np.searchsorted(exposure,np.arange(10)*1./10*exposure[-1])
+        #print(gti_rts_s[idx])
 
         if args.minexp is not None:
             # depress S/N for values that do not satisfy eposure cuts
@@ -338,7 +348,7 @@ for emin in all_emin:
         if args.usez:
             hsig = sig2sigma(chi2.sf(hs,4))
         else:
-            hsig = [h2sig(h) for h in hs]
+            hsig = local_h2sig(hs)
         
         # scale exposure to the expected S/N
         amax = np.argmax(sn)
@@ -416,7 +426,7 @@ if dosearch:
     if args.usez:
         hsig = sig2sigma(chi2.sf(hs,4))
     else:
-        hsig = [h2sig(h) for h in hs]
+        hsig = local_h2sig(hs)
     
     # scale exposure to the expected S/N
     amax = np.argmax(sn)
