@@ -26,6 +26,14 @@ to sort GTI by background rate
 and evaluate H-test
 """
 
+def local_h2sig(h):
+    h = np.atleast_1d(h)
+    rvals = np.zeros_like(h)
+    for ix,x in enumerate(h):
+        if x > 0:
+            rvals[ix] = h2sig(x)
+    return rvals
+
 plt.rc('font', size=14)          # controls default text sizes
 plt.rc('axes', labelsize=13)    # fontsize of the x and y labels
 plt.rc('xtick', labelsize=13)    # fontsize of the tick labels
@@ -46,7 +54,10 @@ parser.add_argument("--maxemin", help="Maximum emin to use in fine grid search (
 parser.add_argument("--minemax", help="Minimum emax to use in fine grid search (keV, default=1.00)", type=float, default=1.00)
 parser.add_argument("--gridsearch", help="Search over energies to find max H-test", action="store_true",default=False)
 parser.add_argument("--coarsegridsearch", help="Search over energies to find max H-test", action="store_true",default=False)
+parser.add_argument("--minbw", help="Minimum fractional bandwidth used during energy grid searching.  E.g., --minbw=0.5 would allow a 1.0 to 1.5 (50%) keV energy range, but not a 2.0 to 2.2 (10%) range.", type=float,default=None)
+parser.add_argument("--minexp", help="Minimum exposure allowed for a candidate cut, expressed as a fraction of the total.  E.g., --minexp=0.2 would allow a cut that throws away 80% of the GTI.", type=float,default=None)
 parser.add_argument("--nopulsetest", help="Only use the predicted S/N to determine the GTIs to use.", action="store_true",default=False)
+parser.add_argument("--verbosity", help="Verbosity (0=quiet,1=default,2=verbose,3=very verbose).", type=int, default=1)
 parser.add_argument("--savefile", help="Saving optimized event file", action="store_true",default=False)
 parser.add_argument("--usez", help="Use Z^2_2 test instead of H test.", action="store_true",default=False)
 parser.add_argument("--nbins", help="Number of bins for plotting pulse profile (default=16)", type=int, default=16)
@@ -176,7 +187,10 @@ def make_sn(data,mask=None,rate=0.1,min_gti=5,usez=False,snonly=False):
 
     sn = rate*np.cumsum(gti_len_s)/np.sqrt(np.cumsum(gti_cts_s)+rate*gti_len_s)
     rate = 0
-    sn0 = np.cumsum(gti_len_s)/np.sqrt(np.cumsum(gti_cts_s))
+    zero_mask = gti_cts_s > 0
+    sn0 = np.empty(len(gti_len_s))
+    sn0[zero_mask] = np.cumsum(gti_len_s[zero_mask])/np.sqrt(np.cumsum(gti_cts_s[zero_mask]))
+    sn0[~zero_mask] = np.inf
 
     if (not snonly) and (phases is not None):
         counter = 0
@@ -219,7 +233,7 @@ def get_optimal_cuts(data,pred_rate = 0.017,usez=False):
     if usez:
         hsig_40 = sig2sigma(chi2.sf(hs,4))
     else:
-        hsig_40 = [h2sig(h) for h in hs]
+        hsig_40 = local_h2sig(hs)
     exposure = np.cumsum(gti_len_s)
     amax_40 = np.argmax(sn_40)
 
@@ -269,7 +283,7 @@ data_diced = dice_gtis(data)
 
 if args.gridsearch:
     #all_emin = np.arange(0.24,1.0,0.01)
-    all_emin = np.arange(max(0.24,args.emin),args.maxemin+0.01,0.01)
+    all_emin = np.arange(max(0.24,args.emin),args.maxemin+0.005,0.01)
 elif args.coarsegridsearch:
     all_emin = np.arange(max(0.24,args.emin),2.0,0.1)
 else:
@@ -278,6 +292,7 @@ else:
 hbest = 0.0
 eminbest = 0.0
 emaxbest = 100.0
+dosearch = args.gridsearch or args.coarsegridsearch
 
 eminlist = []
 emaxlist = []
@@ -286,28 +301,55 @@ hgrid = []
 for emin in all_emin:
     
     if args.gridsearch:
-        all_emax = np.arange(args.minemax,min(3.0,args.emax)+0.01,0.02)
+        delta_e = 0.02
+        all_emax = np.arange(args.minemax,min(3.0,args.emax)+0.005,delta_e)
     elif args.coarsegridsearch:
-        all_emax = np.arange(emin+0.1,min(7.0,args.emax)+0.01,0.2)
+        delta_e = 0.1
+        hilimit = min(7.0,args.emax)
+        all_emax = np.arange(emin+0.1,hilimit+0.01,delta_e)
     else:
+        delta_e = 0
         all_emax = np.array([args.emax])
 
-    print("Energy ranges: {:0.2f} to {:0.2f}-{:0.2f} keV".format(emin,all_emax[0],all_emax[-1]))
+    if len(all_emax) == 0:
+        break
+
+    if (args.verbosity >= 1):
+        print("emin={:0.2f}, emax ranging from {:0.2f}-{:0.2f} by {:0.2f} keV".format(emin,all_emax[0],all_emax[-1],delta_e))
         
 
     for emax in all_emax:
+
+        if (args.verbosity >= 3):
+            print("    emin={:0.2f}, emax={:0.2f}".format(emin,emax))
+
+        # test for energy bandwidth
+        if dosearch and (args.minbw is not None):
+            if emax/emin-1 < args.minbw:
+                if (args.verbosity >= 2):
+                    print('    excluding emin={:0.2f}, emax={:0.2f} because smaller than specified minbw'.format(emin,emax))
+                continue
 
         pi_mask = (data[2]>emin*KEV_TO_PI) & (data[2]<emax*KEV_TO_PI)
         pred_rate = 0.05/10.0 # 2241
         sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s = make_sn(data_diced,mask=pi_mask,rate=pred_rate,usez=args.usez)
 
+        exposure = np.cumsum(gti_len_s)
+        #idx = np.searchsorted(exposure,np.arange(10)*1./10*exposure[-1])
+        #print(gti_rts_s[idx])
+
+        if args.minexp is not None:
+            # depress S/N for values that do not satisfy eposure cuts
+            mask = exposure/exposure[-1] < args.minexp
+            sn[mask] = 0
+            sn0[mask] = 0
+            hs[mask] = 0
+
         if args.usez:
             hsig = sig2sigma(chi2.sf(hs,4))
         else:
-            hsig = [h2sig(h) for h in hs]
-        exposure = np.cumsum(gti_len_s)
+            hsig = local_h2sig(hs)
         
-        plt.figure(5); plt.clf()
         # scale exposure to the expected S/N
         amax = np.argmax(sn)
         exposure_scale = sn[amax]/exposure[amax]**0.5
@@ -317,9 +359,9 @@ for emin in all_emin:
         else:
             Hmax = np.argmax(hsig)
         
-        if not args.gridsearch and not args.coarsegridsearch:
-            #plt.plot(gti_rts_s,exposure**0.5*exposure_scale,label='scaled exposure')
-            #plt.plot(gti_rts_s,sn,label='predicted S/N')
+        if not dosearch:
+            # Make output plots after single iteration.
+            plt.figure(5); plt.clf()
             if args.usez:
                 plt.plot(gti_rts_s,hsig,label='Z-test significance')
             else:
@@ -355,6 +397,7 @@ for emin in all_emin:
             plt.clf()
             
         else:
+            # store data for future comparison
             eminlist.append(emin)
             emaxlist.append(emax)
             hgrid.append(hsig[Hmax])
@@ -363,18 +406,28 @@ for emin in all_emin:
                 eminbest=emin
                 emaxbest=emax
 
-if args.gridsearch or args.coarsegridsearch:
+if dosearch:
+
+    # recreate data -- really need to encapsulate this!
 
     pi_mask = (data[2]>eminbest*KEV_TO_PI) & (data[2]<emaxbest*KEV_TO_PI)
     pred_rate = 0.05/10.0 # 2241
     sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s = make_sn(data_diced,mask=pi_mask,rate=pred_rate,usez=args.usez)
+
+    exposure = np.cumsum(gti_len_s)
+
+    if args.minexp is not None:
+        # depress S/N for values that do not satisfy eposure cuts
+        mask = exposure/exposure[-1] < args.minexp
+        sn[mask] = 0
+        sn0[mask] = 0
+        hs[mask] = 0
+
     if args.usez:
         hsig = sig2sigma(chi2.sf(hs,4))
     else:
-        hsig = [h2sig(h) for h in hs]
-    exposure = np.cumsum(gti_len_s)
+        hsig = local_h2sig(hs)
     
-    plt.figure(5); plt.clf()
     # scale exposure to the expected S/N
     amax = np.argmax(sn)
     exposure_scale = sn[amax]/exposure[amax]**0.5
@@ -384,6 +437,7 @@ if args.gridsearch or args.coarsegridsearch:
     else:
         Hmax = np.argmax(hsig)
 
+    plt.figure(5); plt.clf()
     if args.usez:
         plt.plot(gti_rts_s,hsig,label='Z-test significance')
     else:
@@ -428,14 +482,14 @@ if args.gridsearch or args.coarsegridsearch:
     plt.title(args.name)
     plt.savefig('{}_profile.png'.format(args.outfile))
 
-    print("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
     print("Maximum significance: {:0.3f} sigma".format(hbest))
-    print("   obtained in {:0.3f} ksec".format(exposure[Hmax]))
+    print("   obtained in {:0.2f}/{:0.2f} ksec".format(
+        exposure[Hmax]/1000,exposure[-1]/1000))
     print("   between {:0.2f} and {:0.2f} keV".format(eminbest,emaxbest))
     print("   for {} events".format(len(select_ph)))
     
 else:
     
     print("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
-    print("   obtained in {:0.3f} ksec".format(exposure[Hmax]))
+    print("   obtained in {:0.2f} ksec".format(exposure[Hmax]/1000))
     print("   for {} events".format(len(select_ph)))
