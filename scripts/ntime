@@ -34,11 +34,10 @@ else:
 
 print('UTC        : ',x.utc.iso)
 print('TT         : ',x.tt.iso)
-x.format = 'yday'
-x.out_subfmt = 'date'
-print('YEAR:DOY   : ',x)
-
 print("MET        : ",(x-MET0).to(u.s).value)
 print("GPS Time   : ",(x-GPS0).to(u.s).value)
 print("MJD (UTC)  : ",x.utc.mjd)
 print("MJD (TT)   : ",x.tt.mjd)
+x.format = 'yday'
+x.out_subfmt = 'date'
+print('YEAR:DOY   : ',x)
