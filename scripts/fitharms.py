@@ -65,6 +65,7 @@ if __name__ == '__main__':
     parser.add_argument("--white",help = "Replace phases with white random numbers, for testing", action="store_true")
     parser.add_argument("--txt",help = "Assume input file is .txt instead of FITS", action="store_true")
     parser.add_argument("--showcomps",help = "Show individual components of harmonic fit on plot", action="store_true")
+    parser.add_argument("--noplot",help = "Don't show any plots", action="store_true")
     parser.add_argument("--output",help = "Save figures with basename", default=None)
     parser.add_argument("--numharm",help="Max harmonic to use in analysis (1=Fundamental only)",default=4,type=int)
     parser.add_argument("--numbins",help="Number of bins for histograms",default=200,type=int)
@@ -76,12 +77,14 @@ if __name__ == '__main__':
         exposure = None
         ph,en = np.loadtxt(args.evname,unpack=True,usecols=(1,2),skiprows=3)
         log.info("Read {0} phases from .txt file".format(len(ph)))
+        tstart = 0.0
     else:
         f = fits.open(args.evname)
         en = f['events'].data.field('pi')
         ph = f['events'].data.field('pulse_phase')
         log.info("Read {0} phases from FITS file".format(len(ph)))
         exposure = float(f['events'].header['EXPOSURE'])
+        tstart = float(f['events'].header['TSTART'])
         log.info("Exposure = {0} s".format(exposure))
 
     if args.white:
@@ -93,7 +96,10 @@ if __name__ == '__main__':
     matplotlib.rcParams['font.family'] = "serif"
     matplotlib.rcParams.update({'font.size': 13})
     matplotlib.rc('axes', linewidth=1.5)
-        
+    
+    if args.output:
+        resultsfile = open("{0}_results.txt".format(args.output),"w")
+        print("{0:.6f}".format(tstart),file=resultsfile)
     # Filter on energy
     idx = np.where(np.logical_and(en > int(args.emin*100), en < int(args.emax*100) ))[0]
     ph = ph[idx]
@@ -132,11 +138,15 @@ if __name__ == '__main__':
     log.info("Harm  LeahyPower   Phase(deg)")
     for fp, fph in zip(fpow,fphase):
         log.info("{0:2d} {1:12.3f} {2:9.3f} deg".format(i,fp,np.rad2deg(fph)))
+        if args.output:
+            print("{0:2d} {1:12.3f} {2:9.3f}".format(i,fp,np.rad2deg(fph)),file=resultsfile)
         i+=1
 
     pcounts = (model-model.min()).sum()
+    pcounts_err = np.sqrt(model.sum() + model.min()*len(model))
+
     if exposure:
-        log.info("Pulsed counts = {0:.3f}, count rate = {1:.3f} c/s".format(pcounts, pcounts/exposure))
+        log.info("Pulsed counts = {0:.3f}, count rate = {1:.3f}+/-{2:.4f} c/s".format(pcounts, pcounts/exposure, pcounts_err/exposure))
         log.info("Total rate = {0:.3f} c/s, Unpulsed rate = {1:.3f} c/s".format(n/exposure, n/exposure-pcounts/exposure))
 
     ax = axs[1]
@@ -261,6 +271,6 @@ if __name__ == '__main__':
     ax.set_xlabel('Pulse Phase')
     ax.set_ylabel('Spectral Color')
     
-
-    plt.show()
+    if not args.noplot:
+        plt.show()
     

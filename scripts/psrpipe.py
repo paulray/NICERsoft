@@ -54,7 +54,8 @@ parser.add_argument("--obsid", help="Use this as OBSID for directory and filenam
     default=None)
 parser.add_argument("--shrinkelvcut", help="Shrink ELV cut to 20 deg and BR_EARTH cut to 30.0 deg to get more data (this is now ignored since it is the default)", action='store_true')
 parser.add_argument("--dark", help="Apply SUNSHINE=0 filter to get only data in Earth shadow", action='store_true')
-parser.add_argument("--minsun",help="Set minimum sun angle (SUN_ANGLE) for nimaketime filtering (default=no SUN_ANGLE filtering, typical values = 60, 70, 80, 90 deg)",default=None)
+parser.add_argument("--nounderfilt", help="Don't filter good times based on UNDERONLY rate", action='store_true')
+parser.add_argument("--minsun",help="Set minimum sun angle (SUN_ANGLE) for nimaketime filtering (default=no SUN_ANGLE filtering, typical values = 60, 70, 80, 90 deg). Note: Allows dark time at any Sun angle!",default=None)
 parser.add_argument("--day", help="Apply SUNSHINE=1 filter to get only data in ISS-day", action='store_true')
 parser.add_argument("--par", help="Par file to use for phases")
 parser.add_argument("--ephem", help="Ephem to use with photonphase", default="DE421")
@@ -106,7 +107,7 @@ def runcmd(cmd):
 if args.outdir:
     names = ['none', 'None', 'NONE']
     if any(st in args.outdir for st in names):
-        log.error("Due to a current bug in ni-extractevents, --outdir cannot contain 'none', 'None', or 'NONE'.  Existing...")
+        log.error("Due to a current bug in ni-extractevents, --outdir cannot contain 'none', 'None', or 'NONE'.  Exiting...")
         shutil.rmtree(tempdir)
         exit()
 
@@ -160,10 +161,10 @@ for obsdir in all_obsids:
     except:
         log.warning('No KP column in MKF file. Will not use any KP based filters!')
         has_KP = False
-        
+
     # Copy orbit file to results dir for pulsar analysis
     shutil.copy(mkfile,pipedir)
-    
+
     if args.keith:
         args.mask   = [14,34,54]
         args.cormin = 1.5
@@ -171,8 +172,8 @@ for obsdir in all_obsids:
     if args.dark and args.day:
         log.warning("Both --dark and --day are requested")
         args.dark = False
-        args.day = False   
-        
+        args.day = False
+
     # # Get ufa file (unfiltered events)
     # ufafiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_ufa.evt*'))
     # ufafiles.sort()
@@ -198,10 +199,10 @@ for obsdir in all_obsids:
     #            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
     #            "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
     #            "--basename", path.join(pipedir,basename)+'_prefilt']
-    
+
     cmd = ["nicerql.py", "--save", "--filtall",
            "--lcbinsize", "{}".format(args.lcbinsize), "--lclog", "--useftools",
-           "--filterbinsize", "{}".format(args.filterbinsize), 
+           "--filterbinsize", "{}".format(args.filterbinsize),
            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
            "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
            "--basename", path.join(pipedir,basename)+'_prefilt']
@@ -212,7 +213,7 @@ for obsdir in all_obsids:
             cmd.append("{0}".format(detid))
     if args.keith:
         cmd.append("--keith")
-            
+
 #    if args.par is not None:
 #        cmd.append("--par")
 #        cmd.append("{0}".format(args.par))
@@ -352,7 +353,7 @@ for obsdir in all_obsids:
 
     # Manage extra_expr for nimaketime (ST_VALID, DARK/DAY, and FPM_OVER_ONLY filters from --KEITH)
     list_extra_expr = ['ST_VALID.eq.1']
-    
+
     if args.dark:
         list_extra_expr.append('SUNSHINE.eq.0')
     if args.day:
@@ -361,7 +362,7 @@ for obsdir in all_obsids:
     if args.keith:
         list_extra_expr.append('FPM_OVERONLY_COUNT<1')
         list_extra_expr.append('FPM_OVERONLY_COUNT<(1.52*COR_SAX**(-0.633))')
-        list_extra_expr.append('FPM_UNDERONLY_COUNT<200')
+        #list_extra_expr.append('FPM_UNDERONLY_COUNT<200')
         if has_KP:
             list_extra_expr.append('(COR_SAX.gt.(1.914*KP**0.684+0.25)).and.KP.lt.5')
 
@@ -369,10 +370,11 @@ for obsdir in all_obsids:
         list_extra_expr.append('KP.lt.{0}'.format(args.kpmax))
 
     if args.minsun:
-        list_extra_expr.append('SUN_ANGLE.gt.{0}'.format(args.minsun))
+        # Exclude data that is at a Sun angle less that some value, unless it is in eclipse
+        list_extra_expr.append('(SUN_ANGLE.gt.{0}.or.SUNSHINE.eq.0)'.format(args.minsun))
 
     extra_expr = "(" + " && ".join("%s" %expr for expr in list_extra_expr) + ")"
-    
+
     cor_string="-"
     if args.cormin is not None:
         cor_string = "{0}-".format(args.cormin)
@@ -383,11 +385,15 @@ for obsdir in all_obsids:
 #        # Keith suggests that these cuts can give more data without hurting data quality
 #        elvcut = 20.0
 #        brcut = 30.0
+    maxunder = 200.0
+    if args.nounderfilt:
+        maxunder=650.0
     cmd = ["nimaketime",  "infile={0}".format(mkfile),
         'outfile={0}'.format(gtiname_merged), 'nicersaafilt=YES',
         'saafilt=NO', 'trackfilt=YES', 'ang_dist={0:.3f}'.format(args.angdist), 'elv={0}'.format(elvcut),
         'br_earth={0}'.format(brcut), 'cor_range={0}'.format(cor_string), 'min_fpm={0}'.format(args.minfpm),
-        'ingtis={0}'.format(extragtis), "clobber=yes",
+        'underonly_range=0-{0}'.format(maxunder),
+        'ingtis={0}'.format(extragtis), "clobber=yes", 
         'expr={0}'.format(extra_expr),
         'outexprfile={0}'.format(path.join(pipedir,"psrpipe_expr.txt"))]
     runcmd(cmd)
@@ -435,9 +441,9 @@ for obsdir in all_obsids:
         cmd = ["nicerql.py", "--save",
                "--eng", intermediatename,
                "--lcbinsize", "{}".format(args.lcbinsize),
-               "--filterbinsize", "{}".format(args.filterbinsize), 
+               "--filterbinsize", "{}".format(args.filterbinsize),
                "--basename", path.join(pipedir,basename)+"_intermediate"]
-        
+
         if args.keith:
             cmd.append("--keith")
 
@@ -463,6 +469,11 @@ for obsdir in all_obsids:
     # Remove intermediate file
     #os.remove(intermediatename)
 
+    # Check that there are events left after hot detector cut
+    if len(Table.read(filteredname,hdu=1))==0:
+        log.error('No events left after hot detector filtering!')
+        continue
+
     # Make cleanfilt.mkf file from ObsID .mkf file and merged_GTI
     cleanfilt_mkf = path.join(pipedir,"cleanfilt.mkf")
     log.info('Applying the GTI filtering to the *mkf file')
@@ -475,7 +486,7 @@ for obsdir in all_obsids:
            "--map",
            "--sci", "--eng", filteredname,"--allspec","--alllc",
            "--lcbinsize", "{}".format(args.lcbinsize),
-           "--filterbinsize", "{}".format(args.filterbinsize), 
+           "--filterbinsize", "{}".format(args.filterbinsize),
            "--mkf", cleanfilt_mkf, "--bkg",
            "--basename", path.join(pipedir,basename)+"_cleanfilt"]
     if args.par is not None:
@@ -525,7 +536,7 @@ if args.merge and (len(all_evfiles)>1) :
     cmd.append("--clobber")
     cmd.append("--lcbinsize")
     cmd.append("{}".format(args.lcbinsize))
-    
+
     if args.par is not None:
         cmd.append("--par")
         cmd.append("{0}".format(args.par))
@@ -535,7 +546,7 @@ if args.merge and (len(all_evfiles)>1) :
         cmd.append("--cut")
         cmd.append("--filterbinsize")
         cmd.append("{}".format(args.filterbinsize))
-        
+
     # if args.crabnorm:
     #     cmd.append("--crabnorm")
     # if args.dark:

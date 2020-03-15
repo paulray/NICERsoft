@@ -115,6 +115,7 @@ for pipedir in args.pipedirs:
         sun_angle = np.zeros(len(band1lc))
         sunshine = np.zeros(len(band1lc))
         overonly = np.zeros(len(band1lc))
+        underonly = np.zeros(len(band1lc))
         noise25 = np.zeros(len(band1lc))
         ratiorej = np.zeros(len(band1lc))
         rate1517 = np.zeros(len(band1lc))
@@ -137,6 +138,7 @@ for pipedir in args.pipedirs:
             sunshine[i] = mktable['SUNSHINE'][chidx].mean()
             # For count rates, convert from perFPM to full NICER count rate
             overonly[i] = 52*mktable['FPM_OVERONLY_COUNT'][chidx].mean()
+            underonly[i] = 52*mktable['FPM_UNDERONLY_COUNT'][chidx].mean()
             noise25[i] = 52*mktable['FPM_NOISE25_COUNT'][chidx].mean()
             ratiorej[i] = 52*mktable['FPM_RATIO_REJ_COUNT'][chidx].mean()
             rate1517[i] = 52*mktable['FPM_XRAY_PI_1500_1700'][chidx].mean()
@@ -161,6 +163,7 @@ for pipedir in args.pipedirs:
             f_band3lc = band3lc
             f_cor_sax = cor_sax
             f_overonly = overonly
+            f_underonly = underonly
             f_sun_angle = sun_angle
             f_sunshine = sunshine
             f_noise25 = noise25
@@ -182,6 +185,7 @@ for pipedir in args.pipedirs:
             f_band3lc = np.append(f_band3lc,band3lc)
             f_cor_sax = np.append(f_cor_sax,cor_sax)
             f_overonly = np.append(f_overonly,overonly)
+            f_underonly = np.append(f_underonly,underonly)
             f_sun_angle = np.append(f_sun_angle,sun_angle)
             f_sunshine = np.append(f_sunshine,sunshine)
             f_noise25 = np.append(f_noise25,noise25)
@@ -196,10 +200,13 @@ for pipedir in args.pipedirs:
             f_dec = np.append(f_dec,dec)
             f_saa_time = np.append(f_saa_time,saa_time)
 
-    bkgtab = Table([f_chunkmets,f_band1lc,f_band2lc,f_band3lc,f_cor_sax,f_sunshine,f_sun_angle,f_overonly,f_noise25,
-                    f_ratiorej,f_rate1517,f_ibg,f_hrej,f_kp, f_lat, f_lon, f_ra, f_dec, f_saa_time],
+
+    f_obsid = np.array([etable.meta['OBS_ID']]*len(f_band1lc))
+    bkgtab = Table([f_chunkmets,f_band1lc,f_band2lc,f_band3lc,f_cor_sax,f_sunshine,f_sun_angle,f_overonly,
+                    f_underonly, f_noise25,
+                    f_ratiorej,f_rate1517,f_ibg,f_hrej,f_kp, f_lat, f_lon, f_ra, f_dec, f_saa_time, f_obsid],
                     names=('met', 'band1', 'band2', 'band3', 'cor_sax', 'sunshine', 'sun_angle',
-                               'overonly','noise25','ratiorej','rate1517','ibg','hrej','kp','lat', 'lon', 'ra', 'dec', 'saa_time') )
+                               'overonly','underonly','noise25','ratiorej','rate1517','ibg','hrej','kp','lat', 'lon', 'ra', 'dec', 'saa_time','obsid') )
     bkgtab.write(outname,format='fits',overwrite=True)
                 
     if args.plot:
