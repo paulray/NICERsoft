@@ -67,8 +67,8 @@ diff = np.abs(jtab['mjd']-args.MJD)
 idx = diff.argmin()
 
 if diff[idx] > 18:
-    log.error('Too large a difference to closest ephemeris entry!')
-    sys.exit(1)
+    log.warning('Too large a difference ({} days) to closest ephemeris entry!'.format(diff[idx]))
+    #sys.exit(1)
     
 f0 = jtab[idx]['f0']
 f1 = jtab[idx]['f1']
