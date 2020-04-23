@@ -7,38 +7,43 @@ import astropy.units as u
 from astropy.time import Time
 from nicer.values import *
 
-parser = argparse.ArgumentParser(description="Print NICER times in a variety of formats.")
-parser.add_argument("--iso",help="ISO Date (e.g. 2017-05-16)",default=None)
-parser.add_argument("--met",type=float,help="MET (e.g. 108893169.0)",default=None)
-parser.add_argument("--gps",type=float,help="GPS Time (e.g. 1180440832.0)",default=None)
-parser.add_argument("--doy",type=str,help="DOY Time (either DOY or YYYY:DOY)",default=None)
+parser = argparse.ArgumentParser(
+    description="Print NICER times in a variety of formats."
+)
+parser.add_argument("--iso", help="ISO Date (e.g. 2017-05-16)", default=None)
+parser.add_argument("--met", type=float, help="MET (e.g. 108893169.0)", default=None)
+parser.add_argument(
+    "--gps", type=float, help="GPS Time (e.g. 1180440832.0)", default=None
+)
+parser.add_argument(
+    "--doy", type=str, help="DOY Time (either DOY or YYYY:DOY)", default=None
+)
 args = parser.parse_args()
 
 if args.met is not None:
-    x = MET0+args.met*u.s
+    x = MET0 + args.met * u.s
 elif args.iso is not None:
-    x = Time(args.iso,scale='utc')
+    x = Time(args.iso, scale="utc")
 elif args.gps is not None:
-    x = GPS0+args.gps*u.s
+    x = GPS0 + args.gps * u.s
 elif args.doy is not None:
     if ":" in args.doy:
-        x = Time(args.doy,format='yday')
+        x = Time(args.doy, format="yday")
     else:
         # If no year, assume current year
         n = Time.now()
         YYYY = n.datetime.year
-        x = Time('{0:4d}:{1}'.format(YYYY,args.doy))
+        x = Time("{0:4d}:{1}".format(YYYY, args.doy))
 
 else:
     x = Time.now()
 
-print('UTC        : ',x.utc.iso)
-print('TT         : ',x.tt.iso)
-x.format = 'yday'
-x.out_subfmt = 'date'
-print('YEAR:DOY   : ',x)
-
-print("MET        : ",(x-MET0).to(u.s).value)
-print("GPS Time   : ",(x-GPS0).to(u.s).value)
-print("MJD (UTC)  : ",x.utc.mjd)
-print("MJD (TT)   : ",x.tt.mjd)
+print("UTC        : ", x.utc.iso)
+print("TT         : ", x.tt.iso)
+print("MET        : ", (x - MET0).to(u.s).value)
+print("GPS Time   : ", (x - GPS0).to(u.s).value)
+print("MJD (UTC)  : ", x.utc.mjd)
+print("MJD (TT)   : ", x.tt.mjd)
+x.format = "yday"
+x.out_subfmt = "date"
+print("YEAR:DOY   : ", x)

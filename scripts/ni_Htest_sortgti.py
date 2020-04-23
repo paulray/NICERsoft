@@ -3,22 +3,25 @@
 # Author: M. Kerr (updated by S. Guillot)
 
 from __future__ import division, print_function
-import sys, math, os
-import numpy as np
-import scipy.stats
-from scipy.stats import chi2
-import datetime
-import matplotlib.pyplot as plt
-import glob
+import argparse
 from collections import deque
+import glob
+import os
+import sys
+from subprocess import check_call
+
 import astropy.units as u
 from astropy import log
 from astropy.io import fits
 from astropy.time import Time
-from nicer.values import *
+import numpy as np
 from pint.fits_utils import read_fits_event_mjds
 from pint.eventstats import h2sig,hm,sig2sigma
-import argparse
+import scipy.stats
+from scipy.stats import chi2
+
+#from nicer.values import *
+from nicer.values import datadir,KEV_TO_PI
 
 desc= """
 Read one or more event files 
@@ -34,6 +37,33 @@ def local_h2sig(h):
             rvals[ix] = h2sig(x)
     return rvals
 
+parser = argparse.ArgumentParser(description = desc)
+parser.add_argument("infile", help="file or text file with list of event file", nargs='+')
+parser.add_argument("outfile", help="name for output files")
+parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.25)", type=float, default=0.25)
+parser.add_argument("--emax", help="Maximum energy to include (keV, default=2.00)", type=float, default=2.00)
+parser.add_argument("--maxemin", help="Maximum emin to use in fine grid search (keV, default=1.00)", type=float, default=1.00)
+parser.add_argument("--minemax", help="Minimum emax to use in fine grid search (keV, default=1.00)", type=float, default=1.00)
+parser.add_argument("--gridsearch", help="Search over energies to find max H-test", action="store_true",default=False)
+parser.add_argument("--coarsegridsearch", help="Search over energies to find max H-test", action="store_true",default=False)
+parser.add_argument("--minbw", help="Minimum fractional bandwidth used during energy grid searching.  E.g., --minbw=0.5 would allow a 1.0 to 1.5 (50%%) keV energy range, but not a 2.0 to 2.2 (10%%) range.", type=float,default=None)
+parser.add_argument("--minexp", help="Minimum exposure allowed for a candidate cut, expressed as a fraction of the total.  E.g., --minexp=0.2 would allow a cut that throws away 80%% of the GTI.", type=float,default=None)
+parser.add_argument("--mingti", help="Minimum GTI length to allow -- short GTIs don't give a reliable count rate. (seconds, default=10.0)", type=float, default=10.0)
+parser.add_argument("--nopulsetest", help="Only use the predicted S/N to determine the GTIs to use.", action="store_true",default=False)
+parser.add_argument("--verbosity", help="Verbosity (0=quiet,1=default,2=verbose,3=very verbose).", type=int, default=1)
+parser.add_argument("--savefile", help="Saving optimized event file", action="store_true",default=False)
+parser.add_argument("--writegti", help="Write out the GTI corresponding to the event selection.", action="store_true",default=False)
+parser.add_argument("--remote", help="Disable interactive plotting backend", action="store_true",default=False)
+parser.add_argument("--usez", help="Use Z^2_2 test instead of H test.", action="store_true",default=False)
+parser.add_argument("--nbins", help="Number of bins for plotting pulse profile (default=16)", type=int, default=16)
+parser.add_argument("--name", help="Pulsar name for output figure", type=str, default='')
+args = parser.parse_args()
+
+import matplotlib
+if (args.remote):
+    matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 plt.rc('font', size=14)          # controls default text sizes
 plt.rc('axes', labelsize=13)    # fontsize of the x and y labels
 plt.rc('xtick', labelsize=13)    # fontsize of the tick labels
@@ -43,46 +73,55 @@ plt.rc('axes', linewidth=1.5)
 plt.rc('xtick.major', size=4, width=1.5)
 plt.rc('ytick.major', size=4, width=1.5)
 
+def merge_gtis(data):
+    # gti starts and stops
+    gti_start = data[-2]
+    gti_stop = data[-1]
+    # quick and dirty loop -- array
+    out_gtis = deque()
+    out_gtis.append([gti_start[0],gti_stop[0]])
+    for start,stop in zip(gti_start[1:],gti_stop[1:]):
+        # if start is same value is last stop, just update
+        if start == out_gtis[-1][1]:
+            out_gtis[-1][1] = stop
+        else:
+            out_gtis.append([start,stop])
+    t0s,t1s = np.asarray(out_gtis).transpose()
+    return data[0],data[1],data[2],t0s,t1s
 
-parser = argparse.ArgumentParser(description = desc)
-#parser.add_argument("evt", help="Input event files using glob.glob (e.g.'10010101*_Proc/cleanfilt_par.evt')")
-parser.add_argument("infile", help="file or text file with list of event file", nargs='+')
-parser.add_argument("outfile", help="name for output files")
-parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.25)", type=float, default=0.25)
-parser.add_argument("--emax", help="Maximum energy to include (keV, default=2.00)", type=float, default=2.00)
-parser.add_argument("--maxemin", help="Maximum emin to use in fine grid search (keV, default=1.00)", type=float, default=1.00)
-parser.add_argument("--minemax", help="Minimum emax to use in fine grid search (keV, default=1.00)", type=float, default=1.00)
-parser.add_argument("--gridsearch", help="Search over energies to find max H-test", action="store_true",default=False)
-parser.add_argument("--coarsegridsearch", help="Search over energies to find max H-test", action="store_true",default=False)
-parser.add_argument("--minbw", help="Minimum fractional bandwidth used during energy grid searching.  E.g., --minbw=0.5 would allow a 1.0 to 1.5 (50%) keV energy range, but not a 2.0 to 2.2 (10%) range.", type=float,default=None)
-parser.add_argument("--minexp", help="Minimum exposure allowed for a candidate cut, expressed as a fraction of the total.  E.g., --minexp=0.2 would allow a cut that throws away 80% of the GTI.", type=float,default=None)
-parser.add_argument("--nopulsetest", help="Only use the predicted S/N to determine the GTIs to use.", action="store_true",default=False)
-parser.add_argument("--verbosity", help="Verbosity (0=quiet,1=default,2=verbose,3=very verbose).", type=int, default=1)
-parser.add_argument("--savefile", help="Saving optimized event file", action="store_true",default=False)
-parser.add_argument("--usez", help="Use Z^2_2 test instead of H test.", action="store_true",default=False)
-parser.add_argument("--nbins", help="Number of bins for plotting pulse profile (default=16)", type=int, default=16)
-parser.add_argument("--name", help="Pulsar name for output figure", type=str, default='')
-args = parser.parse_args()
+def runcmd(cmd):
+    # CMD should be a list of strings since it is not processed by a shell
+    log.info('CMD: '+" ".join(cmd))
+    os.system(" ".join(cmd))
+    ## Some ftools calls don't work properly with check_call...not sure why!
+    ## so I am using os.system instead of check_call
+    #check_call(cmd,env=os.environ)
 
 def load_files(fnames):
-    # make a comprehensive list of gtis/rates
-    
+    """ Load in time stamps, PIs, GTIs, etc. from all files."""
     gtis = deque()
     times = deque()
     pis = deque()
     phases = deque()
     for fname in fnames:
         f = fits.open(fname)
-        t0s = f['gti'].data.field('start')
-        t1s = f['gti'].data.field('stop')
+        tzero = f['gti']._header['TIMEZERO']
+        if f['gti']._header['CLOCKAPP']:
+            tzero = 0
+        t0s = f['gti'].data.field('start') + tzero
+        t1s = f['gti'].data.field('stop') + tzero
         for t0,t1 in zip(t0s,t1s):
             gtis.append([t0,t1])
-        times.append(f['events'].data.field('time'))
+        tzero = f['events']._header['TIMEZERO']
+        if f['events']._header['CLOCKAPP']:
+            tzero = 0
+        times.append(f['events'].data.field('time') + tzero )
         pis.append(f['events'].data.field('pi'))
         try:
             phases.append(f['events'].data.field('pulse_phase'))
         except:
             pass
+        f.close()
 
     times = np.concatenate(times)
     pis = np.concatenate(pis)
@@ -91,6 +130,7 @@ def load_files(fnames):
     else:
         phases = None
     t0s,t1s = np.asarray(list(gtis)).transpose()
+
     return times,phases,pis,t0s,t1s
 
 def dice_gtis(data,tmax=100):
@@ -111,8 +151,57 @@ def dice_gtis(data,tmax=100):
             for it0,it1 in zip(new_edges[:-1],new_edges[1:]):
                 new_t0s.append(it0)
                 new_t1s.append(it1)
+
     return times,phases,pis,np.asarray(new_t0s),np.asarray(new_t1s)
 
+def write_gtis(gti_start, gti_stop, outfile, merge_gti=False):
+    # write out GTIs -- sort them by time rather than bkg
+    a = np.argsort(gti_start)
+    gti_start = gti_start[a]
+    gti_stop = gti_stop[a]
+    # merge adjacent GTI -- quick and dirty loop
+    out_gtis = deque()
+    out_gtis.append([gti_start[0],gti_stop[0]])
+    for start,stop in zip(gti_start[1:],gti_stop[1:]):
+        # if start is same value is last stop, just update
+        if merge_gti and (start == out_gtis[-1][1]):
+            out_gtis[-1][1] = stop
+        else:
+            out_gtis.append([start,stop])
+    out_gtis = np.asarray(out_gtis)
+    np.savetxt("{}_OptimalGTI.txt".format(outfile),out_gtis)
+
+    ################################################
+    # Checking the presence of HEASOFT
+    try:
+        check_call('nicerversion',env=os.environ)
+    except:
+        print("You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!", file=sys.stderr)
+        return
+
+    ### CODE FROM CR_CUT TO WRITE GTI TXT FILE TO FITS FILE    
+    #######################################################
+    # Checking the presence of gti header and columns in data/
+    gticolumns = os.path.join(datadir,'gti_columns.txt')
+    gtiheader = os.path.join(datadir,'gti_header.txt')
+
+    # make sure TIMEZERO == 0
+    lines = open(gtiheader).readlines()
+    for line in lines:
+        toks = line.split('=')
+        if (len(toks) > 0) and (toks[0].strip()=='TIMEZERO'):
+            if float(toks[1].strip().split()[0]) != 0:
+                print('WARNING! TIMEZERO in output GTI not consistent.')
+            break
+
+    if not os.path.isfile(gtiheader) or not os.path.isfile(gticolumns):
+        log.error('The files gti_header.txt or gti_columns.txt are missing.  Check the {} directory'.format(os.path.abspath(datadir)))
+        exit()
+    ################################################
+    ## Making the GTI file from the text file
+    log.info("Making the GTI file gti.fits from the GTI data textfile")
+    cmd = ['ftcreate', '{}'.format(gticolumns), '{}_OptimalGTI.txt'.format(outfile), '{}_OptimalGTI.fits'.format(outfile), 'headfile={}'.format(gtiheader), 'extname="GTI"', 'clobber=yes']
+    runcmd(cmd)
 
 def ensemble_htest(phases,slices,m=20,c=4):
     """ Calculate H-test statistic for subsets of a set of phases.
@@ -161,11 +250,13 @@ def ensemble_ztest(phases,slices,m=2):
         rvals[isl] = t
     return rvals
 
-def make_sn(data,mask=None,rate=0.1,min_gti=5,usez=False,snonly=False):
+def make_sn(data,mask=None,rate=0.1,min_gti=10,usez=False,snonly=False):
     """ data -- output of load_local
         mask -- optional mask to select events (e.g. on PI)
         rate -- assumed rate for S/N calculation in ct/sec
         min_gti -- minimum GTI length in seconds
+        usez -- use Z^2 test instead of H test
+        snonly -- skip computation of pulsed statistic, only do S/N
     """
     times,phases,pis,t0s,t1s = data
     if mask is not None:
@@ -181,6 +272,8 @@ def make_sn(data,mask=None,rate=0.1,min_gti=5,usez=False,snonly=False):
     mask = gti_len > min_gti
     rates = (gti_cts / gti_len)[mask]
     a = np.argsort(rates)
+    gti_t0_s = t0s[mask][a]
+    gti_t1_s = t1s[mask][a]
     gti_len_s = gti_len[mask][a]
     gti_cts_s = gti_cts[mask][a]
     gti_rts_s = gti_cts_s/gti_len_s
@@ -191,6 +284,16 @@ def make_sn(data,mask=None,rate=0.1,min_gti=5,usez=False,snonly=False):
     sn0 = np.empty(len(gti_len_s))
     sn0[zero_mask] = np.cumsum(gti_len_s[zero_mask])/np.sqrt(np.cumsum(gti_cts_s[zero_mask]))
     sn0[~zero_mask] = np.inf
+
+    counter = 0
+    pi_gti = deque()
+    for i,ct in enumerate(gti_cts):
+        pi_gti.append(pis[counter:counter+ct])
+        counter += ct
+    # apply mask
+    pi_gti = [pi_gti[i] for i,imask in enumerate(mask) if imask]
+    # apply sorting
+    pi_gti = [pi_gti[i] for i in a]
 
     if (not snonly) and (phases is not None):
         counter = 0
@@ -216,56 +319,7 @@ def make_sn(data,mask=None,rate=0.1,min_gti=5,usez=False,snonly=False):
         hs = None
         ph_gti = None
 
-    return sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s
-
-## UNUSED...
-def get_optimal_cuts(data,pred_rate = 0.017,usez=False):
-    """ Determine rates from analytic prediction for both 0.25 and 0.40 keV
-        cuts, and use these to estimate an optimal H test.
-    """
-    pi_mask = (data[2]>25) & (data[2]<100)
-    sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s = make_sn(data,mask=pi_mask,rate=pred_rate,usez=usez)
-    amax = np.argmax(sn)
-
-    pi_mask = (data[2]>40) & (data[2]<100)
-    pred_rate *= 3./5
-    sn_40,sn0_40,hs_40,ph_gti_40,gti_rts_s_40,gti_len_s_40 = make_sn(data,mask=pi_mask,rate=pred_rate,usez=usez)
-    if usez:
-        hsig_40 = sig2sigma(chi2.sf(hs,4))
-    else:
-        hsig_40 = local_h2sig(hs)
-    exposure = np.cumsum(gti_len_s)
-    amax_40 = np.argmax(sn_40)
-
-    # get intersection of 0.25 keV data sets and 0.4 keV data sets
-    rate_025_cut = gti_rts_s[amax]
-    rate_040_cut = gti_rts_s_40[amax_40]
-    mask_025 = gti_rts_s<=rate_025_cut
-    mask_040 = ~mask_025 & (gti_rts_s_40<rate_040_cut)
-    ph1 = np.concatenate(np.asarray(ph_gti)[mask_025])
-    try:
-        ph2 = np.concatenate(np.asarray(ph_gti_40)[mask_040])
-    except ValueError:
-        ph2 = np.asarray([])
-
-    print('Found %d photons satisfying 0.25 keV cut; exposure = %.1fs'%(len(ph1),np.sum(np.asarray(gti_len_s)[mask_025])))
-    print('Found %d photons satisfying 0.40 keV cut; exposure = %.1fs'%(len(ph2),np.sum(np.asarray(gti_len_s_40)[mask_040])))
-    if usez:
-        print('Z-test 1: %.2f'%z2m(ph1,m=2)[-1])
-        if len(ph2)>0:
-            print('Z-test 2: %.2f'%z2m(ph2,m=2)[-1])
-        else:
-            print('Z-test 2: no photons!')
-        print('Z-test joint: %.2f'%z2m(np.append(ph1,ph2),m=2)[-1])
-    else:
-        print('H-test 1: %.2f'%hm(ph1))
-        if len(ph2)>0:
-            print('H-test 2: %.2f'%hm(ph2))
-        else:
-            print('H-test 2: no photons!')
-        print('H-test joint: %.2f'%hm(np.append(ph1,ph2)))
-
-
+    return sn,sn0,hs,ph_gti,list(pi_gti),gti_rts_s,gti_len_s,gti_t0_s,gti_t1_s
 
 if len(args.infile)==1:
     if args.infile[0].startswith('@'):
@@ -278,11 +332,13 @@ else:
     all_files = args.infile
 
 data = load_files(all_files)
+#print('There are %d GTIs.'%(len(data[-1])))
+#data = merge_gtis(data)
+#print('There are now %d GTIs.'%(len(data[-1])))
 data_diced = dice_gtis(data)
-#get_optimal_cuts(data_diced,usez=args.usez)
+#import sys; sys.exit(0)
 
 if args.gridsearch:
-    #all_emin = np.arange(0.24,1.0,0.01)
     all_emin = np.arange(max(0.24,args.emin),args.maxemin+0.005,0.01)
 elif args.coarsegridsearch:
     all_emin = np.arange(max(0.24,args.emin),2.0,0.1)
@@ -332,7 +388,9 @@ for emin in all_emin:
 
         pi_mask = (data[2]>emin*KEV_TO_PI) & (data[2]<emax*KEV_TO_PI)
         pred_rate = 0.05/10.0 # 2241
-        sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s = make_sn(data_diced,mask=pi_mask,rate=pred_rate,usez=args.usez)
+        sn,sn0,hs,ph_gti,pi_gti,gti_rts_s,gti_len_s,gti_t0_s,gti_t1_s = \
+            make_sn(data_diced,mask=pi_mask,rate=pred_rate,usez=args.usez,
+                    min_gti=args.mingti)
 
         exposure = np.cumsum(gti_len_s)
         #idx = np.searchsorted(exposure,np.arange(10)*1./10*exposure[-1])
@@ -395,6 +453,9 @@ for emin in all_emin:
             plt.title(args.name)
             plt.savefig('{}_profile.png'.format(args.outfile))
             plt.clf()
+
+            if args.writegti:
+                write_gtis(gti_t0_s[:Hmax],gti_t1_s[:Hmax],args.outfile)
             
         else:
             # store data for future comparison
@@ -412,7 +473,9 @@ if dosearch:
 
     pi_mask = (data[2]>eminbest*KEV_TO_PI) & (data[2]<emaxbest*KEV_TO_PI)
     pred_rate = 0.05/10.0 # 2241
-    sn,sn0,hs,ph_gti,gti_rts_s,gti_len_s = make_sn(data_diced,mask=pi_mask,rate=pred_rate,usez=args.usez)
+    sn,sn0,hs,ph_gti,pi_gti,gti_rts_s,gti_len_s,gti_t0_s,gti_t1_s = \
+        make_sn(data_diced,mask=pi_mask,rate=pred_rate,usez=args.usez,
+                min_gti=args.mingti)
 
     exposure = np.cumsum(gti_len_s)
 
@@ -487,9 +550,22 @@ if dosearch:
         exposure[Hmax]/1000,exposure[-1]/1000))
     print("   between {:0.2f} and {:0.2f} keV".format(eminbest,emaxbest))
     print("   for {} events".format(len(select_ph)))
+
+    plt.savefig('{}_profile.png'.format(args.outfile))
+
+    if args.savefile:
+        out_ph = np.concatenate(ph_gti[:Hmax])
+        out_pi = np.concatenate(pi_gti[:Hmax])
+        output = np.asarray([out_pi,out_ph]).transpose()
+        np.savetxt('%s_optimzed.evt.gz'%(args.outfile),
+                output,fmt='%04d %1.6f')
+
+    if args.writegti:
+        write_gtis(gti_t0_s[:Hmax],gti_t1_s[:Hmax],args.outfile)
     
 else:
     
     print("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
     print("   obtained in {:0.2f} ksec".format(exposure[Hmax]/1000))
     print("   for {} events".format(len(select_ph)))
+

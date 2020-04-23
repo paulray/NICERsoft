@@ -1,4 +1,6 @@
 # Byte-compiled / optimized / DLL files
+.DS_Store
+work/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -77,6 +79,7 @@ celerybeat-schedule
 
 # dotenv
 .env
+.vscode
 
 # virtualenv
 venv/

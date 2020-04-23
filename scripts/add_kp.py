@@ -50,7 +50,7 @@ def read_kpfiles_potsdam():
     return (kpmets,kpvals)
 
 def read_kp_GOF(fname):
-    dat = pyfits.getdata(fname,extname='KP')
+    dat = pyfits.getdata(fname,extname='NOAO_KP')
     return (dat['TIME'], dat['KP'])
 
 if __name__ == '__main__':
