@@ -105,15 +105,17 @@ def load_files(fnames):
     phases = deque()
     for fname in fnames:
         f = fits.open(fname)
-        tzero = f['gti']._header['TIMEZERO']
-        if f['gti']._header['CLOCKAPP']:
+        try:
+            tzero = f['gti']._header['TIMEZERO']
+        except KeyError:
             tzero = 0
         t0s = f['gti'].data.field('start') + tzero
         t1s = f['gti'].data.field('stop') + tzero
         for t0,t1 in zip(t0s,t1s):
             gtis.append([t0,t1])
-        tzero = f['events']._header['TIMEZERO']
-        if f['events']._header['CLOCKAPP']:
+        try:
+            tzero = f['events']._header['TIMEZERO']
+        except KeyError:
             tzero = 0
         times.append(f['events'].data.field('time') + tzero )
         pis.append(f['events'].data.field('pi'))
@@ -434,7 +436,7 @@ for emin in all_emin:
             
             plt.clf()
             nbins=args.nbins
-            select_ph = np.concatenate(ph_gti[:Hmax]).ravel()
+            select_ph = np.concatenate(ph_gti[:Hmax+1]).ravel()
             profbins = np.linspace(0.0,1.0,nbins+1,endpoint=True)
             profile, edges = np.histogram(select_ph,bins=profbins)
             bbins = np.concatenate((profbins, profbins[1:]+1.0, profbins[1:]+2.0))
@@ -455,7 +457,8 @@ for emin in all_emin:
             plt.clf()
 
             if args.writegti:
-                write_gtis(gti_t0_s[:Hmax],gti_t1_s[:Hmax],args.outfile)
+                print('exposure',exposure[Hmax])
+                write_gtis(gti_t0_s[:Hmax+1],gti_t1_s[:Hmax+1],args.outfile)
             
         else:
             # store data for future comparison
@@ -526,7 +529,7 @@ if dosearch:
     plt.clf()
     
     nbins=args.nbins
-    select_ph = np.concatenate(ph_gti[:Hmax]).ravel()
+    select_ph = np.concatenate(ph_gti[:Hmax+1]).ravel()
     profbins = np.linspace(0.0,1.0,nbins+1,endpoint=True)
     profile, edges = np.histogram(select_ph,bins=profbins)
     bbins = np.concatenate((profbins, profbins[1:]+1.0, profbins[1:]+2.0))
@@ -554,14 +557,14 @@ if dosearch:
     plt.savefig('{}_profile.png'.format(args.outfile))
 
     if args.savefile:
-        out_ph = np.concatenate(ph_gti[:Hmax])
-        out_pi = np.concatenate(pi_gti[:Hmax])
+        out_ph = np.concatenate(ph_gti[:Hmax+1])
+        out_pi = np.concatenate(pi_gti[:Hmax+1])
         output = np.asarray([out_pi,out_ph]).transpose()
         np.savetxt('%s_optimzed.evt.gz'%(args.outfile),
                 output,fmt='%04d %1.6f')
 
     if args.writegti:
-        write_gtis(gti_t0_s[:Hmax],gti_t1_s[:Hmax],args.outfile)
+        write_gtis(gti_t0_s[:Hmax+1],gti_t1_s[:Hmax+1],args.outfile)
     
 else:
     
