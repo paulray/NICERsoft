@@ -51,7 +51,6 @@ parser.add_argument("--minexp", help="Minimum exposure allowed for a candidate c
 parser.add_argument("--mingti", help="Minimum GTI length to allow -- short GTIs don't give a reliable count rate. (seconds, default=10.0)", type=float, default=10.0)
 parser.add_argument("--nopulsetest", help="Only use the predicted S/N to determine the GTIs to use.", action="store_true",default=False)
 parser.add_argument("--verbosity", help="Verbosity (0=quiet,1=default,2=verbose,3=very verbose).", type=int, default=1)
-parser.add_argument("--savefile", help="Saving optimized event file", action="store_true",default=False)
 parser.add_argument("--writegti", help="Write out the GTI corresponding to the event selection.", action="store_true",default=False)
 parser.add_argument("--writeevents", help="Write out the corresponding event file", action="store_true",default=False)
 parser.add_argument("--remote", help="Disable interactive plotting backend", action="store_true",default=False)
@@ -174,13 +173,6 @@ def write_gtis(gti_start, gti_stop, outfile, merge_gti=False):
     out_gtis = np.asarray(out_gtis)
     np.savetxt("{}_OptimalGTI.txt".format(outfile),out_gtis)
 
-    # Checking the presence of HEASOFT
-    try:
-        check_call('nicerversion',env=os.environ)
-    except:
-        print("You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!", file=sys.stderr)
-        return
-
     # Checking the presence of gti header and columns in data/
     gticolumns = os.path.join(datadir,'gti_columns.txt')
     gtiheader = os.path.join(datadir,'gti_header.txt')
@@ -193,10 +185,6 @@ def write_gtis(gti_start, gti_stop, outfile, merge_gti=False):
             if float(toks[1].strip().split()[0]) != 0:
                 print('WARNING! TIMEZERO in output GTI not consistent.')
             break
-
-    if not os.path.isfile(gtiheader) or not os.path.isfile(gticolumns):
-        log.error('The files gti_header.txt or gti_columns.txt are missing.  Check the {} directory'.format(os.path.abspath(datadir)))
-        exit()
         
     ## Making the GTI file from the text file
     log.info("Making the GTI file gti.fits from the GTI data textfile")
@@ -332,8 +320,6 @@ def make_sn(data,mask=None,rate=0.1,min_gti=10,usez=False,snonly=False):
     return sn,sn0,hs,ph_gti,list(pi_gti),gti_rts_s,gti_len_s,gti_t0_s,gti_t1_s
 
 
-
-
 if len(args.infile)==1:
     if args.infile[0].startswith('@'):
         inputfile = args.infile[0].split('@')[1]
@@ -353,6 +339,22 @@ data_diced = dice_gtis(data)
 
 if args.writeevents:
     args.writegti=True
+
+if args.writegti:
+    # Checking the presence of HEASOFT
+    try:
+        check_call('nicerversion',env=os.environ)
+    except:
+        print("You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!", file=sys.stderr)
+        exit()
+
+    # Checking the presence of gti header and columns in data/
+    gticolumns = os.path.join(datadir,'gti_columns.txt')
+    gtiheader = os.path.join(datadir,'gti_header.txt')
+    if not os.path.isfile(gtiheader) or not os.path.isfile(gticolumns):
+        log.error('The files gti_header.txt or gti_columns.txt are missing.  Check the {} directory'.format(os.path.abspath(datadir)))
+        exit()
+
 
 if args.gridsearch:
     all_emin = np.arange(max(0.24,args.emin),args.maxemin+0.005,0.01)
@@ -572,15 +574,6 @@ if dosearch:
         exposure[Hmax]/1000,exposure[-1]/1000))
     print("   between {:0.2f} and {:0.2f} keV".format(eminbest,emaxbest))
     print("   for {} events".format(len(select_ph)))
-
-    plt.savefig('{}_profile.png'.format(args.outfile))
-
-    if args.savefile:
-        out_ph = np.concatenate(ph_gti[:Hmax+1])
-        out_pi = np.concatenate(pi_gti[:Hmax+1])
-        output = np.asarray([out_pi,out_ph]).transpose()
-        np.savetxt('%s_optimzed.evt.gz'%(args.outfile),
-                output,fmt='%04d %1.6f')
 
     if args.writegti:
         write_gtis(gti_t0_s[:Hmax+1],gti_t1_s[:Hmax+1],args.outfile)
