@@ -53,6 +53,7 @@ parser.add_argument("--nopulsetest", help="Only use the predicted S/N to determi
 parser.add_argument("--verbosity", help="Verbosity (0=quiet,1=default,2=verbose,3=very verbose).", type=int, default=1)
 parser.add_argument("--savefile", help="Saving optimized event file", action="store_true",default=False)
 parser.add_argument("--writegti", help="Write out the GTI corresponding to the event selection.", action="store_true",default=False)
+parser.add_argument("--writeevents", help="Write out the corresponding event file", action="store_true",default=False)
 parser.add_argument("--remote", help="Disable interactive plotting backend", action="store_true",default=False)
 parser.add_argument("--usez", help="Use Z^2_2 test instead of H test.", action="store_true",default=False)
 parser.add_argument("--nbins", help="Number of bins for plotting pulse profile (default=16)", type=int, default=16)
@@ -173,7 +174,6 @@ def write_gtis(gti_start, gti_stop, outfile, merge_gti=False):
     out_gtis = np.asarray(out_gtis)
     np.savetxt("{}_OptimalGTI.txt".format(outfile),out_gtis)
 
-    ################################################
     # Checking the presence of HEASOFT
     try:
         check_call('nicerversion',env=os.environ)
@@ -181,8 +181,6 @@ def write_gtis(gti_start, gti_stop, outfile, merge_gti=False):
         print("You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!", file=sys.stderr)
         return
 
-    ### CODE FROM CR_CUT TO WRITE GTI TXT FILE TO FITS FILE    
-    #######################################################
     # Checking the presence of gti header and columns in data/
     gticolumns = os.path.join(datadir,'gti_columns.txt')
     gtiheader = os.path.join(datadir,'gti_header.txt')
@@ -199,11 +197,21 @@ def write_gtis(gti_start, gti_stop, outfile, merge_gti=False):
     if not os.path.isfile(gtiheader) or not os.path.isfile(gticolumns):
         log.error('The files gti_header.txt or gti_columns.txt are missing.  Check the {} directory'.format(os.path.abspath(datadir)))
         exit()
-    ################################################
+        
     ## Making the GTI file from the text file
     log.info("Making the GTI file gti.fits from the GTI data textfile")
     cmd = ['ftcreate', '{}'.format(gticolumns), '{}_OptimalGTI.txt'.format(outfile), '{}_OptimalGTI.fits'.format(outfile), 'headfile={}'.format(gtiheader), 'extname="GTI"', 'clobber=yes']
     runcmd(cmd)
+
+    ## Extracting the new event file using the new GTI file created
+    if args.writeevents:
+        if len(args.infile)==1:
+            eventfile = args.infile[0]
+            outevtfile = "{}_OptimalEvents.fits".format(outfile)
+            cmd = ['niextract-events', '{0}'.format(eventfile), '{0}'.format(outevtfile), 'timefile={}_OptimalGTI.fits'.format(outfile), 'clobber=yes']
+            runcmd(cmd)
+        else:
+            log.warning("Cannot create events file. niextract-events needs a single file or a list of events files (@list.txt)")
 
 def ensemble_htest(phases,slices,m=20,c=4):
     """ Calculate H-test statistic for subsets of a set of phases.
@@ -323,6 +331,9 @@ def make_sn(data,mask=None,rate=0.1,min_gti=10,usez=False,snonly=False):
 
     return sn,sn0,hs,ph_gti,list(pi_gti),gti_rts_s,gti_len_s,gti_t0_s,gti_t1_s
 
+
+
+
 if len(args.infile)==1:
     if args.infile[0].startswith('@'):
         inputfile = args.infile[0].split('@')[1]
@@ -339,6 +350,9 @@ data = load_files(all_files)
 #print('There are now %d GTIs.'%(len(data[-1])))
 data_diced = dice_gtis(data)
 #import sys; sys.exit(0)
+
+if args.writeevents:
+    args.writegti=True
 
 if args.gridsearch:
     all_emin = np.arange(max(0.24,args.emin),args.maxemin+0.005,0.01)
@@ -426,11 +440,12 @@ for emin in all_emin:
                 plt.plot(gti_rts_s,hsig,label='Z-test significance')
             else:
                 plt.plot(gti_rts_s,hsig,label='H-test significance')
-            plt.axvline(gti_rts_s[amax],color='k',ls='--')
-            plt.axvline(gti_rts_s[Hmax],color='r',ls='--')
+            plt.axvline(gti_rts_s[amax],color='k',ls='--',label='No  H-test (sig={:0.3f})'.format(hsig[amax]))
+            if not args.nopulsetest:
+                plt.axvline(gti_rts_s[Hmax],color='r',ls='--',label='Max H-test (sig={:0.3f})'.format(hsig[Hmax]))
             plt.xlabel('Background Rate (ct/s)')
             plt.ylabel('Significance (sigma)')
-            plt.title('{} - [{},{}]'.format(args.name,emin,emax))
+            plt.title('{} - [{:0.2f},{:0.2f}]'.format(args.name,emin,emax))
             plt.legend(loc='lower right')
             plt.savefig('{}_sig.png'.format(args.outfile))
             
@@ -446,18 +461,20 @@ for emin in all_emin:
                          marker ='',
                          drawstyle='steps-mid',
                          linewidth=1.5,
-                         color='k'
+                         color='k',
+                         label= '{:0.2f}-{:0.2f} keV'.format(emin,emax)
             )
             #plt.subplots_adjust(left=0.15, right=0.93)  #, bottom=0.1)
+            plt.tight_layout()
             plt.xlim((0.0,2.0))
             plt.ylabel('Photons')
             plt.xlabel('Phase')
             plt.title(args.name)
+            plt.legend(loc='upper left')
             plt.savefig('{}_profile.png'.format(args.outfile))
             plt.clf()
 
             if args.writegti:
-                print('exposure',exposure[Hmax])
                 write_gtis(gti_t0_s[:Hmax+1],gti_t1_s[:Hmax+1],args.outfile)
             
         else:
@@ -508,11 +525,12 @@ if dosearch:
         plt.plot(gti_rts_s,hsig,label='Z-test significance')
     else:
         plt.plot(gti_rts_s,hsig,label='H-test significance')
-    plt.axvline(gti_rts_s[amax],color='k',ls='--')
-    plt.axvline(gti_rts_s[Hmax],color='r',ls='--')
+    plt.axvline(gti_rts_s[amax],color='k',ls='--',label='No  H-test (sig={:0.3f})'.format(hsig[amax]))
+    if not args.nopulsetest:
+        plt.axvline(gti_rts_s[Hmax],color='r',ls='--',label='Max H-test (sig={:0.3f})'.format(hsig[Hmax]))
     plt.xlabel('Background Rate (ct/s)')
     plt.ylabel('Significance (sigma)')
-    plt.title('{} - [{},{}]'.format(args.name,eminbest,emaxbest))
+    plt.title('{} - [{:0.2f},{:0.2f}]'.format(args.name,eminbest,emaxbest))
     plt.legend(loc='lower right')
     plt.savefig('{}_sig_bestrange.png'.format(args.outfile))
 
@@ -539,7 +557,8 @@ if dosearch:
                  marker ='',
                  drawstyle='steps-mid',
                  linewidth=1.5,
-                 color='k'
+                 color='k',
+                 label= '{:0.2f}-{:0.2f} keV'.format(eminbest,emaxbest)
     )
     
     plt.xlim((0.0,2.0))
@@ -549,7 +568,7 @@ if dosearch:
     plt.savefig('{}_profile.png'.format(args.outfile))
 
     print("Maximum significance: {:0.3f} sigma".format(hbest))
-    print("   obtained in {:0.2f}/{:0.2f} ksec".format(
+    print("   obtained in {:0.2f} (out of {:0.2f} ksec)".format(
         exposure[Hmax]/1000,exposure[-1]/1000))
     print("   between {:0.2f} and {:0.2f} keV".format(eminbest,emaxbest))
     print("   for {} events".format(len(select_ph)))
@@ -569,6 +588,6 @@ if dosearch:
 else:
     
     print("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
-    print("   obtained in {:0.2f} ksec".format(exposure[Hmax]/1000))
+    print("   obtained in {:0.2f} ksec (out of {:0.2f} ksec)".format(exposure[Hmax]/1000,exposure[-1]/1000))
     print("   for {} events".format(len(select_ph)))
 
