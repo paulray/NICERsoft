@@ -205,7 +205,8 @@ for n,[no, row] in enumerate(source.iterrows()):
              continue
  
          # Set the archive
-         base = "ftp://legacy.gsfc.nasa.gov/nicer/data/.obs2validate/"
+         base = "ftp://heasarc.gsfc.nasa.gov/nicer/data/.obs2validate/"  ## TEAM ARCHIVE 
+         # base = "ftp://heasarc.gsfc.nasa.gov/nicer/data/obs/"          ## PUBLIC ARCHIVE
 
          # Select the date folder
          base += "{}_{:02d}/".format(dtime.year, dtime.month)
@@ -225,7 +226,7 @@ for n,[no, row] in enumerate(source.iterrows()):
          
          if not matchedfiles or args.clobber:
              # Build the download command
-             cmd = "curl --retry 10 {0}{1} --create-dirs -o {1}".format(base, target)
+             cmd = "curl --retry 10 {0}{1} --ftp-ssl -k --create-dirs -o {1}".format(base, target)
              log.info("{:3d} / {:3d} :: Trying: curl obsid {}.tar".format(n+1, len(source), obsid))
              os.system(cmd)
 
