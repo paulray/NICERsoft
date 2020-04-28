@@ -404,7 +404,7 @@ for emin in all_emin:
                     print('    excluding emin={:0.2f}, emax={:0.2f} because smaller than specified minbw'.format(emin,emax))
                 continue
 
-        pi_mask = (data[2]>emin*KEV_TO_PI) & (data[2]<emax*KEV_TO_PI)
+        pi_mask = (data[2]>=int(round(emin*KEV_TO_PI))) & (data[2]<int(round(emax*KEV_TO_PI)))
         pred_rate = 0.05/10.0 # 2241
         sn,sn0,hs,ph_gti,pi_gti,gti_rts_s,gti_len_s,gti_t0_s,gti_t1_s = \
             make_sn(data_diced,mask=pi_mask,rate=pred_rate,usez=args.usez,
@@ -493,7 +493,7 @@ if dosearch:
 
     # recreate data -- really need to encapsulate this!
 
-    pi_mask = (data[2]>eminbest*KEV_TO_PI) & (data[2]<emaxbest*KEV_TO_PI)
+    pi_mask = (data[2]>=int(round(eminbest*KEV_TO_PI))) & (data[2]<int(round(emaxbest*KEV_TO_PI)))
     pred_rate = 0.05/10.0 # 2241
     sn,sn0,hs,ph_gti,pi_gti,gti_rts_s,gti_len_s,gti_t0_s,gti_t1_s = \
         make_sn(data_diced,mask=pi_mask,rate=pred_rate,usez=args.usez,
