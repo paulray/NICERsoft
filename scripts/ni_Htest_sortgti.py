@@ -33,10 +33,11 @@ parser.add_argument("infile", help="file or text file with list of event file", 
 parser.add_argument("outfile", help="name for output files")
 parser.add_argument("--emin", help="Minimum energy to include (keV, default=0.25)", type=float, default=0.25)
 parser.add_argument("--emax", help="Maximum energy to include (keV, default=2.00)", type=float, default=2.00)
-parser.add_argument("--maxemin", help="Maximum emin to use in fine grid search (keV, default=1.00)", type=float, default=1.00)
-parser.add_argument("--minemax", help="Minimum emax to use in fine grid search (keV, default=1.00)", type=float, default=1.00)
+parser.add_argument("--maxemin", help="Maximum emin to use in grid search (keV, default=1.00)", type=float, default=1.00)
+parser.add_argument("--minemax", help="Minimum emax to use in grid search (keV, default=1.00)", type=float, default=1.00)
+parser.add_argument("--delta_emin", help="Step size of the lower bound of the search grid (keV, default=0.01)", type=float, default=0.01)
+parser.add_argument("--delta_emax", help="Step size of the lower bound of the search grid (keV, default=0.02)", type=float, default=0.02)
 parser.add_argument("--gridsearch", help="Search over energies to find max H-test", action="store_true",default=False)
-parser.add_argument("--coarsegridsearch", help="Search over energies to find max H-test", action="store_true",default=False)
 parser.add_argument("--minbw", help="Minimum fractional bandwidth used during energy grid searching.  E.g., --minbw=0.5 would allow a 1.0 to 1.5 (50%%) keV energy range, but not a 2.0 to 2.2 (10%%) range.", type=float,default=None)
 parser.add_argument("--minexp", help="Minimum exposure allowed for a candidate cut, expressed as a fraction of the total.  E.g., --minexp=0.2 would allow a cut that throws away 80%% of the GTI.", type=float,default=None)
 parser.add_argument("--mingti", help="Minimum GTI length to allow -- short GTIs don't give a reliable count rate. (seconds, default=10.0)", type=float, default=10.0)
@@ -433,16 +434,13 @@ if args.writegti:
 
 
 if args.gridsearch:
-    all_emin = np.arange(max(0.24,args.emin),args.maxemin+0.005,0.01)
-elif args.coarsegridsearch:
-    all_emin = np.arange(max(0.24,args.emin),2.0,0.1)
+    all_emin = np.arange(args.emin,args.maxemin+0.005,args.delta_emin)
 else:
     all_emin = np.array([args.emin])
 
 hbest = 0.0
 eminbest = 0.0
 emaxbest = 100.0
-dosearch = args.gridsearch or args.coarsegridsearch
 
 eminlist = []
 emaxlist = []
@@ -451,21 +449,16 @@ hgrid = []
 for emin in all_emin:
     
     if args.gridsearch:
-        delta_e = 0.02
-        all_emax = np.arange(args.minemax,min(3.0,args.emax)+0.005,delta_e)
-    elif args.coarsegridsearch:
-        delta_e = 0.1
-        hilimit = min(7.0,args.emax)
-        all_emax = np.arange(emin+0.1,hilimit+0.01,delta_e)
+        all_emax = np.arange(args.minemax,args.emax+0.005,args.delta_emax)
     else:
-        delta_e = 0
+        args.delta_emax = 0
         all_emax = np.array([args.emax])
 
     if len(all_emax) == 0:
         break
 
     if (args.verbosity >= 1):
-        print("emin={:0.2f}, emax ranging from {:0.2f}-{:0.2f} by {:0.2f} keV".format(emin,all_emax[0],all_emax[-1],delta_e))
+        print("emin={:0.2f}, emax ranging from {:0.2f}-{:0.2f} by {:0.2f} keV".format(emin,all_emax[0],all_emax[-1],args.delta_emax))
         
 
     for emax in all_emax:
@@ -474,7 +467,7 @@ for emin in all_emin:
             print("    emin={:0.2f}, emax={:0.2f}".format(emin,emax))
 
         # test for energy bandwidth
-        if dosearch and (args.minbw is not None):
+        if args.gridsearch and (args.minbw is not None):
             if emax/emin-1 < args.minbw:
                 if (args.verbosity >= 2):
                     print('    excluding emin={:0.2f}, emax={:0.2f} because smaller than specified minbw'.format(emin,emax))
@@ -496,7 +489,7 @@ for emin in all_emin:
         else:
             Hmax = np.argmax(hs)
         
-        if not dosearch:
+        if not args.gridsearch:
             # Make output plots after single iteration.
             plt.figure(5); plt.clf()
             hsig = get_sigma(hs,usez=args.usez)
@@ -552,7 +545,7 @@ for emin in all_emin:
                 eminbest=emin
                 emaxbest=emax
 
-if dosearch:
+if args.gridsearch:
 
     # recreate data optimization -- really need to encapsulate this!
 
