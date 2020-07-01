@@ -20,7 +20,6 @@ from pint.eventstats import h2sig,hm,sig2sigma
 import scipy.stats
 from scipy.stats import chi2
 
-#from nicer.values import *
 from nicer.values import datadir,KEV_TO_PI
 
 desc= """
@@ -28,14 +27,6 @@ Read one or more event files
 to sort GTI by background rate 
 and evaluate H-test
 """
-
-def local_h2sig(h):
-    h = np.atleast_1d(h)
-    rvals = np.zeros_like(h)
-    for ix,x in enumerate(h):
-        if x > 0:
-            rvals[ix] = h2sig(x)
-    return rvals
 
 parser = argparse.ArgumentParser(description = desc)
 parser.add_argument("infile", help="file or text file with list of event file", nargs='+')
@@ -73,21 +64,110 @@ plt.rc('axes', linewidth=1.5)
 plt.rc('xtick.major', size=4, width=1.5)
 plt.rc('ytick.major', size=4, width=1.5)
 
-def merge_gtis(data):
-    # gti starts and stops
-    gti_start = data[-2]
-    gti_stop = data[-1]
-    # quick and dirty loop -- array
-    out_gtis = deque()
-    out_gtis.append([gti_start[0],gti_stop[0]])
-    for start,stop in zip(gti_start[1:],gti_stop[1:]):
-        # if start is same value is last stop, just update
-        if start == out_gtis[-1][1]:
-            out_gtis[-1][1] = stop
-        else:
-            out_gtis.append([start,stop])
-    t0s,t1s = np.asarray(out_gtis).transpose()
-    return data[0],data[1],data[2],t0s,t1s
+def local_h2sig(h):
+    h = np.atleast_1d(h)
+    rvals = np.zeros_like(h)
+    for ix,x in enumerate(h):
+        if x > 0:
+            rvals[ix] = h2sig(x)
+    return rvals
+
+def get_sigma(hs,usez=False):
+    if usez:
+        return np.atleast_1d(sig2sigma(chi2.sf(hs,4)))
+    else:
+        return local_h2sig(hs)
+
+class Data(object):
+    """ Encapsulate data from one or more event files.
+    
+    This is simply intended to replace the tuple that's being used
+    with something a little more descriptive."""
+
+    def __init__(self,data_tuple):
+        """ data_tuple = [times,phases,PIs,gti_starts,gti_stops]"""
+
+        self.times = data_tuple[0]
+        self.phases = data_tuple[1]
+        self.pis = data_tuple[2]
+        a = np.argsort(data_tuple[3])
+        self.gti_t0s = data_tuple[3][a]
+        self.gti_t1s = data_tuple[4][a]
+
+    def get_contiguous_gtis(self):
+        """ Return a Data object with any contiguous GTIs merged."""
+        # gti starts and stops
+        gti_start = self.gti_t0s
+        gti_stop = self.gti_t1s
+        # quick and dirty loop -- array
+        out_gtis = deque()
+        out_gtis.append([gti_start[0],gti_stop[0]])
+        for start,stop in zip(gti_start[1:],gti_stop[1:]):
+            # if start is same value is last stop, just update
+            if start == out_gtis[-1][1]:
+                out_gtis[-1][1] = stop
+            else:
+                out_gtis.append([start,stop])
+        t0s,t1s = np.asarray(out_gtis).transpose()
+        return Data((self.times,self.phases,self.pis,t0s,t1s))
+
+    def dice_gtis(self,tmax=100):
+        """ Break GTIs into small pieces to handle rate variations.
+        
+        tmax -- target longest GTI (s)"""
+        new_t0s = deque()
+        new_t1s = deque()
+        for t0,t1 in zip(self.gti_t0s,self.gti_t1s):
+            dt = t1-t0
+            if dt < tmax:
+                new_t0s.append(t0)
+                new_t1s.append(t1)
+            else:
+                # break up GTI in such a way to avoid losing time (to tmin) 
+                # and to avoid having pieces longer than tmax
+                npiece = int(np.floor(dt/tmax))+1
+                new_edges = np.linspace(t0,t1,npiece+1)
+                for it0,it1 in zip(new_edges[:-1],new_edges[1:]):
+                    new_t0s.append(it0)
+                    new_t1s.append(it1)
+
+        return Data((self.times,self.phases,self.pis,
+            np.asarray(new_t0s),np.asarray(new_t1s)))
+
+    def apply_min_gti(self,min_gti=10):
+        """ Return a new data object with all short GTIs removed.
+        
+        All events lying in deleted GTIs are likewise removed."""
+
+        # determine which GTI each event belongs to
+        gti_idx = np.searchsorted(self.gti_t1s,self.times)
+        # length of GTI for each event
+        gti_len = (self.gti_t1s-self.gti_t0s)[gti_idx]
+        mask = gti_len >= min_gti
+        gti_mask = (self.gti_t1s-self.gti_t0s) >= min_gti
+        return Data((self.times[mask],self.phases[mask],self.pis[mask],
+            self.gti_t0s[gti_mask],self.gti_t1s[gti_mask]))
+
+    def apply_pi_mask(self,emin,emax):
+        """ Return a mask selecting only events satisfying emin <= E < emax.
+        """
+        mask = (self.pis >= int(round(emin*KEV_TO_PI))) & \
+               (self.pis < int(round(emax*KEV_TO_PI)))
+        return Data((self.times[mask],self.phases[mask],self.pis[mask],
+            self.gti_t0s,self.gti_t1s))
+
+    def get_gti_data(self):
+        """ Return ..."""
+        pass
+
+    def check_gti(self):
+        """ Sanity check method to verify all times lie within a GTI.
+        """
+        gti_idx = np.searchsorted(self.gti_t1s,self.times)
+        m1 = self.times >= self.gti_t0s[gti_idx]
+        m2 = self.times <  self.gti_t1s[gti_idx]
+        return np.all(m1 & m2)
+
 
 def runcmd(cmd):
     # CMD should be a list of strings since it is not processed by a shell
@@ -133,7 +213,8 @@ def load_files(fnames):
         phases = None
     t0s,t1s = np.asarray(list(gtis)).transpose()
 
-    return times,phases,pis,t0s,t1s
+    #return times,phases,pis,t0s,t1s
+    return Data((times,phases,pis,t0s,t1s))
 
 def dice_gtis(data,tmax=100):
     """ Break larger GTIs into small pieces to handle rate variations."""
@@ -201,7 +282,7 @@ def write_gtis(gti_start, gti_stop, outfile, merge_gti=False):
         else:
             log.warning("Cannot create events file. niextract-events needs a single file or a list of events files (@list.txt)")
 
-def ensemble_htest(phases,slices,m=20,c=4):
+def ensemble_htest(phases,indices,m=20,c=4):
     """ Calculate H-test statistic for subsets of a set of phases.
         Cache intermediate products to avoid O(N^2) complexity!
     """
@@ -212,20 +293,17 @@ def ensemble_htest(phases,slices,m=20,c=4):
         cache[2*i] = np.cos((i+1)*phases)
         cache[2*i+1] = np.sin((i+1)*phases)
 
-    rvals = np.empty(len(slices))
+    rvals = np.zeros(len(indices))
     penalty = c*np.arange(0,m)
-    for isl,sl in enumerate(slices):
-        x = cache[:,sl]
-        nph = x.shape[1]
-        if nph == 0:
-            rvals[isl] = 0.01
-            continue
-        t = np.sum(cache[:,sl],axis=1)**2
-        t = np.cumsum(t[::2] + t[1::2])*(2./nph)
-        rvals[isl] = np.max(t-penalty)
+    idx_mask = indices>0
+    np.cumsum(cache,axis=1,out=cache)
+    t = cache[:,indices[idx_mask>0]-1]**2
+    t = np.cumsum(t[::2,...] + t[1::2,...],axis=0)*(2./indices[idx_mask])
+    rvals[idx_mask] = np.max(t-penalty[:,None],axis=0)
+
     return rvals
 
-def ensemble_ztest(phases,slices,m=2):
+def ensemble_ztest(phases,indices,m=2):
     """ Calculate H-test statistic for subsets of a set of phases.
         Cache intermediate products to avoid O(N^2) complexity!
     """
@@ -236,19 +314,16 @@ def ensemble_ztest(phases,slices,m=2):
         cache[2*i] = np.cos((i+1)*phases)
         cache[2*i+1] = np.sin((i+1)*phases)
 
-    rvals = np.empty(len(slices))
-    for isl,sl in enumerate(slices):
-        x = cache[:,sl]
-        nph = x.shape[1]
-        if nph == 0:
-            rvals[isl] = 0.01
-            continue
-        t = np.sum(cache[:,sl],axis=1)**2
-        t = np.sum(t[::2] + t[1::2])*(2./nph)
-        rvals[isl] = t
+    rvals = np.zeros(len(indices))
+    idx_mask = indices>0
+    np.cumsum(cache,axis=1,out=cache)
+    t = cache[:,indices[idx_mask>0]-1]**2
+    t = np.sum(t[::2,...] + t[1::2,...],axis=0)*(2./indices[idx_mask])
+    rvals[idx_mask] = t
+
     return rvals
 
-def make_sn(data,mask=None,rate=0.1,min_gti=10,usez=False,snonly=False):
+def make_sn(data,rate=0.1,usez=False,snonly=False,minexp=None):
     """ data -- output of load_local
         mask -- optional mask to select events (e.g. on PI)
         rate -- assumed rate for S/N calculation in ct/sec
@@ -256,24 +331,25 @@ def make_sn(data,mask=None,rate=0.1,min_gti=10,usez=False,snonly=False):
         usez -- use Z^2 test instead of H test
         snonly -- skip computation of pulsed statistic, only do S/N
     """
-    times,phases,pis,t0s,t1s = data
-    if mask is not None:
-        times = times[mask]
-        phases = phases[mask]
-        pis = pis[mask]
+    #times,phases,pis,t0s,t1s = data
+    times = data.times
+    phases = data.phases
+    pis = data.pis
+    t0s = data.gti_t0s
+    t1s = data.gti_t1s
+
     # determine which gti each event belongs to
     gti_idx = np.searchsorted(t1s,times)
     # count events in each gti
     gti_cts = np.bincount(gti_idx,minlength=len(t1s))
     gti_len = t1s-t0s
 
-    mask = gti_len > min_gti
-    rates = (gti_cts / gti_len)[mask]
+    rates = (gti_cts / gti_len)
     a = np.argsort(rates)
-    gti_t0_s = t0s[mask][a]
-    gti_t1_s = t1s[mask][a]
-    gti_len_s = gti_len[mask][a]
-    gti_cts_s = gti_cts[mask][a]
+    gti_t0_s = t0s[a]
+    gti_t1_s = t1s[a]
+    gti_len_s = gti_len[a]
+    gti_cts_s = gti_cts[a]
     gti_rts_s = gti_cts_s/gti_len_s
 
     sn = rate*np.cumsum(gti_len_s)/np.sqrt(np.cumsum(gti_cts_s)+rate*gti_len_s)
@@ -288,8 +364,6 @@ def make_sn(data,mask=None,rate=0.1,min_gti=10,usez=False,snonly=False):
     for i,ct in enumerate(gti_cts):
         pi_gti.append(pis[counter:counter+ct])
         counter += ct
-    # apply mask
-    pi_gti = [pi_gti[i] for i,imask in enumerate(mask) if imask]
     # apply sorting
     pi_gti = [pi_gti[i] for i in a]
 
@@ -299,23 +373,27 @@ def make_sn(data,mask=None,rate=0.1,min_gti=10,usez=False,snonly=False):
         for i,ct in enumerate(gti_cts):
             ph_gti.append(phases[counter:counter+ct])
             counter += ct
-        # apply mask
-        ph_gti = [ph_gti[i] for i,imask in enumerate(mask) if imask]
         # apply sorting
         ph_gti = [ph_gti[i] for i in a]
         # make a set of slices
         nph = np.cumsum([len(phg) for phg in ph_gti])
-        slices = [slice(0,n) for n in nph]
-        assert(len(slices)==len(ph_gti))
         # calculate H test
         if usez:
-            hs = ensemble_ztest(np.concatenate(ph_gti),slices)
+            hs = ensemble_ztest(np.concatenate(ph_gti),nph)
         else:
-            hs = ensemble_htest(np.concatenate(ph_gti),slices)
+            hs = ensemble_htest(np.concatenate(ph_gti),nph)
 
     else:
         hs = None
         ph_gti = None
+
+    if minexp is not None:
+        exposure = np.cumsum(gti_len_s)
+        # depress S/N for values that do not satisfy eposure cuts
+        mask = exposure/exposure[-1] < minexp
+        sn[mask] = 0
+        sn0[mask] = 0
+        hs[mask] = 0
 
     return sn,sn0,hs,ph_gti,list(pi_gti),gti_rts_s,gti_len_s,gti_t0_s,gti_t1_s
 
@@ -331,11 +409,9 @@ else:
     all_files = args.infile
 
 data = load_files(all_files)
-#print('There are %d GTIs.'%(len(data[-1])))
-#data = merge_gtis(data)
-#print('There are now %d GTIs.'%(len(data[-1])))
-data_diced = dice_gtis(data)
-#import sys; sys.exit(0)
+data_diced = data.dice_gtis(tmax=100)
+data_diced = data_diced.apply_min_gti(args.mingti)
+assert(data_diced.check_gti())
 
 if args.writeevents:
     args.writegti=True
@@ -404,28 +480,13 @@ for emin in all_emin:
                     print('    excluding emin={:0.2f}, emax={:0.2f} because smaller than specified minbw'.format(emin,emax))
                 continue
 
-        pi_mask = (data[2]>emin*KEV_TO_PI) & (data[2]<emax*KEV_TO_PI)
+        local_data = data_diced.apply_pi_mask(emin,emax)
         pred_rate = 0.05/10.0 # 2241
         sn,sn0,hs,ph_gti,pi_gti,gti_rts_s,gti_len_s,gti_t0_s,gti_t1_s = \
-            make_sn(data_diced,mask=pi_mask,rate=pred_rate,usez=args.usez,
-                    min_gti=args.mingti)
-
+            make_sn(local_data,rate=pred_rate,usez=args.usez,
+                    minexp=args.minexp)
         exposure = np.cumsum(gti_len_s)
-        #idx = np.searchsorted(exposure,np.arange(10)*1./10*exposure[-1])
-        #print(gti_rts_s[idx])
 
-        if args.minexp is not None:
-            # depress S/N for values that do not satisfy eposure cuts
-            mask = exposure/exposure[-1] < args.minexp
-            sn[mask] = 0
-            sn0[mask] = 0
-            hs[mask] = 0
-
-        if args.usez:
-            hsig = sig2sigma(chi2.sf(hs,4))
-        else:
-            hsig = local_h2sig(hs)
-        
         # scale exposure to the expected S/N
         amax = np.argmax(sn)
         exposure_scale = sn[amax]/exposure[amax]**0.5
@@ -433,11 +494,12 @@ for emin in all_emin:
         if args.nopulsetest:
             Hmax = amax
         else:
-            Hmax = np.argmax(hsig)
+            Hmax = np.argmax(hs)
         
         if not dosearch:
             # Make output plots after single iteration.
             plt.figure(5); plt.clf()
+            hsig = get_sigma(hs,usez=args.usez)
             if args.usez:
                 plt.plot(gti_rts_s,hsig,label='Z-test significance')
             else:
@@ -483,35 +545,24 @@ for emin in all_emin:
             # store data for future comparison
             eminlist.append(emin)
             emaxlist.append(emax)
-            hgrid.append(hsig[Hmax])
-            if hsig[Hmax]>=hbest:
-                hbest=hsig[Hmax]
+            hsig = get_sigma(hs[Hmax],usez=args.usez)[0]
+            hgrid.append(hsig)
+            if hsig>=hbest:
+                hbest=hsig
                 eminbest=emin
                 emaxbest=emax
 
 if dosearch:
 
-    # recreate data -- really need to encapsulate this!
+    # recreate data optimization -- really need to encapsulate this!
 
-    pi_mask = (data[2]>eminbest*KEV_TO_PI) & (data[2]<emaxbest*KEV_TO_PI)
+    local_data = data_diced.apply_pi_mask(eminbest,emaxbest)
     pred_rate = 0.05/10.0 # 2241
     sn,sn0,hs,ph_gti,pi_gti,gti_rts_s,gti_len_s,gti_t0_s,gti_t1_s = \
-        make_sn(data_diced,mask=pi_mask,rate=pred_rate,usez=args.usez,
-                min_gti=args.mingti)
-
+        make_sn(local_data,rate=pred_rate,usez=args.usez,
+                minexp=args.minexp)
     exposure = np.cumsum(gti_len_s)
-
-    if args.minexp is not None:
-        # depress S/N for values that do not satisfy eposure cuts
-        mask = exposure/exposure[-1] < args.minexp
-        sn[mask] = 0
-        sn0[mask] = 0
-        hs[mask] = 0
-
-    if args.usez:
-        hsig = sig2sigma(chi2.sf(hs,4))
-    else:
-        hsig = local_h2sig(hs)
+    hsig = get_sigma(hs,usez=args.usez)
     
     # scale exposure to the expected S/N
     amax = np.argmax(sn)
