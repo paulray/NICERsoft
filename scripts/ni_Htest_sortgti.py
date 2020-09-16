@@ -49,6 +49,7 @@ parser.add_argument("--remote", help="Disable interactive plotting backend", act
 parser.add_argument("--usez", help="Use Z^2_2 test instead of H test.", action="store_true",default=False)
 parser.add_argument("--nbins", help="Number of bins for plotting pulse profile (default=16)", type=int, default=16)
 parser.add_argument("--name", help="Pulsar name for output figure", type=str, default='')
+parser.add_argument("--txtoutput",help="Output a text summary of run to this file.", type=str,default=None)
 args = parser.parse_args()
 
 import matplotlib
@@ -533,6 +534,8 @@ for emin in all_emin:
 
             if args.writegti:
                 write_gtis(gti_t0_s[:Hmax+1],gti_t1_s[:Hmax+1],args.outfile)
+            eminbest = emin
+            emaxbest = emax
             
         else:
             # store data for future comparison
@@ -613,7 +616,7 @@ if args.gridsearch:
     plt.title(args.name)
     plt.savefig('{}_profile.png'.format(args.outfile))
 
-    print("Maximum significance: {:0.3f} sigma".format(hbest))
+    print("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
     print("   obtained in {:0.2f} (out of {:0.2f} ksec)".format(
         exposure[Hmax]/1000,exposure[-1]/1000))
     print("   between {:0.2f} and {:0.2f} keV".format(eminbest,emaxbest))
@@ -628,3 +631,24 @@ else:
     print("   obtained in {:0.2f} ksec (out of {:0.2f} ksec)".format(exposure[Hmax]/1000,exposure[-1]/1000))
     print("   for {} events".format(len(select_ph)))
 
+if args.txtoutput is not None:
+    a50 = int(round(len(gti_rts_s)*0.5))
+    a90 = int(round(len(gti_rts_s)*0.9))
+    # make output script
+    output = open(args.txtoutput,'w')
+    # write out invocation
+    output.write('ni_Htest_sortGTI.py invoked as follows: \n')
+    output.write(' '.join(sys.argv) + '\n')
+    # total exposure
+    output.write('Total exposure  : {:0.2f} kiloseconds.\n'.format(exposure[-1]/1000))
+    # optimal exposure time
+    output.write('Optimal exposure: {:0.2f} kiloseconds.\n'.format(exposure[Hmax]/1000))
+    # best test statistic
+    output.write('Exposure at 50%% : %.2f kilseconds.\n'%(exposure[a50]/1000))
+    output.write('Exposure at 90%% : %.2f kilseconds.\n'%(exposure[a90]/1000))
+    output.write('Optimal GTI count rate: %.3f cps.\n'%(gti_rts_s[Hmax]))
+    output.write('Median  GTI count rate: %.3f cps.\n'%(gti_rts_s[a50]))
+    output.write('90%%    GTI count rate: %.3f cps.\n'%(gti_rts_s[a90]))
+    output.write('Optimal TS (%s-test): %.2f (%.2f sigma).\n'%('Z' if args.usez else 'H',hs[Hmax],hsig[Hmax]))
+    output.write('Optimal energy range: %.2f to %.2f keV.\n'%(eminbest,emaxbest))
+    output.close()
