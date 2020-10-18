@@ -83,7 +83,7 @@ def plot_total_count_hist(etable, ax_rate, ax_counts):
 
     ax_counts.set_xlabel('DET_ID')
     ax_counts.set_ylabel('# of Events')
-    plot.locator_params(nticks = 20)
+    # plot.locator_params(nticks = 20)
     plot.title('Total (Filtered) Event Count by Detector')
     #total_counts.set_ylim([np.min(num_events)-20, np.max(num_events)+20])
 
@@ -194,13 +194,13 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0, noplot=False, plot_po
             plot.ylabel('c/s')
 
         ## Options for plot_all_spec
-        if plot_pos is "corner":
+        if plot_pos == "corner":
             plot.ylabel('c/s')
             plot.tick_params(axis='x',which='both',bottom='on',labelbottom='on')
-        if plot_pos is "left":
+        if plot_pos == "left":
             plot.ylabel('c/s')
             plot.tick_params(axis='x',which='both',labelbottom='off')
-        if plot_pos is "center":
+        if plot_pos == "center":
             plot.tick_params(axis='x',which='both',labelbottom='off')
 
 
@@ -304,16 +304,16 @@ def plot_energy_spec(etable,binscale=1.0,plot_pos=None):
         plot.ylabel('Counts/keV')
 
     ## Options for plot_all_spec
-    if plot_pos is "corner":
+    if plot_pos == "corner":
         plot.xlabel('Energy (keV)')
         plot.ylabel('Counts/keV')
         plot.tick_params(axis='x',which='both',bottom='on',labelbottom='on')
-    if plot_pos is "left":
+    if plot_pos == "left":
         plot.ylabel('Counts/keV')
         plot.tick_params(axis='x',which='both',labelbottom='off')
-    if plot_pos is "bottom":
+    if plot_pos == "bottom":
         plot.xlabel('Energy (keV)')
-    if plot_pos is "center":
+    if plot_pos == "center":
         plot.tick_params(axis='x',which='both',labelbottom='off')
 
 
