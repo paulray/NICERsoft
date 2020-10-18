@@ -83,7 +83,7 @@ def plot_total_count_hist(etable, ax_rate, ax_counts):
 
     ax_counts.set_xlabel('DET_ID')
     ax_counts.set_ylabel('# of Events')
-    # plot.locator_params(nticks = 20)
+    plot.locator_params(nbins = 20)
     plot.title('Total (Filtered) Event Count by Detector')
     #total_counts.set_ylim([np.min(num_events)-20, np.max(num_events)+20])
 
