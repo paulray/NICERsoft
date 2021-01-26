@@ -430,7 +430,7 @@ def pulse_profile(ax, etable, args):
     from astropy.time import TimeDelta
     import pint.toa, pint.models
     from pint.plot_utils import phaseogram_binned
-    from pint.observatory.nicer_obs import NICERObs
+    from pint.observatory.satellite_obs import NICERObs
     from pint.eventstats import hm
 
     ### Make arguments for parfile and orbfile and only do this if both are present
@@ -438,7 +438,7 @@ def pulse_profile(ax, etable, args):
                                                                   etable.meta['INSTRUME']))
     # Instantiate NICERObs once so it gets added to the observatory registry
     log.info('Setting up NICER observatory')
-    NICERObs(name='NICER',FPorbname=args.orb)
+    NICERObs('NICER', args.orb)
 
     log.info('Reading model from PARFILE')
     # Load PINT model objects
