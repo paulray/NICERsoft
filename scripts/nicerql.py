@@ -392,13 +392,11 @@ if args.map:
     #     figure3 = cartography(hkmet, hkovershoots, args, hkundershoots,
     #         filttable, mktable, gtitable)
     
-    try:
-        figure3 = cartography(filttable, mktable, gtitable, args)
-        if args.save:
-            log.info('Writing MAP {0}'.format(basename))
-            figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
-    except:
-        log.warning("Map making failed. Skipping map.")
+    figure3 = cartography(filttable, mktable, gtitable, args)
+    if args.save:
+        log.info('Writing MAP {0}'.format(basename))
+        figure3.savefig('{0}_map.png'.format(basename), dpi = 100)
+
 
 #Interactive light curve for choosing time intervals to edit out of the light curve
 if args.interactive:

@@ -284,6 +284,7 @@ parser.add_argument(
 parser.add_argument(
     "--outfile", help="Name of file to save TOAs to (default is STDOUT)", default=None
 )
+parser.add_argument("--append", help="Append TOAs to output file instead of overwriting", default=False, action="store_true")
 
 ## Parse arguments
 args = parser.parse_args()
@@ -547,7 +548,12 @@ if args.topo:
 else:
     output = output.replace("bat", "@")
 
+if args.append:
+    output = output.replace("FORMAT 1","C ")
+    # Try to remove blank lines
+    output = output.replace("\n\n","\n")
+
 if args.outfile is not None:
-    print(output, file=open(args.outfile, "w"))
+    print(output, file=open(args.outfile, "a" if args.append else "w"))
 else:
     print(output)
