@@ -26,8 +26,7 @@ from pint.event_toas import load_RXTE_TOAs
 from pint.event_toas import load_NuSTAR_TOAs
 from pint.event_toas import load_XMM_TOAs
 from pint.plot_utils import phaseogram_binned
-from pint.observatory.nicer_obs import NICERObs
-from pint.observatory.rxte_obs import RXTEObs
+from pint.observatory.satellite_obs import get_satellite_observatory
 import pint.toa, pint.models
 from pint.eventstats import hmw, hm, h2sig
 from astropy.time import Time, TimeDelta
@@ -343,7 +342,7 @@ if hdr["TELESCOP"] == "NICER":
     else:
         if args.orbfile is not None:
             log.info("Setting up NICER observatory")
-            obs = NICERObs(name="NICER", FPorbname=args.orbfile)
+            obs = get_satellite_observatory("NICER", args.orbfile)
         else:
             log.error(
                 "NICER .orb file required for non-barycentered events!\n"
@@ -367,7 +366,7 @@ elif hdr["TELESCOP"] == "XTE":
         if args.orbfile is not None:
             # Determine what observatory type is.
             log.info("Setting up RXTE observatory")
-            obs = RXTEObs(name="RXTE", FPorbname=args.orbfile)
+            obs = get_satellite_observatory("RXTE", args.orbfile)
         else:
             log.error(
                 "RXTE FPorbit file required for non-barycentered events!\n"

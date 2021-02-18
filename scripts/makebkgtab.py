@@ -127,6 +127,7 @@ for pipedir in args.pipedirs:
         ra = np.zeros(len(band1lc))
         dec = np.zeros(len(band1lc))
         saa_time = np.zeros(len(band1lc))
+        mag_angle = np.zeros(len(band1lc))
         i=0
         for chmet in chunkmets:
             b1 = mktable['TIME']>chmet
@@ -148,6 +149,7 @@ for pipedir in args.pipedirs:
             dec[i] = mktable['DEC'][chidx].mean()
             ra[i] = mktable['RA'][chidx].min() # Use min() here to prevent problems when RA wraps
             saa_time[i] = mktable['SAA_TIME'][chidx].min() # Using min()
+            mag_angle[i] = mktable['MAG_ANGLE'][chidx].mean()
             
             # FPM_TRUMP_SEL_1500_1800 (IBG)
             ibg[i] = mktable['FPM_TRUMP_SEL_1500_1800'][chidx].sum()/chunklen
@@ -177,6 +179,7 @@ for pipedir in args.pipedirs:
             f_ra = ra
             f_dec = dec
             f_saa_time = saa_time
+            f_mag_angle = mag_angle
             firstgti = False
         else:
             f_chunkmets = np.append(f_chunkmets,chunkmets)
@@ -199,14 +202,15 @@ for pipedir in args.pipedirs:
             f_ra = np.append(f_ra,ra)
             f_dec = np.append(f_dec,dec)
             f_saa_time = np.append(f_saa_time,saa_time)
+            f_mag_angle = np.append(f_mag_angle,mag_angle)
 
 
     f_obsid = np.array([etable.meta['OBS_ID']]*len(f_band1lc))
     bkgtab = Table([f_chunkmets,f_band1lc,f_band2lc,f_band3lc,f_cor_sax,f_sunshine,f_sun_angle,f_overonly,
                     f_underonly, f_noise25,
-                    f_ratiorej,f_rate1517,f_ibg,f_hrej,f_kp, f_lat, f_lon, f_ra, f_dec, f_saa_time, f_obsid],
+                    f_ratiorej,f_rate1517,f_ibg,f_hrej,f_kp, f_lat, f_lon, f_ra, f_dec, f_saa_time, f_obsid, f_mag_angle],
                     names=('met', 'band1', 'band2', 'band3', 'cor_sax', 'sunshine', 'sun_angle',
-                               'overonly','underonly','noise25','ratiorej','rate1517','ibg','hrej','kp','lat', 'lon', 'ra', 'dec', 'saa_time','obsid') )
+                               'overonly','underonly','noise25','ratiorej','rate1517','ibg','hrej','kp','lat', 'lon', 'ra', 'dec', 'saa_time','obsid', 'magangle') )
     bkgtab.write(outname,format='fits',overwrite=True)
                 
     if args.plot:
