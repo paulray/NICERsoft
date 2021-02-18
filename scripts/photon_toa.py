@@ -38,7 +38,7 @@ import io
 from collections import deque
 import astropy.constants as const
 from pint.observatory import get_observatory
-from pint.observatory.special_locations import SpacecraftObs, BarycenterObs
+from pint.observatory.special_locations import T2SpacecraftObs
 
 log.setLevel("INFO")
 
@@ -405,7 +405,7 @@ else:
     sys.exit(1)
 
 if args.topo:  # for writing UTC topo toas
-    SpacecraftObs(name="spacecraft")
+    T2SpacecraftObs(name="spacecraft")
 
 if len(tl) <= 0:
     log.error("No TOAs found. Aborting.")
