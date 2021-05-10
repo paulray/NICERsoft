@@ -6,6 +6,9 @@ from scipy.special import gammaincinv
 import pint.models, pint.toa
 import astropy.units as u
 from pint.residuals import Residuals
+import traceback
+
+#np.seterr(all='raise')
 
 def sigmaz(t,y,err,nseg,diagplot=False):
     """Compute sigma_z from lists of measurement times and values.
@@ -62,7 +65,11 @@ def sigmaz(t,y,err,nseg,diagplot=False):
         ngoodsegs = 0 # Reset the counter for good segments
         C3sqr = 0 # This will accumulate values of C3sqr
         C3un_sum = 0 # This will accumulate the sum of 1/C3_sigma^2 to normalize the C3^2 weights at the end
-        
+
+        n_sing_matrix = 0 # how many segments make polyfit fail with a singular matrix error
+        n_few_points = 0 # how many segments have too few points
+        n_short_dataspan = 0 # in how many segments the points are clustered within too small a portion of the selected time span
+        n_C3_neg_var = 0 # for how many segments the C3 coefficient has a negative variance in the covariance matrix
         for jseg in range (0, iseg):  # Now loop through each segment of this length
             # for iseq > 1 there are multiple segments we need to analyze 
             segrange=(toas[0]+dur_oneseg*jseg, toas[0]+dur_oneseg*(jseg+1))
@@ -74,24 +81,40 @@ def sigmaz(t,y,err,nseg,diagplot=False):
             #if (np.size(desind))>polyorder: # if cov. matrix not needed
                 dataspan = np.max(toas[desind]) - np.min(toas[desind])
             else:
-                dataspan = 0
+                n_few_points = n_few_points+1
+                continue
             
             # Matsakis recommends segment be longer than dur_oneseg/sqrt(2)
-            if (dataspan>(dur_oneseg/np.sqrt(2))): #xAL added this criterion
+            if (dataspan<=(dur_oneseg/np.sqrt(2))): #xAL added this criterion
+                n_short_dataspan = n_short_dataspan+1
+                continue
+            else:
                 res = toares[desind]
                 toaerrs = toaerr[desind]
-                
-                #NOTE: polyfit needs 1/sigma, not 1/sigma^2 weights. Times and residuals need to be in the same units, here are in seconds
-                p,pcov = np.polyfit((toas[desind]-centertime)*86400.0,
+
+                try:
+                    #NOTE: polyfit needs 1/sigma, not 1/sigma^2 weights. Times and residuals need to be in the same units, here are in seconds
+                    p,pcov = np.polyfit((toas[desind]-centertime)*86400.0,
                                     res.astype(np.float), polyorder, cov=True,
-                                    full=False, w = np.abs(1./toaerrs) ) 
-                #p = np.polyfit((toas[desind]-centertime)*86400.0,
-                #    res.astype(np.float),polyorder, cov=False, full=False, w = np.abs(1./toaerrs) )
+                                    full=False, w=np.abs(1./toaerrs) ) 
+                    #p = np.polyfit((toas[desind]-centertime)*86400.0,
+                    #    res.astype(np.float),polyorder, cov=False, full=False, w = np.abs(1./toaerrs) )
+                except:
+                    #print('Polyfit failed!')
+                    #traceback.print_exc()
+                    n_sing_matrix = n_sing_matrix+1
+                    continue
+                    
+                # Get C3 coefficient uncertainty from the covariance matrix
+                C3variance = np.diag(pcov)[-4]
+                if C3variance < 0:
+                    n_C3_neg_var = n_C3_neg_var+1
+                    #print('C3variance = %e' % C3variance)
+                    continue
                 
-                # Get uncertainties for fitted polynomial coefficients from the covariance matrix
-                C3un = np.sqrt(np.diag(pcov))
-                C3un_sum = C3un_sum + 1.0/C3un[-4]**2 # for normalizing weights at the end
-                C3sqr=C3sqr + p[-4]**2/C3un[-4]**2
+                C3un = np.sqrt(C3variance)
+                C3un_sum = C3un_sum + 1.0/C3un**2 # for normalizing weights at the end
+                C3sqr=C3sqr + p[-4]**2/C3un**2
                 #C3sqr=C3sqr+p[0]**2    # Accumulate to eventually find avg C3^2
                 ngoodsegs += 1 # the number of good segments (with at least 6 TOAs in them)
             
@@ -108,8 +131,16 @@ def sigmaz(t,y,err,nseg,diagplot=False):
                 plt.title('Order-%d polynomial fit to full TOA set' % polyorder)
                 #plt.savefig("sigmaz-diagnostic.png", dpi=300, format='png', bbox_inches='tight')
                 
-        print("Divided data up into {} segments. Number of good segments: {}".format(iseg, ngoodsegs))
-        
+        print("Divided data into %d segments of length %.1f days. Number of good segments: %d" % (iseg, dur_oneseg, ngoodsegs))
+        if n_few_points > 0:
+            print('--->Segments with too few TOAs: %d' % n_few_points)
+        if n_short_dataspan > 0:
+            print('--->Segments with too short TOA span: %d' % n_short_dataspan)
+        if n_sing_matrix > 0:
+            print('--->Segments causing singular matrix error in polyfit: %d' % n_sing_matrix)
+        if n_C3_neg_var > 0:
+            print('--->Segments with C3 variance <0: %d' % n_C3_neg_var)
+            
         if ngoodsegs != 0:
             #C3sqr=C3sqr/ngoodsegs # unweighted average
             C3sqr=C3sqr/C3un_sum # average weighted by the uncertainties in fitted C3 values
@@ -192,5 +223,6 @@ if __name__ == "__main__":
     ax.set_yscale('log')
     ax.set_xlabel('Time (days)')
     ax.set_ylabel('Sigma-z')
+    plt.title('%s\n%s' % (par,tim))
     plt.show()
     
