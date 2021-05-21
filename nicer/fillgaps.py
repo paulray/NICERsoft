@@ -396,6 +396,24 @@ def fillgaps(data, method):
         if i == len(gap_indeces) - 2:  # only one jump in data set
             gaps[gap_total] = (start_gap_inx, gap_indeces[i + 1])
 
+    # impute single-point gaps
+    i = 1
+    while i <= gap_total:
+        # for i in range(1, gap_total):
+        if gaps[i][0] == gaps[i][1]:
+            # if data on both sides of gap, take average of previous and following data point
+            if gaps[i][0] != 0 and gaps[i][0] != len(data) - 1:
+                data[gaps[i][0]] = (data[gaps[i][0] - 1] + data[gaps[i][0] + 1]) / 2
+            elif gaps[i][0] == 0:
+                data[0] = data[1]
+            else:
+                data[-1] = data[-2]
+            for k in range(i, gap_total):
+                gaps[k] = gaps.pop(k + 1)
+            gap_total = gap_total - 1
+        else:
+            i = i + 1
+
     # impute gaps to the right of this run, then reverse and do left (4 methods)
     # i. Type 2 - reflect+invert
     if method == "reflect+invert":
