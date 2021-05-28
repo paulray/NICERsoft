@@ -261,6 +261,9 @@ def fill(data, gaps, gap_total, gap_num, reverse=False):
             if (size / 2) % 2 == 0.5:
                 mid_val = (left_pts_to_reflect[0] + right_pts_to_reflect[-1]) / 2
                 data[curgap[1] - int(size / 2)] = mid_val
+            if gap_num == gap_total:
+                gaps.pop(gap_num)
+                gap_num = gap_num - 1
             # remove gap from gap map
             for k in range(gap_num, gap_total):
                 gaps[k] = gaps.pop(k + 1)
@@ -371,9 +374,10 @@ def fillgaps(data, method):
     if gap_indeces.size == 0:
         print("The data has no gaps. Exiting...")
         return
-    maxdiff = 1
+
     gap_total = 1
     start_gap_inx = gap_indeces[0]
+    maxdiff = start_gap_inx  # run before first gap
     gap_to_impute = 1
     # initial value
     gaps = {
@@ -413,6 +417,17 @@ def fillgaps(data, method):
             gap_total = gap_total - 1
         else:
             i = i + 1
+
+    # check if first gap_to_impute now beyond the range of total gaps
+    if gap_to_impute > gap_total:
+        gap_to_impute = 1  # set to first gap - if only 1 gap, automatic choice, otherwise starting point
+        if gap_total > 1:
+            maxdiff = gaps[1][0]  # run before first gap
+            for i in range(1, gap_total):
+                diff = gaps[i + 1][0] - gaps[i][1]
+                if diff > maxdiff:
+                    maxdiff = diff
+                    gap_to_impute = i + 1
 
     # impute gaps to the right of this run, then reverse and do left (4 methods)
     # i. Type 2 - reflect+invert
