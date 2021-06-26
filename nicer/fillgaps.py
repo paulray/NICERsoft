@@ -3,10 +3,13 @@ A script to fill data gaps in a way that retains the noise characteristic of the
 Howe and Schlossberger, "Strategy for Characterizing Frequency Stability Measurements having Multiple Dead Times"
 """
 
+import sys
 import argparse
 import numpy as np
 import copy
 from scipy.stats import median_abs_deviation
+import csv
+import matplotlib.pyplot as plt
 
 
 def check_right(data, gaps, curgap, curgap_size, curgap_num, gap_total):
@@ -422,13 +425,32 @@ def check_boundaries(curgap, curgap_num, gaps, gap_total, data):
     return start, end
 
 
-def fillgaps(data, method):
+def fillgaps(datafile, method):
     """A method to fill gaps in data and preserve data noise characteristics.
 
     Parameters:
-    data: an array of data with gaps represented as numpy.nan
+    datafile: a csv file formatted as follows: MJD, residual (us)
     method: a string indicating which of the 4 methods of data gap filling to use (reflect, reflect_invert, replica, replica_endpoint)
     """
+
+    y = []
+    x = np.array([])
+    with open(datafile, "r") as f:
+        lines = f.readline()
+        while lines:
+            vals = lines.split(",")
+            x = np.append(x, float(vals[0]))
+            y.append(float(vals[1]))
+            lines = f.readline()
+    xindices = np.array((x - x[0]), dtype=int)
+    data = np.zeros(xindices.max() + 1) * np.nan
+    data[xindices] = y
+
+    fig, ax = plt.subplots(2, figsize=(12, 6))
+    ax[0].errorbar(x, y, fmt=".")
+    ax[0].grid(True)
+    ax[0].set_xlabel("MJD")
+    ax[0].set_ylabel("Residuals (us)")
 
     # find indeces of data gaps and largest continuous run of data
     gap_indeces = np.where(np.isnan(data))[0]
@@ -514,3 +536,27 @@ def fillgaps(data, method):
                     gap_to_impute = (
                         i + 1
                     )  # gap to the right of the largest continuous run
+
+    xfilled = np.linspace(
+        int(x[0]), int(x[-1]), num=int(x[-1] - x[0]) + 1
+    )  # vector of filled-in MJDs, increments of 1 day
+
+    with open("result.csv", "w") as f:
+        csvwriter = csv.writer(f)
+        csvwriter.writerows(
+            zip(xfilled, data)
+        )  # write results into csv file in same format as input
+
+    ax[1].errorbar(xfilled, data, fmt=".")
+    ax[1].grid(True)
+    ax[1].set_xlabel("MJD")
+    ax[1].set_ylabel("Residuals (us)")
+
+    plt.show()  # displays graphs of data before/after imputation
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        raise ValueError("Need two arguments: data file and imputation method.")
+
+    fillgaps(sys.argv[1], sys.argv[2])
