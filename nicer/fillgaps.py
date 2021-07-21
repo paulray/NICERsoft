@@ -641,7 +641,8 @@ def fillgaps(datafile, method):
     ax[1].set_xlabel("MJD")
     ax[1].set_ylabel("Residuals (us)")
 
-    plt.show()
+    plt.show()  # displays graphs of data before/after imputation
+
 
 
 if __name__ == "__main__":
