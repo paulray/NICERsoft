@@ -167,7 +167,7 @@ def check_left(data, gaps, curgap, curgap_size, curgap_num, gap_total):
         return pts_to_reflect
 
 
-def fill(data, gaps, gap_total, gap_num, reverse=False):
+def fill(data, gaps, gap_total, gap_num, xcoords, reverse=False):
     """A method to fill the gap_num-th gap in the data by reflecting and inverting data on one/both sides of the gap.
 
     Parameters:
@@ -175,11 +175,13 @@ def fill(data, gaps, gap_total, gap_num, reverse=False):
             gaps - dict, stores the gap indeces with their respective number
             gap_total - int, total number of gaps
             gap_num - int, number of current gap
+            xcoords - np.array, the x-coordinates corresponding to the data and gaps
             reverse - bool, indicated whether dataset forward-oriented (gap being filled to the right of longest continuous data run) or reversed (left of longest run)
     """
     # find size of gap
     curgap = gaps[gap_num]
     size = (curgap[1] + 1) - curgap[0]
+    gap_xcoords = xcoords[curgap[0] - 1 : (curgap[1] + 2)]
     side = None
     # check if there is enough data previous to this gap
     if reverse:
@@ -249,31 +251,49 @@ def fill(data, gaps, gap_total, gap_num, reverse=False):
                     right_pts_to_reflect[j] = (
                         right_pts_to_reflect[0] + right_pts_to_reflect[1]
                     ) / 2 + (right_pts_to_reflect[0] - right_pts_to_reflect[j])
+
+            # reflect data
             data[curgap[0] : (curgap[0] + 1 + int(size / 2))] = left_pts_to_reflect[
                 ::-1
             ]
             data[(curgap[1] - int(size / 2)) : curgap[1] + 1] = right_pts_to_reflect[
                 ::-1
             ]
-            # calculate linear slope to apply to fill pts
-            m, b = calculate_slope(
-                data, curgap, gap_num, gaps, gap_total, len(pts_to_reflect)
+
+            # calculate slope of imputed data
+            mfillpts = -(pts_to_reflect[-1] - pts_to_reflect[0]) / (
+                xcoords[curgap[0] + int(size / 2)] - xcoords[curgap[0] - int(size / 2)]
             )
+
+            # calculate slope between sides of gap
+            mdesired, b = calculate_slope(
+                data, curgap, gap_num, gaps, gap_total, len(pts_to_reflect), xcoords
+            )
+
+            # calculate slope to apply to imputed data
+            mdiff = mdesired - mfillpts
+
+            # create array of even x-coordinate intervals for gap
+            xdiff = np.array(gap_xcoords - gap_xcoords[0])
+
+            # apply linear slope to points
             for j in range(0, size):
-                data[curgap[0] + j] = m * j + data[curgap[0] + j] + b
+                data[curgap[0] + j] = mdiff * xdiff[j] + data[curgap[0] + j] + b
+
             # if odd number of spaces in gap, average first left and last right values and put in middle gap value
             if (size / 2) % 2 == 0.5:
                 mid_val = (left_pts_to_reflect[0] + right_pts_to_reflect[-1]) / 2
                 data[curgap[1] - int(size / 2)] = mid_val
+
+            # remove gaps
             if gap_num == gap_total:
                 gaps.pop(gap_num)
                 gap_num = gap_num - 1
-            # remove gap from gap map
             for k in range(gap_num, gap_total):
                 gaps[k] = gaps.pop(k + 1)
             gap_total = gap_total - 1
         else:
-            # invert and add linear slope to match gap-fill ends to existing data
+            # invert fill points
             if side == "right":
                 if len(pts_to_reflect) != 1:
                     for j in range(0, len(pts_to_reflect)):
@@ -288,13 +308,33 @@ def fill(data, gaps, gap_total, gap_num, reverse=False):
                             + pts_to_reflect[-1]
                             - pts_to_reflect[j]
                         )
-            # calculate linear slope to apply to fill pts
+
+            # reflect the points across the gap
             data[curgap[0] : (curgap[1] + 1)] = pts_to_reflect[::-1]
-            m, b = calculate_slope(
-                data, curgap, gap_num, gaps, gap_total, len(pts_to_reflect)
+            # determine the slope of the reflected points
+            if side == "left":
+                mfillpts = -(pts_to_reflect[-1] - pts_to_reflect[0]) / (
+                    xcoords[curgap[0]] - xcoords[curgap[0] - size]
+                )
+            else:
+                mfillpts = -(pts_to_reflect[-1] - pts_to_reflect[0]) / (
+                    xcoords[curgap[1] + 1 + size] - xcoords[curgap[1] + 1]
+                )
+            # calculate the slope between either sides of the gap
+            mdesired, b = calculate_slope(
+                data, curgap, gap_num, gaps, gap_total, len(pts_to_reflect), xcoords
             )
+            # calculate the slope difference to determine the slope to apply to the reflected points
+            mdiff = mdesired - mfillpts
+
+            # create array of even x-coordinate intervals for the gap
+            xdiff = np.array(gap_xcoords - gap_xcoords[0])
+
+            # add linear slope to points
             for j in range(0, size):
-                data[curgap[0] + j] = m * j + data[curgap[0] + j] + b
+                data[curgap[0] + j] = mdiff * xdiff[j] + data[curgap[0] + j] + b
+
+            # remove gap
             if gap_num == gap_total:
                 gaps.pop(gap_num)
                 gap_num = gap_num - 1
@@ -305,8 +345,8 @@ def fill(data, gaps, gap_total, gap_num, reverse=False):
     return gap_num, gap_total
 
 
-def calculate_slope(data, curgap, curgap_num, gaps, gap_total, fill_pts_len):
-    """A method to calculate a linear slope to add to the fill points for the gap and ensure 2 end-point matching when possible.
+def calculate_slope(data, curgap, curgap_num, gaps, gap_total, fill_pts_len, xcoords):
+    """A method to calculate the linear slope between both sides of a gap.
 
     Parameters:
             data - np.ndarray, the data being imputed
@@ -315,6 +355,7 @@ def calculate_slope(data, curgap, curgap_num, gaps, gap_total, fill_pts_len):
             gaps - dict, stores the gap indeces with their respective number
             gap_total - int, total number of gaps
             fill_pts_len - int, the length of the data to fill the gap
+            xcoords - np.array, the x-coordinates corresponding to the data and gaps
     """
     m = 0
     b = 0
@@ -331,12 +372,12 @@ def calculate_slope(data, curgap, curgap_num, gaps, gap_total, fill_pts_len):
                 m = (
                     (data[end[0]] + data[end[1]]) / 2
                     - (data[start[1]] + data[start[0]]) / 2
-                ) / (fill_pts_len + 4)
+                ) / (xcoords[end[0]] - xcoords[start[1]])
                 b = (data[start[1]] + data[start[0]]) / 2 - data[curgap[0]]
             elif curgap_num != gap_total or len(data) - curgap[1] == 2:
                 # not 2 data points to match with on right side - endpoint matching w/ 2-pt average
                 m = (data[end[0]] - (data[start[1]] + data[start[0]]) / 2) / (
-                    fill_pts_len + 3
+                    xcoords[end[0]] - xcoords[start[1]]
                 )
                 b = (data[start[1]] + data[start[0]]) / 2 - data[curgap[0]]
             else:  # gap is at end of data
@@ -348,12 +389,14 @@ def calculate_slope(data, curgap, curgap_num, gaps, gap_total, fill_pts_len):
             ) or (curgap_num == gap_total and len(data) - curgap[1] > 2):
                 # not 2 data points to match with on left side - endpoint matching w/ 2-pt average
                 m = ((data[end[0]] + data[end[1]]) / 2 - data[start[1]]) / (
-                    fill_pts_len + 2
+                    xcoords[end[0]] - xcoords[start[1]]
                 )
                 b = data[start[1]] - data[curgap[0]]
             elif curgap_num != gap_total or len(data) - curgap[1] == 2:
                 # not 2 data points to match with on either side - endpoint matching
-                m = (data[end[0]] - data[start[1]]) / (fill_pts_len + 2)
+                m = (data[end[0]] - data[start[1]]) / (
+                    xcoords[end[0]] - xcoords[start[1]]
+                )
                 b = data[start[1]] - data[curgap[0]]
             else:  # gap is at end of data
                 m = 0
@@ -374,7 +417,6 @@ def check_boundaries(curgap, curgap_num, gaps, gap_total, data):
             gap_total - int, total number of gaps
             data - np.ndarray, the data being imputed
     """
-
     start_int = None
     start_ext = None
     end_int = None
@@ -383,16 +425,27 @@ def check_boundaries(curgap, curgap_num, gaps, gap_total, data):
         start_ext = curgap[0] - 2
         start_int = curgap[0] - 1
     else:
+        # find outliers using MAD (median average deviation) with 1st differences
         data_diff = []
-        for i in range(curgap[0] - 10, curgap[0] - 1):
+        for i in range(curgap[0] - 11, curgap[0] - 1):
             data_diff.append(data[i + 1] - data[i])
         mad = median_abs_deviation(data_diff)
+
         start_ext = curgap[0] - 2
         start_int = curgap[0] - 1
+
         cutoff = 5 * mad
-        while abs(data[start_ext]) > cutoff and abs(data[start_int]) > cutoff:
-            start_ext -= 1
-            start_int -= 1
+        outliers = [
+            num > cutoff for num in data_diff
+        ]  # positive difference indicates outlier at that index
+
+        for i in range(0, 10):
+            # outlier array in reverse order -> incrementing up outlier array decrements data index
+            if outliers[i] or outliers[i + 1]:
+                start_ext -= 1
+                start_int -= 1
+            else:
+                break  # if no outliers, take indices and break for loop
 
     if (curgap_num != gap_total and gaps[curgap_num + 1][0] - curgap[1] < 11) or len(
         data
@@ -400,16 +453,27 @@ def check_boundaries(curgap, curgap_num, gaps, gap_total, data):
         end_int = curgap[1] + 1
         end_ext = curgap[1] + 2
     else:
+        # find outliers using MAD (median average deviation) with 1st differences
         data_diff = []
         for i in range(curgap[1] + 1, curgap[1] + 11):
             data_diff.append(data[i + 1] - data[i])
         mad = median_abs_deviation(data_diff)
+
         end_int = curgap[1] + 1
         end_ext = curgap[1] + 2
+
         cutoff = 5 * mad
-        while abs(data[end_int]) > cutoff and abs(data[end_ext]) > cutoff:
-            end_int += 1
-            end_ext += 1
+        outliers = [
+            num > cutoff for num in data_diff
+        ]  # positive difference indicates outlier at that index
+
+        for i in range(0, 10):
+            # outlier array in reverse order -> incrementing up outlier array decrements data index
+            if outliers[i] or outliers[i + 1]:
+                end_int += 1
+                end_ext += 1
+            else:
+                break  # if no outliers, take indices and break for loop
 
     if start_int < 0:
         start_int = None
@@ -435,16 +499,41 @@ def fillgaps(datafile, method):
 
     y = []
     x = np.array([])
-    with open(datafile, "r") as f:
-        lines = f.readline()
-        while lines:
-            vals = lines.split(",")
-            x = np.append(x, float(vals[0]))
-            y.append(float(vals[1]))
+    if datafile[-4:] == ".csv":  # if .csv file entered
+        with open(datafile, "r") as f:
             lines = f.readline()
-    xindices = np.array((x - x[0]), dtype=int)
+            while lines:
+                vals = lines.split(",")
+                x = np.append(x, float(vals[0]))
+                y.append(float(vals[1]))
+                lines = f.readline()
+    elif datafile[-4:] == ".txt":  # if .txt file entered
+        with open(datafile, "r") as f:
+            lines = f.readline()
+            while lines:
+                vals = lines.strip().split()
+                if vals != []:  # if not an empty line
+                    x = np.append(x, float(vals[0]))
+                    y.append(float(vals[1]))
+                lines = f.readline()
+
+    # create equispaced array for x-axis
+    if len(x) >= 2:
+        diff = x[1] - x[0]
+        for i in range(len(x) - 1):
+            if x[i + 1] - x[i] < diff and x[i + 1] - x[i] > 0:
+                diff = x[i + 1] - x[i]
+        numintervals = int((x[-1] - x[0]) / diff)
+        xindices = np.array([0], dtype=int)
+        for i in range(1, len(x)):
+            for j in range(1, numintervals + 1):
+                if x[i] - (x[0] + diff * j) < diff:
+                    xindices = np.append(xindices, j)
+                    break
     data = np.zeros(xindices.max() + 1) * np.nan
     data[xindices] = y
+
+    xfilled = np.linspace(x[0], x[-1], num=int(numintervals + 1))
 
     fig, ax = plt.subplots(2, figsize=(12, 6))
     ax[0].errorbar(x, y, fmt=".")
@@ -518,13 +607,17 @@ def fillgaps(datafile, method):
     if method == "reflect+invert":
         while gap_total != 0:
             while gap_to_impute <= gap_total and gap_to_impute != 0:
-                gap_to_impute, gap_total = fill(data, gaps, gap_total, gap_to_impute)
+                gap_to_impute, gap_total = fill(
+                    data, gaps, gap_total, gap_to_impute, xfilled
+                )
                 if gap_to_impute is None:
                     return
 
             # spacially reverse dataset, continue until beginning reached
             for i in range(gap_to_impute, 0, -1):
-                gap_to_impute, gap_total = fill(data, gaps, gap_total, i, reverse=True)
+                gap_to_impute, gap_total = fill(
+                    data, gaps, gap_total, i, xfilled, reverse=True
+                )
                 if gap_to_impute is None:
                     return
 
@@ -536,10 +629,6 @@ def fillgaps(datafile, method):
                     gap_to_impute = (
                         i + 1
                     )  # gap to the right of the largest continuous run
-
-    xfilled = np.linspace(
-        int(x[0]), int(x[-1]), num=int(x[-1] - x[0]) + 1
-    )  # vector of filled-in MJDs, increments of 1 day
 
     with open("result.csv", "w") as f:
         csvwriter = csv.writer(f)
@@ -553,6 +642,7 @@ def fillgaps(datafile, method):
     ax[1].set_ylabel("Residuals (us)")
 
     plt.show()  # displays graphs of data before/after imputation
+
 
 
 if __name__ == "__main__":
