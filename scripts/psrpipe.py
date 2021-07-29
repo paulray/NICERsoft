@@ -472,7 +472,7 @@ for obsdir in all_obsids:
         "cor_range={0}".format(cor_string),
         "min_fpm={0}".format(args.minfpm),
         "underonly_range=0-{0}".format(maxunder),
-        "overonly_range=0-{0}}".format(args.maxovershoot),
+        "overonly_range=0-{0}".format(args.maxovershoot),
         "ingtis={0}".format(extragtis),
         "clobber=yes",
         "expr={0}".format(extra_expr),
