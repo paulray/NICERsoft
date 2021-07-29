@@ -21,10 +21,9 @@ Pipeline process NICER data.
 Output will be written in current working directory in directories that end in '_pipe'.
 
 Several diagnostic plots are produced, and the following data processing steps are run:
-* Select good times according to the following:
-  * (ANG_DIST.lt.0.015).and.(ELV>30.0)
+* Select good times according to customizable criteria, including:
+  * (ANG_DIST.lt.0.015).and.(ELV>20.0)
   * (MODE.eq.1).and.(SUBMODE_AZ.eq.2).and.(SUBMODE_EL.eq.2)
-  * SAT_LAT, SAT_LONG not in SAA or polar horn regions specified by region files
   * If --dark is specified then also filter on SUNSHINE.eq.0
 Optionally, you can filter on overshoot rate or rate of bad ratio events
 
@@ -154,6 +153,11 @@ parser.add_argument(
     help="Standard filters used by Keith Gendreau for Space-Weather backgrounds (Masks detectors 14, 34, 54; cormin 1.5; custom cut on overshoot rate + COR_SAX)",
     action="store_true",
 )
+parser.add_argument(
+    "--tidy",
+    help="Make fewer plots and remove some intermediate files, to run faster and save disk space",
+    action="store_true",
+)
 # parser.add_argument("--crabnorm", help="normalize the spectrum with the crab (only if --merge)", action='store_true')
 args = parser.parse_args()
 
@@ -193,7 +197,7 @@ all_orbfiles = []
 def runcmd(cmd):
     # CMD should be a list of strings since it is not processed by a shell
     log.info("CMD: " + " ".join(cmd))
-    log.info(cmd)
+    # log.info(cmd)
     check_call(cmd, env=os.environ)
 
 
@@ -263,7 +267,8 @@ for obsdir in all_obsids:
         has_KP = False
 
     # Copy orbit file to results dir for pulsar analysis
-    shutil.copy(mkfile, pipedir)
+    if not args.tidy:
+        shutil.copy(mkfile, pipedir)
 
     if args.keith:
         args.mask = [14, 34, 54]
@@ -338,7 +343,8 @@ for obsdir in all_obsids:
     if args.badcut > 0:
         cmd.append("--writebkf")
 
-    runcmd(cmd)
+    if not args.tidy:
+        runcmd(cmd)
 
     # Get orbit file
     orbfile = glob(path.join(obsdir, "auxil/ni*.orb"))[0]
@@ -673,7 +679,8 @@ for obsdir in all_obsids:
     ]
     runcmd(cmd)
     # Remove intermediate file
-    # os.remove(intermediatename)
+    if args.tidy:
+        os.remove(intermediatename)
 
     # Check that there are events left after hot detector cut
     if len(Table.read(filteredname, hdu=1)) == 0:
@@ -697,13 +704,14 @@ for obsdir in all_obsids:
         "nicerql.py",
         "--save",
         "--orb",
-        path.join(pipedir, path.basename(orbfile)),
+        orbfile,
+        #        path.join(pipedir, path.basename(orbfile)),
         "--map",
         "--sci",
         "--eng",
         filteredname,
-        "--allspec",
-        "--alllc",
+        # "--allspec",
+        # "--alllc",
         "--lcbinsize",
         "{}".format(args.lcbinsize),
         "--filterbinsize",
