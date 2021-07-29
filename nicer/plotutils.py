@@ -779,7 +779,7 @@ def plot_overshoot(mktable, ovbintable, gtitable, args):
         plot.scatter(
             etime, both, color="c", marker=".", label="Both Under and Over Flags"
         )
-        plot.yscale("symlog", linthreshy=10.0)
+        # plot.yscale("symlog", linthreshy=10.0)
 
     plot.legend(loc=2)
     plot.ylabel("Overshoots/FPM")

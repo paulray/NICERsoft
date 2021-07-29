@@ -74,9 +74,9 @@ parser.add_argument(
 )
 parser.add_argument(
     "--maxovershoot",
-    help="Select data where overshoot rate is below this limit (default: no filter)",
+    help="Select data where overshoot rate (per FPM) is below this limit (default: no filter)",
     type=float,
-    default=-1,
+    default=1.5,
 )
 parser.add_argument(
     "--badcut",
@@ -336,10 +336,6 @@ for obsdir in all_obsids:
     if args.keith:
         cmd.append("--keith")
 
-    #    if args.par is not None:
-    #        cmd.append("--par")
-    #        cmd.append("{0}".format(args.par))
-    # if (args.maxovershoot>0) or (args.badcut>0):
     if args.badcut > 0:
         cmd.append("--writebkf")
 
@@ -357,7 +353,6 @@ for obsdir in all_obsids:
     log.info("ATT HK File: {0}".format(attfile))
 
     #  Get BKF file for filtering based on background indicators
-    # if (args.maxovershoot>0) or (args.badcut>0):
     if args.badcut > 0:
         bkffile = path.join(pipedir, basename) + "_prefilt.bkf"
         log.info("BKF File: {0}".format(bkffile))
@@ -396,107 +391,6 @@ for obsdir in all_obsids:
         extragtis = gtiname2
 
     gtiname3 = None
-    # # Create GTI from overshoot file using overshoot rate
-    # if args.maxovershoot > 0:
-    #     gtiname3 = path.join(pipedir,'bkf.gti')
-    #     bkf_expr = 'EV_OVERSHOOT.lt.{0}'.format(args.maxovershoot)
-    #     cmd = ["maketime", bkffile, gtiname3, 'expr={0}'.format(bkf_expr),
-    #         "compact=no", "time=TIME", "prefr=0", "postfr=0", "clobber=yes"]
-    #     runcmd(cmd)
-    #     if len(Table.read(gtiname3,hdu=1))==0:
-    #         log.error('No good time left after filtering!')
-    #         continue
-
-    # Create GTI from overshoot file using overshoot rate
-    if args.maxovershoot > 0:
-        gticolumns = path.join(datadir, "gti_columns.txt")
-        gtiheader = path.join(datadir, "gti_header.txt")
-
-        if not os.path.isfile(gtiheader) or not os.path.isfile(gticolumns):
-            log.error(
-                "The files gti_header.txt or gti_columns.txt are missing. Check the {} directory".format(
-                    os.path.abspath(datadir)
-                )
-            )
-            log.error("No filtering on MaxOverShoot will be performed. Continuing...")
-            gtiname3 = None
-            continue
-        else:
-            ovbinfile = path.join(pipedir, basename) + "_prefilt_ovbin.fits"
-            log.info(
-                "Filtering overshoots in {} with {} max overshoots/bin".format(
-                    ovbinfile, args.maxovershoot
-                )
-            )
-            gtiname3 = path.join(pipedir, "max_overshoots.gti")
-            gtidata = path.join(pipedir, "max_overshoots.txt")
-            filtovbinfile = path.join(pipedir, basename) + "_cleanfilt_maxovbin.fits"
-
-            ## STEP 2 -- making cut with ftcopy, and conditions, e.g. < 20 and =/= 0.0
-            cmd = [
-                "ftcopy",
-                "{}[1][FPM_OVERONLY_COUNT<{} && FPM_OVERONLY_COUNT!=0]".format(
-                    ovbinfile, args.maxovershoot / 52.0
-                ),
-                "{}".format(filtovbinfile),
-                "clobber=yes",
-            ]
-            runcmd(cmd)
-
-            ## STEP 3 - calculate start and end times of remaining bins
-            cmd = [
-                "ftcalc",
-                "{}".format(filtovbinfile),
-                "{}".format(filtovbinfile),
-                "TSTART",
-                '"TIME-(0.5*{0})+#TIMEZERO"'.format(args.filterbinsize),
-                "clobber=yes",
-            ]
-            log.info("CMD: " + " ".join(cmd))
-            os.system(" ".join(cmd))
-            cmd = [
-                "ftcalc",
-                "{}".format(filtovbinfile),
-                "{}".format(filtovbinfile),
-                "TEND",
-                '"TIME+(0.5*{0})+#TIMEZERO"'.format(args.filterbinsize),
-                "clobber=yes",
-            ]
-            log.info("CMD: " + " ".join(cmd))
-            os.system(" ".join(cmd))
-
-            ## STEP 4 - dumping the TSTART and TEND into text file
-            cmd = [
-                "ftlist",
-                "{}[1]".format(filtovbinfile),
-                "columns=TSTART,TEND",
-                "rownum=no",
-                "colheader=no",
-                "opt=t",
-                ">",
-                "{}".format(gtidata),
-            ]
-            log.info("CMD: " + " ".join(cmd))
-            os.system(" ".join(cmd))
-            # runcmd(cmd)
-
-            ##  STEP 6 - Making the GTI file from the text file
-            cmd = [
-                "ftcreate",
-                "{}".format(gticolumns),
-                "{}".format(gtidata),
-                "{}".format(gtiname3),
-                "headfile={}".format(gtiheader),
-                'extname="GTI"',
-                "clobber=yes",
-            ]
-            runcmd(cmd)
-
-            if len(Table.read(gtiname3, hdu=1)) == 0:
-                log.error("No good time left after filtering!")
-                continue
-    else:
-        gtiname3 = None
 
     # Create GTI from overshoot file using bad event lightcurve
     if args.badcut > 0:
@@ -578,6 +472,7 @@ for obsdir in all_obsids:
         "cor_range={0}".format(cor_string),
         "min_fpm={0}".format(args.minfpm),
         "underonly_range=0-{0}".format(maxunder),
+        "overonly_range=0-{0}}".format(args.maxovershoot),
         "ingtis={0}".format(extragtis),
         "clobber=yes",
         "expr={0}".format(extra_expr),
