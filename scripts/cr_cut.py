@@ -38,7 +38,7 @@ def runcmd(cmd):
 
 def getgti(evf):
     # Read the GTIs from the  event FITS file
-    gtitable = Table.read(evf,hdu=2)
+    gtitable = Table.read(evf,hdu='GTI')
     # Apply TIMEZERO if needed
     if 'TIMEZERO' in gtitable.meta:
         tz = gtitable.meta['TIMEZERO']
@@ -80,6 +80,7 @@ parser.add_argument("--lcfile", help="Light curve file (optional)", type=str, de
 parser.add_argument("--cut", help="Count rate cut in cts/sec (optional)", type=float, default=None)
 parser.add_argument("--filterbinsize", help="Bin size in sec (default = 16 sec)", type=float, default=16.0)
 parser.add_argument("--plotfilt", help="Ploting filtered lightcurve at the end", default=False, action='store_true')
+parser.add_argument("--outname", help="Name for output event file (default=<inname>_cut.evt)", default=None)
 
 args = parser.parse_args()
 
@@ -175,7 +176,11 @@ runcmd(cmd)
 ################################################
 ##  STEP 7 - Extracting the new event file using the new GTI file created
 log.info("Making the filtered event file using niextract-event and gti.fits")
-outevtfile = path.splitext(eventfile)[0] + "_cut.evt"
+if args.outname is not None:
+    outevtfile = args.outname
+else:
+    outevtfile = path.splitext(eventfile)[0] + "_cut.evt"
+
 cmd = ['niextract-events', '{0}'.format(eventfile), '{0}'.format(outevtfile), 'timefile="gti.fits[GTI]"', 'clobber=yes']
 runcmd(cmd)
 
