@@ -283,6 +283,9 @@ parser.add_argument(
 parser.add_argument(
     "--outfile", help="Name of file to save TOAs to (default is STDOUT)", default=None
 )
+parser.add_argument(
+    "--gtiextname", help="Name GTI extenstion to use (default is GTI)", default="GTI"
+)
 parser.add_argument("--append", help="Append TOAs to output file instead of overwriting", default=False, action="store_true")
 
 ## Parse arguments
@@ -383,6 +386,11 @@ elif hdr["TELESCOP"].startswith("XMM"):
         log.error("Non-barycentered XMM data not yet supported")
         sys.exit(3)
     tl = load_XMM_TOAs(args.eventname)
+    f = pyfits.open(args.eventname)
+    mets = f["events"].data.field("time")
+    f.close()
+    for t, met in zip(tl, mets):
+        t.met = met
 elif hdr["TELESCOP"].startswith("NuSTAR"):
     # Not loading orbit file here, since that is not yet supported.
     if barydata:
@@ -465,8 +473,8 @@ else:
     # Load in GTIs
     f = pyfits.open(args.eventname)
     # Warning:: This is ignoring TIMEZERO!!!!
-    gti_t0 = f["gti"].data.field("start")
-    gti_t1 = f["gti"].data.field("stop")
+    gti_t0 = f[args.gtiextname].data.field("start")
+    gti_t1 = f[args.gtiextname].data.field("stop")
     gti_dt = gti_t1 - gti_t0
     mets = np.asarray([t.met for t in tl])
 
