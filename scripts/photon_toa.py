@@ -525,7 +525,7 @@ else:
                 toas.append(estimate_toa(m, p, t, args.topo, obs, modelin))
                 toas[-1][0].flags["htest"] = "{0:.2f}".format(hm(p))
                 # fix exposure
-                toas[-1][0].flags["exposure"] = current
+                toas[-1][0].flags["exposure"] = str(current)
             current = 0.0
             i0 = i + 1
     toafinal, toafinal_err = list(zip(*toas))
@@ -543,7 +543,7 @@ if args.minexp > 0.0:
         sys.exit(0)
 
 for t in toafinal:
-    t.flags["-t"] = hdr["TELESCOP"]
+    t.flags["t"] = hdr["TELESCOP"]
 toas = pint.toa.TOAs(toalist=toafinal)
 toas.table["error"][:] = np.asarray(toafinal_err)
 sio = io.StringIO()
