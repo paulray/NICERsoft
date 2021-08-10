@@ -165,11 +165,33 @@ log.info("Writing the calculated TSTART and TEND columns into a text file, neces
 cmd = ['ftlist', '{0}[1]'.format(lcfile_cut), 'columns=TSTART,TEND', 'rownum=no', 'colheader=no', 'opt=t', '>', 'gti_data.txt']
 runcmd(cmd)
 
+#####  STEP 5b - cut out 
+log.info("Squeezing the GTIs...")
+first = True
+with open("gti_data_squeezed.txt","w") as gtiout:
+    for line in open("gti_data.txt"):
+        cols = line.split()
+        curstart = cols[0].strip()
+        curstop = cols[1].strip()
+        if first:
+            start = curstart
+            stop = curstop
+            first = False
+        else:
+            if curstart == prevstop:
+                stop = curstop
+            else:
+                print(start,stop,file=gtiout)
+                start = curstart
+                stop = curstop
+        prevstart = curstart
+        prevstop = curstop
+
 
 ################################################
 ##  STEP 6 - Making the GTI file from the text file
 log.info("Making the GTI file gti.fits from the GTI data textfile")
-cmd = ['ftcreate', '{}'.format(gticolumns), 'gti_data.txt', 'gti.fits', 'headfile={}'.format(gtiheader), 'extname="GTI"', 'clobber=yes']
+cmd = ['ftcreate', '{}'.format(gticolumns), 'gti_data_squeezed.txt', 'gti.fits', 'headfile={}'.format(gtiheader), 'extname="GTI"', 'clobber=yes']
 runcmd(cmd)
 
 
