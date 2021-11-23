@@ -3,10 +3,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import astropy.io.fits as pyfits
 import argparse
+from pint.eventstats import z2m, hm, sf_z2m, sf_hm, sig2sigma, h2sig
 
 parser = argparse.ArgumentParser(description = "Plot a binned light curve from a PULSE_PHASE column in a FITS file")
 parser.add_argument("evtfile", help="Input event file to process. Must have PULSE_PHASE column")
-parser.add_argument("--nbins", help="Number of profile bins (default 32)",default=32,type=np.int)
+parser.add_argument("--nbins", help="Number of profile bins (default 32)",default=32,type=int)
 parser.add_argument("--outfile", help="Output file for plot (type determined by extension)",default=None)
 args = parser.parse_args()
 
@@ -16,6 +17,12 @@ dat = hdulist[1].data
 hdr = hdulist[1].header
 
 ph = dat['PULSE_PHASE']
+
+try:
+    print("Z test = {} ({} sig)".format(z2m(ph)[-1],sig2sigma(sf_z2m(z2m(ph)[-1],lo))))
+except:
+    pass
+print("H test = {} ({} sig)".format(hm(ph),h2sig(hm(ph))))
 
 fig,ax = plt.subplots(figsize=(8,4.5))
 

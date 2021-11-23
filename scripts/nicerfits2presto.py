@@ -50,7 +50,7 @@ etable = Table.read(args.evfile,hdu=1)
 if etable.meta['TIMESYS'] != 'TDB' and not args.force:
     log.error('Event file must be barycentered!')
     sys.exit(1)
-gtitable = Table.read(args.evfile,hdu=2)
+gtitable = Table.read(args.evfile,hdu='GTI')
 
 epoch_met = gtitable['START'][0]
 # WARNING: This loses precision! Should be done with astropy times
@@ -59,7 +59,7 @@ epoch_mjd = (etable.meta['MJDREFI'] + etable.meta['MJDREFF']
     + (etable.meta['TIMEZERO'] + epoch_met)/86400.0)
 
 # Write event times to bin file
-eventtimes = np.array(etable['TIME'],dtype=np.float)-epoch_met
+eventtimes = np.array(etable['TIME'],dtype=float)-epoch_met
 log.info('Event times: {0} to {1}'.format(eventtimes.min(),eventtimes.max()))
 eventtimes.tofile('{0}.events'.format(base))
 #
@@ -95,7 +95,7 @@ inf.write(infstr)
 inf.close()
 
 # Now bin data and write .dat file
-bins = np.arange(nbins+1,dtype=np.float)*args.dt
+bins = np.arange(nbins+1,dtype=float)*args.dt
 sums, edges = np.histogram(eventtimes, bins=bins)
 dat = np.array(sums,np.float32)
 dat.tofile('{0}.dat'.format(base))

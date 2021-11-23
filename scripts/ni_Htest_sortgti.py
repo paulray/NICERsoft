@@ -146,7 +146,10 @@ class Data(object):
         gti_len = (self.gti_t1s-self.gti_t0s)[gti_idx]
         mask = gti_len >= min_gti
         gti_mask = (self.gti_t1s-self.gti_t0s) >= min_gti
-        return Data((self.times[mask],self.phases[mask],self.pis[mask],
+        phmasked = None
+        if self.phases is not None:
+            phmasked = self.phases[mask]
+        return Data((self.times[mask],phmasked,self.pis[mask],
             self.gti_t0s[gti_mask],self.gti_t1s[gti_mask]))
 
     def apply_pi_mask(self,emin,emax):
@@ -154,7 +157,10 @@ class Data(object):
         """
         mask = (self.pis >= int(round(emin*KEV_TO_PI))) & \
                (self.pis < int(round(emax*KEV_TO_PI)))
-        return Data((self.times[mask],self.phases[mask],self.pis[mask],
+        phmasked = None
+        if self.phases is not None:
+            phmasked = self.phases[mask]
+        return Data((self.times[mask],phmasked,self.pis[mask],
             self.gti_t0s,self.gti_t1s))
 
     def get_gti_data(self):
@@ -492,13 +498,13 @@ for emin in all_emin:
         if not args.gridsearch:
             # Make output plots after single iteration.
             plt.figure(5); plt.clf()
-            hsig = get_sigma(hs,usez=args.usez)
-            if args.usez:
-                plt.plot(gti_rts_s,hsig,label='Z-test significance')
-            else:
-                plt.plot(gti_rts_s,hsig,label='H-test significance')
-            plt.axvline(gti_rts_s[amax],color='k',ls='--',label='No  H-test (sig={:0.3f})'.format(hsig[amax]))
             if not args.nopulsetest:
+                hsig = get_sigma(hs,usez=args.usez)
+                if args.usez:
+                    plt.plot(gti_rts_s,hsig,label='Z-test significance')
+                else:
+                    plt.plot(gti_rts_s,hsig,label='H-test significance')
+                plt.axvline(gti_rts_s[amax],color='k',ls='--',label='No  H-test (sig={:0.3f})'.format(hsig[amax]))
                 plt.axvline(gti_rts_s[Hmax],color='r',ls='--',label='Max H-test (sig={:0.3f})'.format(hsig[Hmax]))
             plt.xlabel('Background Rate (ct/s)')
             plt.ylabel('Significance (sigma)')

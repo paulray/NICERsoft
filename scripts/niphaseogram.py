@@ -97,7 +97,7 @@ if options.tmin !=0:
 toadur = (MJDSTOP-MJDSTART)/options.ntoa
 log.info('MJDSTART {0}, MJDSTOP {1}, toadur {2}'.format(MJDSTART,MJDSTOP,toadur))
 
-mjdstarts = MJDSTART + toadur*np.arange(options.ntoa,dtype=np.float)
+mjdstarts = MJDSTART + toadur*np.arange(options.ntoa,dtype=float)
 mjdstops = mjdstarts + toadur
 
 # Build array of bins for histogram call. Is n+1 long because it includes enpoint (1.0)
