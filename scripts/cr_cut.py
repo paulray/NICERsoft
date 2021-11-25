@@ -141,6 +141,9 @@ else:
     log.info("The count rate cut will be performed at {0} cts/sec".format(CRcut))
 
 
+#### CRAIG MARKWARDT suggests that STEPS 3-6 could just be done with:
+## maketime merged_detid14.lc merged_detid14.gti "RATE < 1.0" name=NAME value=VALUE compact=NO prefr=0.5 postfr=0.5 premax=4.0 postmax=4.0 time=TIME
+
 ################################################
 ## STEP 3 - Making Cut with lcfile
 lcfile_cut = path.splitext(lcfile)[0] + "_cut.lcurve"

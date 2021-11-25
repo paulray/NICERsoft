@@ -25,6 +25,7 @@ from pint.event_toas import load_NICER_TOAs
 from pint.event_toas import load_RXTE_TOAs
 from pint.event_toas import load_NuSTAR_TOAs
 from pint.event_toas import load_XMM_TOAs
+from pint.event_toas import load_Swift_TOAs
 from pint.plot_utils import phaseogram_binned
 from pint.observatory.satellite_obs import get_satellite_observatory
 import pint.toa, pint.models
@@ -414,6 +415,19 @@ elif hdr["TELESCOP"].startswith("NuSTAR"):
         log.error("Non-barycentered NuSTAR data not yet supported")
         sys.exit(3)
     tl = load_NuSTAR_TOAs(args.eventname)
+    f = pyfits.open(args.eventname)
+    mets = f["events"].data.field("time")
+    f.close()
+    for t, met in zip(tl, mets):
+        t.met = met
+elif hdr["TELESCOP"].startswith("SWIFT"):
+    # Not loading orbit file here, since that is not yet supported.
+    if barydata:
+        obs = "Barycenter"
+    else:
+        log.error("Non-barycentered SWIFT data not yet supported")
+        sys.exit(3)
+    tl = load_Swift_TOAs(args.eventname)
     f = pyfits.open(args.eventname)
     mets = f["events"].data.field("time")
     f.close()

@@ -56,6 +56,10 @@ if evhdr['TELESCOP'].startswith('NuSTAR'):
     log.info('NuSTAR data, setting MET0 to 55197.00076601852')
     MET0 = Time(55197.00076601852,format='mjd',scale='tdb')
 
+if evhdr['TELESCOP'].startswith('SWIFT'):
+    log.info('SWIFT data, setting MET0 to 51910.0007428703700000')
+    MET0 = Time(51910.000742870370,format='mjd',scale='tdb')
+
 #mets = evdat.field('TIME')
 #mets += evhdr['TIMEZERO']
 mjds = read_fits_event_mjds(hdulist[1])
