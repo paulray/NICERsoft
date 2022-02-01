@@ -56,6 +56,10 @@ if evhdr['TELESCOP'].startswith('NuSTAR'):
     log.info('NuSTAR data, setting MET0 to 55197.00076601852')
     MET0 = Time(55197.00076601852,format='mjd',scale='tdb')
 
+if evhdr['TELESCOP'].startswith('SWIFT'):
+    log.info('SWIFT data, setting MET0 to 51910.0007428703700000')
+    MET0 = Time(51910.000742870370,format='mjd',scale='tdb')
+
 #mets = evdat.field('TIME')
 #mets += evhdr['TIMEZERO']
 mjds = read_fits_event_mjds(hdulist[1])
@@ -97,7 +101,7 @@ if options.tmin !=0:
 toadur = (MJDSTOP-MJDSTART)/options.ntoa
 log.info('MJDSTART {0}, MJDSTOP {1}, toadur {2}'.format(MJDSTART,MJDSTOP,toadur))
 
-mjdstarts = MJDSTART + toadur*np.arange(options.ntoa,dtype=np.float)
+mjdstarts = MJDSTART + toadur*np.arange(options.ntoa,dtype=float)
 mjdstops = mjdstarts + toadur
 
 # Build array of bins for histogram call. Is n+1 long because it includes enpoint (1.0)

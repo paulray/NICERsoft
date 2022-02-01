@@ -25,9 +25,9 @@ from pint.event_toas import load_NICER_TOAs
 from pint.event_toas import load_RXTE_TOAs
 from pint.event_toas import load_NuSTAR_TOAs
 from pint.event_toas import load_XMM_TOAs
+from pint.event_toas import load_Swift_TOAs
 from pint.plot_utils import phaseogram_binned
-from pint.observatory.nicer_obs import NICERObs
-from pint.observatory.rxte_obs import RXTEObs
+from pint.observatory.satellite_obs import get_satellite_observatory
 import pint.toa, pint.models
 from pint.eventstats import hmw, hm, h2sig
 from astropy.time import Time, TimeDelta
@@ -39,7 +39,7 @@ import io
 from collections import deque
 import astropy.constants as const
 from pint.observatory import get_observatory
-from pint.observatory.special_locations import SpacecraftObs, BarycenterObs
+from pint.observatory.special_locations import T2SpacecraftObs
 
 log.setLevel("INFO")
 
@@ -57,7 +57,7 @@ def local_load_NICER_TOAs(eventname):
     return tl
 
 
-def estimate_toa(mjds, phases, ph_times, topo, obs, modelin):
+def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
     """ Return a pint TOA object for the provided times and phases.
 
     Longer description here.
@@ -83,6 +83,9 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin):
         The observatory corresponding to the photon event times.
         This is NOT necessarily the observatory for the output TOAs,
         which can be the Barycenter.
+    tmid : Time (default=None)
+        Fiducial time for TOA. If None, then use photon time closest to midpoint.
+        Should be at observatory if topo, else should be a BAT
 """
 
     # Given some subset of the event times, phases, and weights, compute
@@ -99,7 +102,8 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin):
 
     # find time of event closest to center of observation and turn it into a TOA
     argmid = np.searchsorted(mjds, 0.5 * (mjds.min() + mjds.max()))
-    tmid = ph_times[argmid]
+    if tmid is None:
+        tmid = ph_times[argmid]
     # So, tmid should be a time at the observatory if topo, otherwise
     # it should be a BAT (in TDB timescale with delays applied)
     # Here, convert tmid if not topo and data not barycentered
@@ -267,6 +271,12 @@ parser.add_argument(
     default=False,
 )
 parser.add_argument(
+    "--grid",
+    help="Compute TOAs on a regular grid of <arg> days",
+    type=float,
+    default=0.0,
+)
+parser.add_argument(
     "--use_bipm", help="Use BIPM clock corrections", action="store_true", default=False
 )
 parser.add_argument(
@@ -283,6 +293,15 @@ parser.add_argument(
 )
 parser.add_argument(
     "--outfile", help="Name of file to save TOAs to (default is STDOUT)", default=None
+)
+parser.add_argument(
+    "--gtiextname", help="Name GTI extenstion to use (default is GTI)", default="GTI"
+)
+parser.add_argument(
+    "--append",
+    help="Append TOAs to output file instead of overwriting",
+    default=False,
+    action="store_true",
 )
 
 ## Parse arguments
@@ -342,7 +361,7 @@ if hdr["TELESCOP"] == "NICER":
     else:
         if args.orbfile is not None:
             log.info("Setting up NICER observatory")
-            obs = NICERObs(name="NICER", FPorbname=args.orbfile)
+            obs = get_satellite_observatory("NICER", args.orbfile)
         else:
             log.error(
                 "NICER .orb file required for non-barycentered events!\n"
@@ -366,7 +385,7 @@ elif hdr["TELESCOP"] == "XTE":
         if args.orbfile is not None:
             # Determine what observatory type is.
             log.info("Setting up RXTE observatory")
-            obs = RXTEObs(name="RXTE", FPorbname=args.orbfile)
+            obs = get_satellite_observatory("RXTE", args.orbfile)
         else:
             log.error(
                 "RXTE FPorbit file required for non-barycentered events!\n"
@@ -383,6 +402,11 @@ elif hdr["TELESCOP"].startswith("XMM"):
         log.error("Non-barycentered XMM data not yet supported")
         sys.exit(3)
     tl = load_XMM_TOAs(args.eventname)
+    f = pyfits.open(args.eventname)
+    mets = f["events"].data.field("time")
+    f.close()
+    for t, met in zip(tl, mets):
+        t.met = met
 elif hdr["TELESCOP"].startswith("NuSTAR"):
     # Not loading orbit file here, since that is not yet supported.
     if barydata:
@@ -391,6 +415,19 @@ elif hdr["TELESCOP"].startswith("NuSTAR"):
         log.error("Non-barycentered NuSTAR data not yet supported")
         sys.exit(3)
     tl = load_NuSTAR_TOAs(args.eventname)
+    f = pyfits.open(args.eventname)
+    mets = f["events"].data.field("time")
+    f.close()
+    for t, met in zip(tl, mets):
+        t.met = met
+elif hdr["TELESCOP"].startswith("SWIFT"):
+    # Not loading orbit file here, since that is not yet supported.
+    if barydata:
+        obs = "Barycenter"
+    else:
+        log.error("Non-barycentered SWIFT data not yet supported")
+        sys.exit(3)
+    tl = load_Swift_TOAs(args.eventname)
     f = pyfits.open(args.eventname)
     mets = f["events"].data.field("time")
     f.close()
@@ -405,7 +442,7 @@ else:
     sys.exit(1)
 
 if args.topo:  # for writing UTC topo toas
-    SpacecraftObs(name="spacecraft")
+    T2SpacecraftObs(name="spacecraft")
 
 if len(tl) <= 0:
     log.error("No TOAs found. Aborting.")
@@ -449,8 +486,34 @@ except:
     exposure = 0
 
 
-if args.tint is None:
-
+if args.grid > 0.0:
+    mets = np.asarray([t.met for t in tl])
+    dT = args.grid
+    mjdvals = mjds.to_value(u.d)
+    ngrids = int((mjdvals.max() - mjdvals.min()) / dT)
+    print("ngrids ", ngrids)
+    gridpoints = mjdvals.min() + 0.5 * dT + np.arange(ngrids) * dT
+    print(gridpoints)
+    toas = deque()
+    for i in range(ngrids):
+        # make a TOA
+        ph0, ph1 = np.searchsorted(
+            mjdvals, [gridpoints[i] - 0.5 * dT, gridpoints[i] + 0.5 * dT]
+        )
+        m, p, t = mjds[ph0:ph1], phases[ph0:ph1], ph_times[ph0:ph1]
+        print(
+            "Generating TOA ph0={}, ph1={}, len(m)={}, i={}".format(ph0, ph1, len(m), i)
+        )
+        if not args.topo:
+            tmid = Time(gridpoints[i], format="mjd", scale="tdb")
+        else:
+            tmid = Time(gridpoints[i], format="mjd", scale="utc")
+        if len(m) > 0:
+            print("m[0]={0}, m[1]={1}".format(m[0], m[-1]))
+            toas.append(estimate_toa(m, p, t, args.topo, obs, modelin, tmid))
+            toas[-1][0].flags["htest"] = "{0:.2f}".format(hm(p))
+    toafinal, toafinal_err = list(zip(*toas))
+elif args.tint is None:
     # do a single TOA for table
     toafinal, toafinal_err = estimate_toa(
         mjds, phases, ph_times, args.topo, obs, modelin
@@ -461,12 +524,12 @@ if args.tint is None:
         toafinal.flags["htest"] = "{0:.2f}".format(hm(phases))
     toafinal = [toafinal]
     toafinal_err = [toafinal_err]
-else:
+else:  # tint is set and not doing a regular grid
     # Load in GTIs
     f = pyfits.open(args.eventname)
     # Warning:: This is ignoring TIMEZERO!!!!
-    gti_t0 = f["gti"].data.field("start")
-    gti_t1 = f["gti"].data.field("stop")
+    gti_t0 = f[args.gtiextname].data.field("start")
+    gti_t1 = f[args.gtiextname].data.field("stop")
     gti_dt = gti_t1 - gti_t0
     mets = np.asarray([t.met for t in tl])
 
@@ -517,7 +580,7 @@ else:
                 toas.append(estimate_toa(m, p, t, args.topo, obs, modelin))
                 toas[-1][0].flags["htest"] = "{0:.2f}".format(hm(p))
                 # fix exposure
-                toas[-1][0].flags["exposure"] = current
+                toas[-1][0].flags["exposure"] = str(current)
             current = 0.0
             i0 = i + 1
     toafinal, toafinal_err = list(zip(*toas))
@@ -535,7 +598,7 @@ if args.minexp > 0.0:
         sys.exit(0)
 
 for t in toafinal:
-    t.flags["-t"] = hdr["TELESCOP"]
+    t.flags["t"] = hdr["TELESCOP"]
 toas = pint.toa.TOAs(toalist=toafinal)
 toas.table["error"][:] = np.asarray(toafinal_err)
 sio = io.StringIO()
@@ -547,7 +610,12 @@ if args.topo:
 else:
     output = output.replace("bat", "@")
 
+if args.append:
+    output = output.replace("FORMAT 1", "C ")
+    # Try to remove blank lines
+    output = output.replace("\n\n", "\n")
+
 if args.outfile is not None:
-    print(output, file=open(args.outfile, "w"))
+    print(output, file=open(args.outfile, "a" if args.append else "w"))
 else:
     print(output)

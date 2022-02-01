@@ -38,7 +38,7 @@ def runcmd(cmd):
 
 def getgti(evf):
     # Read the GTIs from the  event FITS file
-    gtitable = Table.read(evf,hdu=2)
+    gtitable = Table.read(evf,hdu='GTI')
     # Apply TIMEZERO if needed
     if 'TIMEZERO' in gtitable.meta:
         tz = gtitable.meta['TIMEZERO']
@@ -80,6 +80,7 @@ parser.add_argument("--lcfile", help="Light curve file (optional)", type=str, de
 parser.add_argument("--cut", help="Count rate cut in cts/sec (optional)", type=float, default=None)
 parser.add_argument("--filterbinsize", help="Bin size in sec (default = 16 sec)", type=float, default=16.0)
 parser.add_argument("--plotfilt", help="Ploting filtered lightcurve at the end", default=False, action='store_true')
+parser.add_argument("--outname", help="Name for output event file (default=<inname>_cut.evt)", default=None)
 
 args = parser.parse_args()
 
@@ -140,6 +141,9 @@ else:
     log.info("The count rate cut will be performed at {0} cts/sec".format(CRcut))
 
 
+#### CRAIG MARKWARDT suggests that STEPS 3-6 could just be done with:
+## maketime merged_detid14.lc merged_detid14.gti "RATE < 1.0" name=NAME value=VALUE compact=NO prefr=0.5 postfr=0.5 premax=4.0 postmax=4.0 time=TIME
+
 ################################################
 ## STEP 3 - Making Cut with lcfile
 lcfile_cut = path.splitext(lcfile)[0] + "_cut.lcurve"
@@ -164,18 +168,44 @@ log.info("Writing the calculated TSTART and TEND columns into a text file, neces
 cmd = ['ftlist', '{0}[1]'.format(lcfile_cut), 'columns=TSTART,TEND', 'rownum=no', 'colheader=no', 'opt=t', '>', 'gti_data.txt']
 runcmd(cmd)
 
+#####  STEP 5b - cut out 
+log.info("Squeezing the GTIs...")
+first = True
+with open("gti_data_squeezed.txt","w") as gtiout:
+    for line in open("gti_data.txt"):
+        cols = line.split()
+        curstart = cols[0].strip()
+        curstop = cols[1].strip()
+        if first:
+            start = curstart
+            stop = curstop
+            first = False
+        else:
+            if curstart == prevstop:
+                stop = curstop
+            else:
+                print(start,stop,file=gtiout)
+                start = curstart
+                stop = curstop
+        prevstart = curstart
+        prevstop = curstop
+
 
 ################################################
 ##  STEP 6 - Making the GTI file from the text file
 log.info("Making the GTI file gti.fits from the GTI data textfile")
-cmd = ['ftcreate', '{}'.format(gticolumns), 'gti_data.txt', 'gti.fits', 'headfile={}'.format(gtiheader), 'extname="GTI"', 'clobber=yes']
+cmd = ['ftcreate', '{}'.format(gticolumns), 'gti_data_squeezed.txt', 'gti.fits', 'headfile={}'.format(gtiheader), 'extname="GTI"', 'clobber=yes']
 runcmd(cmd)
 
 
 ################################################
 ##  STEP 7 - Extracting the new event file using the new GTI file created
 log.info("Making the filtered event file using niextract-event and gti.fits")
-outevtfile = path.splitext(eventfile)[0] + "_cut.evt"
+if args.outname is not None:
+    outevtfile = args.outname
+else:
+    outevtfile = path.splitext(eventfile)[0] + "_cut.evt"
+
 cmd = ['niextract-events', '{0}'.format(eventfile), '{0}'.format(outevtfile), 'timefile="gti.fits[GTI]"', 'clobber=yes']
 runcmd(cmd)
 
