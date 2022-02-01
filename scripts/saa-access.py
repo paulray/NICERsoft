@@ -12,7 +12,8 @@ from astropy.coordinates import SkyCoord
 import sys
 from scipy.interpolate import InterpolatedUnivariateSpline
 from matplotlib.colors import Normalize, LogNorm
-from mpl_toolkits.basemap import Basemap
+from cartopy.crs import PlateCarree
+
 
 from nicer.mcc import MCC
 from nicer.values import *
@@ -131,10 +132,14 @@ Total Duration                                                                  
            file=outfile)
 
 outfile.close()
-map = Basemap(projection='cyl', resolution = 'l',  llcrnrlon=-180, llcrnrlat=-61,
-    urcrnrlon=180, urcrnrlat=61, lat_0 = 0, lon_0 = 0)
-map.drawcoastlines()
-map.drawmeridians(np.arange(0,360,15))
-map.drawparallels(np.arange(-90,90,15))
-map.scatter(mylon[in_any],mylat[in_any],s=1.0)
+
+fig = plot.figure(figsize=(8, 11), facecolor='white')
+
+ax = plot.subplot(1,1,1,projection=PlateCarree())
+ax.coastlines()
+ax.set_extent([-180, 180, -61, 61], crs=PlateCarree())
+ax.set_xticks(np.arange(-60,60,15))
+ax.set_yticks(np.arange(-180,180,15))
+
+ax.scatter(mylon[in_any],mylat[in_any],s=1.0)
 plt.show()

@@ -14,7 +14,7 @@ from astropy.coordinates import SkyCoord
 import sys
 from scipy.interpolate import InterpolatedUnivariateSpline
 from matplotlib.colors import Normalize, LogNorm
-from mpl_toolkits.basemap import Basemap
+from cartopy.crs import PlateCarree
 
 from nicer.mcc import MCC
 from nicer.sps import SPS
@@ -48,14 +48,17 @@ saa_lon, saa_lat = np.loadtxt(path.join(datadir,'saa_lonlat.txt'),unpack=True)
 nph_lon, nph_lat = np.loadtxt(path.join(datadir,'nph_lonlat.txt'),unpack=True)
 neph_lon, neph_lat = np.loadtxt(path.join(datadir,'neph_lonlat.txt'),unpack=True)
 sph_lon, sph_lat = np.loadtxt(path.join(datadir,'sph_lonlat.txt'),unpack=True)
-fig, ax1 = plt.subplots(1,1,figsize=(11,8.5))
-map1 = Basemap(projection='cyl', resolution = 'l',
-              lat_0=0, lon_0=0, ax=ax1)
-map1.drawcoastlines()
-map1.plot(saa_lon,saa_lat,color='orange',marker='o',markersize=2.0,linestyle='-')
-map1.plot(nph_lon,nph_lat,color='orange',marker='o',markersize=2.0,linestyle='-')
-map1.plot(neph_lon,neph_lat,color='orange',marker='o',markersize=2.0,linestyle='-')
-map1.plot(sph_lon,sph_lat,'orange',marker='o',markersize=2.0,linestyle='-')
+
+fig, ax1 = plt.subplots(1,1,figsize=(11,8.5),projection=PlateCarree())
+ax1.coastlines()
+ax1.set_extent([-180, 180, -61, 61], crs=PlateCarree())
+ax1.set_xticks([])
+ax1.set_yticks([])
+
+ax1.plot(saa_lon,saa_lat,color='orange',marker='o',markersize=2.0,linestyle='-')
+ax1.plot(nph_lon,nph_lat,color='orange',marker='o',markersize=2.0,linestyle='-')
+ax1.plot(neph_lon,neph_lat,color='orange',marker='o',markersize=2.0,linestyle='-')
+ax1.plot(sph_lon,sph_lat,'orange',marker='o',markersize=2.0,linestyle='-')
 
 for obsdir in args.obsdirs:
     log.info('Processing '+obsdir)
@@ -72,12 +75,13 @@ for obsdir in args.obsdirs:
     # Adjust lon to be -180 to 180 instead of 0 to 360
     lon[lon>180.0] -= 360.0
 
-    sc1 = map1.scatter(lon, lat, s=5, c=mkf[colname],
+    sc1 = ax1.scatter(lon, lat, s=5, c=mkf[colname],
             norm=Normalize(vmin=vmin,vmax=vmax),cmap='Paired')
 
 
 ax1.set_title('Map')
-cbar1 = map1.colorbar(sc1, location='bottom',pad='5%')
+cbar1 = plot.colorbar(sc1, location='bottom',pad=0.05,aspect=60)
+ax1.set_aspect('auto', adjustable=None)
 cbar1.set_label(desc)
 
 plt.show()
