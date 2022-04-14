@@ -11,6 +11,9 @@ All of this code is user contributed! Use at your own risk! No warranty is
 expressed or implied. There may be bugs!  Do not use any of this code without
 understanding what it is doing.
 
+## Documentation
+
+See the Wiki for some documentation: https://github.com/paulray/NICERsoft/wiki
 
 ## Usage
 
