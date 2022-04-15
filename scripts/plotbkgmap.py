@@ -9,7 +9,7 @@ from astropy.time import Time
 from astropy.table import Table
 from os import path
 from matplotlib.colors import Normalize, LogNorm
-from mpl_toolkits.basemap import Basemap
+from cartopy.crs import PlateCarree
 
 from nicer.values import *
 from nicer.mcc import MCC
@@ -33,11 +33,11 @@ log.info('plotting map')
 fig = plot.figure(figsize = (11,8), facecolor = 'white')
 
 #fig, ax = plot.subplots(figsize=(16,9))
-plot.subplot(1,1,1)
-
-map = Basemap(projection='cyl', resolution = 'l',  llcrnrlon=-180, llcrnrlat=-61,
-urcrnrlon=180, urcrnrlat=61, lat_0 = 0, lon_0 = 0)
-map.drawcoastlines()
+ax = plot.subplot(1,1,1,projection=PlateCarree())
+ax.coastlines()
+ax.set_extent([-180, 180, -61, 61], crs=PlateCarree())
+ax.set_xticks([])
+ax.set_yticks([])
 
 if args.column == 'BAD_RATIO':
     vmin = 0.1
@@ -48,14 +48,14 @@ else:
 for bk in args.bkffiles:
     bkftable = Table.read(bk,hdu=1)
     overshootrate = bkftable[args.column]
-    sc = map.scatter(bkftable['LON'], bkftable['LAT'],c=overshootrate,
+    sc = ax.scatter(bkftable['LON'], bkftable['LAT'],c=overshootrate,
                      norm=LogNorm(vmin=vmin,vmax=vmax),cmap='jet',s=2.0)
 
-map.plot(saa_lon,saa_lat,color='k',linestyle='dashed')
-map.plot(nph_lon,nph_lat,color='k',linestyle='dotted')
-map.plot(neph_lon,neph_lat,color='k',linestyle='dotted')
-map.plot(sph_lon,sph_lat,color='k',linestyle='dotted')
-cbar = map.colorbar(sc, location='bottom',pad='5%')
+ax.plot(saa_lon,saa_lat,color='k',linestyle='dashed')
+ax.plot(nph_lon,nph_lat,color='k',linestyle='dotted')
+ax.plot(neph_lon,neph_lat,color='k',linestyle='dotted')
+ax.plot(sph_lon,sph_lat,color='k',linestyle='dotted')
+cbar = plot.colorbar(sc, location='bottom',pad=0.05,aspect=60)
 plot.title(args.column)
 
 plot.show()

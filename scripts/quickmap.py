@@ -10,7 +10,7 @@ from astropy.time import Time
 from astropy.table import Table
 from os import path
 from matplotlib.colors import Normalize, LogNorm
-from mpl_toolkits.basemap import Basemap
+from cartopy.crs import PlateCarree
 from nicer.plotutils import *
 
 from nicer.values import *
@@ -58,11 +58,11 @@ if gtitable is not None:
 log.info('plotting map')
 fig = plot.figure(figsize = (11,8), facecolor = 'white')
 
-plot.subplot(1,1,1)
-
-map = Basemap(projection='cyl', resolution = 'l',  llcrnrlon=-180, llcrnrlat=-61,
-urcrnrlon=180, urcrnrlat=61, lat_0 = 0, lon_0 = 0)
-map.drawcoastlines()
+ax = plot.subplot(1,1,1,projection=PlateCarree())
+ax.coastlines()
+ax.set_extent([-180, 180, -61, 61], crs=PlateCarree())
+ax.set_xticks([])
+ax.set_yticks([])
 
 lon = bkftable['SAT_LON']
 # Convert longitudes to -180, 180
@@ -75,15 +75,15 @@ etime, goodlon, cc = convert_to_elapsed_goodtime(bkftable['TIME'], lon, gtitable
 etime, goodlat, cc = convert_to_elapsed_goodtime(bkftable['TIME'], lat, gtitable)
 
 print(len(lon), len(lat), len(cc))
-sc = map.scatter(goodlon, goodlat,c=np.fmod(cc,len(colornames)),s=2.0,cmap=cmap,
-    norm=norm)
+sc = ax.scatter(goodlon, goodlat,c=np.fmod(cc,len(colornames)),s=2.0,cmap=cmap,norm=norm)
 
-map.plot(saa_lon,saa_lat,'r',lw=2)
-map.plot(nph_lon,nph_lat,color='orange',linestyle='-')
-map.plot(neph_lon,neph_lat,color='orange',linestyle='-')
-map.plot(sph_lon,sph_lat,'orange',linestyle='-')
-map.plot(nicer_lon,nicer_lat,'black',linestyle='-')
-cbar = map.colorbar(sc, location='bottom',pad='5%')
+ax.plot(saa_lon,saa_lat,'r',lw=2)
+ax.plot(nph_lon,nph_lat,color='orange',linestyle='-')
+ax.plot(neph_lon,neph_lat,color='orange',linestyle='-')
+ax.plot(sph_lon,sph_lat,'orange',linestyle='-')
+ax.plot(nicer_lon,nicer_lat,'black',linestyle='-')
+cbar = plot.colorbar(sc, location='bottom',pad=0.05,aspect=60)
+ax.set_aspect('auto', adjustable=None)
 plot.title("Map")
 
 plot.show()

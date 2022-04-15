@@ -18,7 +18,7 @@ from nicer.latloninterp import LatLonInterp
 #def cartography(hkmet, overshootrate, args, undershootrate, etable, mktable, gtitable):
 def cartography(etable, mktable, gtitable, args):
 
-    from mpl_toolkits.basemap import Basemap
+    from cartopy.crs import PlateCarree
 
     #Getting the data
     log.info('Getting SAA data')
@@ -61,23 +61,21 @@ def cartography(etable, mktable, gtitable, args):
     lon[lon>180.0] -= 360.0
 
     # Plot Overshoot map
-    overshoot = plot.subplot(3,1,1)
+    ax_ov  = plot.subplot(3,1,1,projection=PlateCarree())
+    ax_ov.coastlines()
+    ax_ov.set_extent([-180, 180, -61, 61], crs=PlateCarree())
+    ax_ov.set_xticks([])
+    ax_ov.set_yticks([])
 
-    map = Basemap(projection='cyl', resolution = 'l',  llcrnrlon=-180, llcrnrlat=-61,
-    urcrnrlon=180, urcrnrlat=61, lat_0 = 0, lon_0 = 0)
-    map.drawcoastlines()
-    sc = map.scatter(lon, lat,c=overshootrate, s=2.0,
-        norm=LogNorm(vmin=10.0,vmax=1000.0), cmap='jet')
-    #sctest1 = map.scatter(lon, lat,c=np.ones(len(lon))*1000.0,norm=LogNorm(vmin=10.0,vmax=1000.0),cmap='jet')
-    #sctest2 = map.scatter(mktable['SAT_LON'], mktable['SAT_LAT'],c=np.ones(len(mktable['SAT_LON']))*100.0,norm=LogNorm(vmin=10.0,vmax=1000.0),cmap='jet',alpha=0.5)
-    map.plot(saa_lon,saa_lat,'orange',linestyle='-')
-    map.plot(nph_lon,nph_lat,color='orange',linestyle='-')
-    map.plot(neph_lon,neph_lat,color='orange',linestyle='-')
-    map.plot(sph_lon,sph_lat,'orange',linestyle='-')
-    map.plot(nicer_lon,nicer_lat,'red',linestyle='-')
-    cbar = map.colorbar(sc, location='bottom',pad='5%')
-    plot.ylabel('Overshoot Rate')
-    #cbar.set_label('Overshoot Rate')
+    sc = ax_ov.scatter(lon, lat,c=overshootrate, s=2.0, norm=LogNorm(vmin=10.0,vmax=1000.0), cmap='jet')
+    ax_ov.plot(saa_lon,saa_lat,'orange',linestyle='-')
+    ax_ov.plot(nph_lon,nph_lat,color='orange',linestyle='-')
+    ax_ov.plot(neph_lon,neph_lat,color='orange',linestyle='-')
+    ax_ov.plot(sph_lon,sph_lat,'orange',linestyle='-')
+    ax_ov.plot(nicer_lon,nicer_lat,'red',linestyle='-')
+    cbar = plot.colorbar(sc, location='bottom',pad=0.05,aspect=60)
+    ax_ov.set_aspect('auto', adjustable=None)
+    ax_ov.set_ylabel('Overshoot Rate')
 
     # Get lat, lon, undershoots from the .mkf table
     udtime, undershootrate, cc = convert_to_elapsed_goodtime(mktable['TIME'], 52*mktable['FPM_UNDERONLY_COUNT'], gtitable)
@@ -94,45 +92,43 @@ def cartography(etable, mktable, gtitable, args):
     lon[lon>180.0] -= 360.0
 
     # Plot Undershoot map
-    undershoot = plot.subplot(3,1,2)
+    ax_ud = plot.subplot(3,1,2,projection=PlateCarree())
+    ax_ud.coastlines()
+    ax_ud.set_extent([-180, 180, -61, 61], crs=PlateCarree())
+    ax_ud.set_xticks([])
+    ax_ud.set_yticks([])
 
-    map = Basemap(projection='cyl', resolution = 'l', llcrnrlon=-180, llcrnrlat=-61,
-    urcrnrlon=180, urcrnrlat=61,lat_0 = 0, lon_0 = 0)
-    map.drawcoastlines()
-    sc = map.scatter(lon, lat,c=undershootrate, s=2.0,
-        norm=LogNorm(vmin=10.0,vmax=1000.0), cmap='jet')
-    map.plot(saa_lon,saa_lat,color='orange',marker='o',markersize=2,linestyle='-')
-    map.plot(nph_lon,nph_lat,color='orange',marker='o',markersize=2,linestyle='-')
-    map.plot(neph_lon,neph_lat,color='orange',marker='o',markersize=2,linestyle='-')
-    map.plot(sph_lon,sph_lat,'orange',marker='o',markersize=2,linestyle='-')
-    map.plot(nicer_lon,nicer_lat,'red',linestyle='-')
-    cbar = map.colorbar(sc, location='bottom',pad='5%')
-    plot.ylabel('Undershoot Rate')
-    #cbar.set_label('Undershoot Rate')
+    sc = ax_ud.scatter(lon, lat,c=undershootrate, s=2.0, norm=LogNorm(vmin=10.0,vmax=1000.0), cmap='jet')
+    ax_ud.plot(saa_lon,saa_lat,color='orange',marker='o',markersize=2,linestyle='-')
+    ax_ud.plot(nph_lon,nph_lat,color='orange',marker='o',markersize=2,linestyle='-')
+    ax_ud.plot(neph_lon,neph_lat,color='orange',marker='o',markersize=2,linestyle='-')
+    ax_ud.plot(sph_lon,sph_lat,'orange',marker='o',markersize=2,linestyle='-')
+    ax_ud.plot(nicer_lon,nicer_lat,'red',linestyle='-')
+    cbar = plot.colorbar(sc, location='bottom',pad=0.05,aspect=60)
+    ax_ud.set_aspect('auto', adjustable=None)
+    ax_ud.set_ylabel('Undershoot Rate')
 
-    gtiplot = plot.subplot(3,1,3)
+    ax_gti = plot.subplot(3,1,3,projection=PlateCarree())
+    ax_gti.coastlines()
+    ax_gti.set_extent([-180, 180, -61, 61], crs=PlateCarree())
+    ax_gti.set_xticks([])
+    ax_gti.set_yticks([])
+
 
     # Plot map with just colors for GTIs
-    map = Basemap(projection='cyl', resolution = 'l', llcrnrlon=-180, llcrnrlat=-61,
-    urcrnrlon=180, urcrnrlat=61,lat_0 = 0, lon_0 = 0)
-    map.drawcoastlines()
-
-    #etime, goodlon, cc = convert_to_elapsed_goodtime(hkmet, lon, gtitable)
-    #etime, goodlat, cc = convert_to_elapsed_goodtime(hkmet, lat, gtitable)
     etime, goodlon, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LON'], gtitable)
     etime, goodlat, cc = convert_to_elapsed_goodtime(mktable['TIME'], mktable['SAT_LAT'], gtitable)
     # Adjust lon to be -180 to 180 instead of 0 to 360
     goodlon[goodlon>180.0] -= 360.0
 
     colornames, cmap, norm = gti_colormap()
-    sc = map.scatter(goodlon, goodlat,c=np.fmod(cc,len(colornames)),s=2.0,cmap=cmap,
-        norm=norm)
-    map.plot(saa_lon,saa_lat,color='orange',marker='o',markersize=2,linestyle='-')
-    map.plot(nph_lon,nph_lat,color='orange',marker='o',markersize=2,linestyle='-')
-    map.plot(neph_lon,neph_lat,color='orange',marker='o',markersize=2,linestyle='-')
-    map.plot(sph_lon,sph_lat,'orange',marker='o',markersize=2,linestyle='-')
-    map.plot(nicer_lon,nicer_lat,'red',linestyle='-')
-    plot.ylabel('GTI Colors')
+    sc = ax_gti.scatter(goodlon, goodlat,c=np.fmod(cc,len(colornames)),s=2.0,cmap=cmap, norm=norm)
+    ax_gti.plot(saa_lon,saa_lat,color='orange',marker='o',markersize=2,linestyle='-')
+    ax_gti.plot(nph_lon,nph_lat,color='orange',marker='o',markersize=2,linestyle='-')
+    ax_gti.plot(neph_lon,neph_lat,color='orange',marker='o',markersize=2,linestyle='-')
+    ax_gti.plot(sph_lon,sph_lat,'orange',marker='o',markersize=2,linestyle='-')
+    ax_gti.plot(nicer_lon,nicer_lat,'red',linestyle='-')
+    ax_gti.set_ylabel('GTI Colors')
 
     fig.suptitle('ObsID {0}: {1} on {2}'.format(etable.meta['OBS_ID'],
             etable.meta['OBJECT'],etable.meta['DATE-OBS'].replace('T',' at ')),
