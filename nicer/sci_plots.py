@@ -2,7 +2,7 @@ from __future__ import (print_function, division, unicode_literals, absolute_imp
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.gridspec as gridspec
-from astropy import log
+from loguru import logger as log
 from astropy.time import Time, TimeDelta
 
 from nicer.plotutils import *

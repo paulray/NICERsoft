@@ -1,7 +1,7 @@
 from __future__ import print_function, division, unicode_literals, absolute_import
 import numpy as np
 import argparse
-from astropy import log
+from loguru import logger as log
 from astropy.table import Table, vstack
 import astropy.io.fits as pyfits
 import astropy.units as u

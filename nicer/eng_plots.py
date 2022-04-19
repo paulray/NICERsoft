@@ -1,6 +1,6 @@
-from __future__ import (print_function, division, unicode_literals, absolute_import)
 import matplotlib.pyplot as plot
 import numpy as np
+from loguru import logger as log
 import pylab
 import matplotlib.gridspec as gridspec
 import argparse

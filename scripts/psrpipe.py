@@ -1,9 +1,18 @@
 #!/usr/bin/env python
-from __future__ import print_function, division
 import os, sys
+import pint.logging                                                                                                                                                      
+from loguru import logger as log                                                                                                                                         
+                                                                                                                                                                         
+log.remove()                                                                                                                                                             
+log.add(                                                                                                                                                                 
+    sys.stderr,                                                                                                                                                          
+    level="INFO",                                                                                                                                                     
+    colorize=True,                                                                                                                                                       
+    format=pint.logging.format,                                                                                                                                          
+    filter=pint.logging.LogFilter(),                                                                                                                                     
+)                                             
 import numpy as np
 import argparse
-from astropy import log
 from os import path
 from glob import glob
 from subprocess import check_call
@@ -158,8 +167,26 @@ parser.add_argument(
     help="Make fewer plots and remove some intermediate files, to run faster and save disk space",
     action="store_true",
 )
+parser.add_argument(                                                                                                                                                 
+    "--log-level",                                                                                                                                                   
+    type=str,                                                                                                                                                        
+    choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),                                                                                                          
+    default="INFO",                                                                                                                                               
+    help="Logging level",                                                                                                                                            
+    dest="loglevel",                                                                                                                                                 
+)                                                                                                                                                                    
+
 # parser.add_argument("--crabnorm", help="normalize the spectrum with the crab (only if --merge)", action='store_true')
 args = parser.parse_args()
+log.remove()                                                                                                                                                         
+log.add(                                                                                                                                                             
+    sys.stderr,                                                                                                                                                      
+    level=args.loglevel,                                                                                                                                             
+    colorize=True,                                                                                                                                                   
+    format=pint.logging.format,                                                                                                                                      
+    filter=pint.logging.LogFilter(),                                                                                                                                 
+)                                                                                                                                                                    
+
 
 os.environ["HEADASNOQUERY"] = " "
 os.environ["HEADASPROMPT"] = "/dev/null"

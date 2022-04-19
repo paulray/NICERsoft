@@ -1,11 +1,10 @@
-from __future__ import print_function, division, unicode_literals, absolute_import
 import numpy as np
 import matplotlib.pyplot as plot
 import matplotlib as mpl
 import copy
 import scipy
 from scipy import ndimage
-from astropy import log
+from loguru import logger as log
 from glob import glob
 from nicer.values import *
 from os import path

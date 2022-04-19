@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse
-from astropy import log
+from loguru import logger as log
 from os import path
 from glob import glob
 from subprocess import check_call

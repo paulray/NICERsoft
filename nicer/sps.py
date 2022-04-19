@@ -3,7 +3,7 @@ import numpy as np
 import astropy.units as u
 from astropy.time import Time
 from astropy.table import Table
-from astropy import log
+from loguru import logger as log
 from scipy.interpolate import InterpolatedUnivariateSpline
 from astropy.coordinates import GCRS, ITRS, EarthLocation, CartesianRepresentation, get_body_barycentric_posvel
 

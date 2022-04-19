@@ -1,13 +1,22 @@
 #!/usr/bin/env python
-from __future__ import print_function, division, unicode_literals, absolute_import
-import sys
+import os, sys
+import pint.logging                                                                                                                                                      
+from loguru import logger as log                                                                                                                                         
+                                                                                                                                                                         
+log.remove()                                                                                                                                                             
+log.add(                                                                                                                                                                 
+    sys.stderr,                                                                                                                                                          
+    level="INFO",                                                                                                                                                     
+    colorize=True,                                                                                                                                                       
+    format=pint.logging.format,                                                                                                                                          
+    filter=pint.logging.LogFilter(),                                                                                                                                     
+)                                             
 
 # Hack to add this to pythonpath
 # sys.path.append('/Users/paulr/src/NICERsoft')
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse
-from astropy import log
 from astropy.table import Table, vstack
 import astropy.io.fits as pyfits
 import astropy.units as u
@@ -147,7 +156,24 @@ parser.add_argument(
     help="Standard filters used by Keith Gendreau for Space-Weather backgrounds",
     action="store_true",
 )
+parser.add_argument(                                                                                                                                                 
+    "--log-level",                                                                                                                                                   
+    type=str,                                                                                                                                                        
+    choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),                                                                                                          
+    default="INFO",                                                                                                                                               
+    help="Logging level",                                                                                                                                            
+    dest="loglevel",                                                                                                                                                 
+)                                                                                                                                                                    
+
 args = parser.parse_args()
+log.remove()                                                                                                                                                         
+log.add(                                                                                                                                                             
+    sys.stderr,                                                                                                                                                      
+    level=args.loglevel,                                                                                                                                             
+    colorize=True,                                                                                                                                                   
+    format=pint.logging.format,                                                                                                                                      
+    filter=pint.logging.LogFilter(),                                                                                                                                 
+)                                                                                                                                                                    
 
 # ------------------------------Getting the data and concatenating------------------------------
 if np.logical_or(args.obsdir is not None, args.infiles is not None):
