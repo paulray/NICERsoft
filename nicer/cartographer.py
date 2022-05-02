@@ -72,7 +72,8 @@ def cartography(etable, mktable, gtitable, args):
     ax_ov.plot(neph_lon,neph_lat,color='orange',linestyle='-')
     ax_ov.plot(sph_lon,sph_lat,'orange',linestyle='-')
     ax_ov.plot(nicer_lon,nicer_lat,'red',linestyle='-')
-    cbar = plot.colorbar(sc, location='bottom',pad=0.05,aspect=60)
+    # cbar = plot.colorbar(sc, location='bottom',pad=0.05,aspect=60)
+    cbar = plot.colorbar(sc, pad=0.05,aspect=60)
     ax_ov.set_aspect('auto', adjustable=None)
     ax_ov.set_ylabel('Overshoot Rate')
 
@@ -103,7 +104,8 @@ def cartography(etable, mktable, gtitable, args):
     ax_ud.plot(neph_lon,neph_lat,color='orange',marker='o',markersize=2,linestyle='-')
     ax_ud.plot(sph_lon,sph_lat,'orange',marker='o',markersize=2,linestyle='-')
     ax_ud.plot(nicer_lon,nicer_lat,'red',linestyle='-')
-    cbar = plot.colorbar(sc, location='bottom',pad=0.05,aspect=60)
+    # cbar = plot.colorbar(sc, location='bottom',pad=0.05,aspect=60)
+    cbar = plot.colorbar(sc, pad=0.05,aspect=60)
     ax_ud.set_aspect('auto', adjustable=None)
     ax_ud.set_ylabel('Undershoot Rate')
 
