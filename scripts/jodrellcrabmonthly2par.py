@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Code to write out Tempo2-format PAR files based on Jodrell Crab monthly ephemeris parameters
 # Update the text file with the monthly ephemeris:
-# % curl -O http://www.jb.man.ac.uk/pulsar/crab/crab2.txt
+# % curl -O https://www.jb.man.ac.uk/pulsar/crab/crab2.txt
 from __future__ import division, print_function
 import numpy as np
 import astropy.units as u
@@ -19,7 +19,7 @@ parser.add_argument("MJD",help="MJD to extract ephemeris for",type=float)
 args = parser.parse_args()
 
 if not path.exists('crab2.txt'):
-    log.error('crab2.txt does not exist!  Download with "curl -O http://www.jb.man.ac.uk/pulsar/crab/crab2.txt"')
+    log.error('crab2.txt does not exist!  Download with "curl -O https://www.jb.man.ac.uk/pulsar/crab/crab2.txt"')
     sys.exit(2)
 
 validmonths = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'JLY', 'AUG', 
