@@ -52,7 +52,7 @@ def bkg_plots(etable, gtitable, args, mktable, ovbintable):
     times, lc, cc = convert_to_elapsed_goodtime(mktable['TIME'], badsmooth, gtitable)
     plot.plot(times, lc)
 
-    plot.yscale('symlog',linthreshy=5.0)
+    plot.yscale('symlog',linthresh=5.0)
     plot.ylim(ymax=100.0)
     #plt.legend(handles = [lc], loc = 2)
     plot.grid(True)
