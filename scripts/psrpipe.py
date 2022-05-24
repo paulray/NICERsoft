@@ -167,6 +167,11 @@ parser.add_argument(
     help="Make fewer plots and remove some intermediate files, to run faster and save disk space",
     action="store_true",
 )
+parser.add_argument(
+    "--nomap",
+    help="Don't make maps (for use if cartopy is not working)",
+    action="store_true",
+)
 parser.add_argument(                                                                                                                                                 
     "--log-level",                                                                                                                                                   
     type=str,                                                                                                                                                        
@@ -349,12 +354,13 @@ for obsdir in all_obsids:
         "--sci",
         "--eng",
         "--bkg",
-        "--map",
         "--obsdir",
         obsdir,
         "--basename",
         path.join(pipedir, basename) + "_prefilt",
     ]
+    if not args.nomap:
+        cmd.append("--map")
 
     if args.mask is not None:
         cmd.append("--mask")
@@ -628,7 +634,6 @@ for obsdir in all_obsids:
         "--orb",
         orbfile,
         #        path.join(pipedir, path.basename(orbfile)),
-        "--map",
         "--sci",
         "--eng",
         filteredname,
@@ -644,6 +649,8 @@ for obsdir in all_obsids:
         "--basename",
         path.join(pipedir, basename) + "_cleanfilt",
     ]
+    if not args.nomap:
+        cmd.append("--map")
     if args.par is not None:
         cmd.append("--par")
         cmd.append("{0}".format(args.par))
