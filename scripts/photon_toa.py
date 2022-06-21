@@ -7,7 +7,6 @@
 # Reads a FITS file of photon event times (from NICER or another X-ray mission)
 # and generates TOAs from the unbined times using a pulsar timing model
 # and an analytic template. The TOAs can be output them in Tempo2 format.
-from __future__ import division, print_function
 
 # from future import standard_library
 # standard_library.install_aliases()
@@ -17,7 +16,6 @@ from builtins import range
 import os, sys
 import argparse
 import numpy as np
-from astropy import log
 import astropy.units as u
 import astropy.io.fits as pyfits
 import pint.residuals
@@ -41,7 +39,9 @@ import astropy.constants as const
 from pint.observatory import get_observatory
 from pint.observatory.special_locations import T2SpacecraftObs
 
-log.setLevel("INFO")
+import pint.logging
+from loguru import logger as log
+pint.logging.setup(level=pint.logging.script_level)
 
 
 def local_load_NICER_TOAs(eventname):
