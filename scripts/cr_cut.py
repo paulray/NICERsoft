@@ -129,7 +129,7 @@ else:
     plt.grid()
     plt.show()
     plt.clf()
-    
+
     while True:
         try:
             log.warning("Enter the count rate cut you want to apply\n")
@@ -168,7 +168,7 @@ log.info("Writing the calculated TSTART and TEND columns into a text file, neces
 cmd = ['ftlist', '{0}[1]'.format(lcfile_cut), 'columns=TSTART,TEND', 'rownum=no', 'colheader=no', 'opt=t', '>', 'gti_data.txt']
 runcmd(cmd)
 
-#####  STEP 5b - cut out 
+#####  STEP 5b - cut out
 log.info("Squeezing the GTIs...")
 first = True
 with open("gti_data_squeezed.txt","w") as gtiout:
@@ -189,7 +189,7 @@ with open("gti_data_squeezed.txt","w") as gtiout:
                 stop = curstop
         prevstart = curstart
         prevstop = curstop
-
+    print(start,stop,file=gtiout)
 
 ################################################
 ##  STEP 6 - Making the GTI file from the text file
