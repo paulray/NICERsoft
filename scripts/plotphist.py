@@ -30,7 +30,7 @@ fig,ax = plt.subplots(figsize=(8,4.5))
 h, edges = np.histogram(ph,bins=np.linspace(0.0,1.0,args.nbins,endpoint=True))
 try:
     if hdr['EXPOSURE'] > 0:
-        h = np.array(h,dtype=np.float)/(np.float(hdr['EXPOSURE'])/args.nbins)
+        h = np.array(h,dtype=float)/(float(hdr['EXPOSURE'])/args.nbins)
         rates = True
 except:
     rates=False
