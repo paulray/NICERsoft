@@ -55,9 +55,9 @@ parser.add_argument(
 )
 parser.add_argument(
     "--emax",
-    help="Maximum energy to include (kev, default=12.0)",
+    help="Maximum energy to include (kev, default=15.0)",
     type=float,
-    default=12.0,
+    default=15.0,
 )
 parser.add_argument("--mask", help="Mask these IDS", nargs="*", type=int, default=None)
 parser.add_argument(
@@ -68,7 +68,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--cormin",
-    help="Set minimum cutoff rigidity (COR_SAX) for nimaketime filtering (default=no COR filtering, typical value = 4)",
+    help="Set minimum cutoff rigidity (COR_SAX) for nimaketime filtering (default=no COR filtering, typical value = 1.5 or 2)",
     default=None,
 )
 parser.add_argument(
@@ -83,7 +83,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--maxovershoot",
-    help="Select data where overshoot rate (per FPM) is below this limit (default: no filter)",
+    help="Select data where overshoot rate (per FPM) is below this limit (default: 1.5)",
     type=float,
     default=1.5,
 )
