@@ -410,7 +410,7 @@ filt_str = "Filter: {0:.2f} < E < {1:.2f} keV".format(args.emin, args.emax)
 if args.emin >= 0:
     b4 = etable["PI"] > args.emin / PI_TO_KEV
 else:
-    b4 = np.ones_like(etable["PI"], dtype=np.bool)
+    b4 = np.ones_like(etable["PI"], dtype=bool)
 if args.emax >= 0:
     b4 = np.logical_and(b4, etable["PI"] < args.emax / PI_TO_KEV)
 
@@ -418,17 +418,17 @@ if args.filtswtrig:
     b1 = etable["EVENT_FLAGS"][:, FLAG_SWTRIG] == False
     filt_str += ", not SWTRIG"
 else:
-    b1 = np.ones_like(etable["PI"], dtype=np.bool)
+    b1 = np.ones_like(etable["PI"], dtype=bool)
 if args.filtundershoot:
     b2 = etable["EVENT_FLAGS"][:, FLAG_UNDERSHOOT] == False
     filt_str += ", not UNDERSHOOT"
 else:
-    b2 = np.ones_like(etable["PI"], dtype=np.bool)
+    b2 = np.ones_like(etable["PI"], dtype=bool)
 if args.filtovershoot:
     b3 = etable["EVENT_FLAGS"][:, FLAG_OVERSHOOT] == False
     filt_str += ", not OVERSHOOT"
 else:
-    b3 = np.ones_like(etable["PI"], dtype=np.bool)
+    b3 = np.ones_like(etable["PI"], dtype=bool)
 
 idx = np.where(b1 & b2 & b3 & b4)[0]
 del b1, b2, b3, b4
