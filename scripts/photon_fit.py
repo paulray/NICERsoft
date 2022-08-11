@@ -4,9 +4,6 @@
 #          Matthew Kerr <matthew.kerr@gmail.com>
 # Description:
 # Reads a FITS file of photon event times (from NICER or another X-ray mission)
-# and generates TOAs from the unbined times using a pulsar timing model
-# and an analytic template. The TOAs can be output them in Tempo2 format.
-from __future__ import division, print_function
 import os, sys
 import argparse
 import numpy as np

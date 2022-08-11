@@ -8,11 +8,6 @@
 # and generates TOAs from the unbined times using a pulsar timing model
 # and an analytic template. The TOAs can be output them in Tempo2 format.
 
-# from future import standard_library
-# standard_library.install_aliases()
-from builtins import str
-from builtins import zip
-from builtins import range
 import os, sys
 import argparse
 import numpy as np

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function, division
 from glob import glob
 import astropy.io.fits as pyfits
 import sys, os
@@ -116,8 +115,10 @@ for i, det_id in enumerate(IDS):
     log.debug("{} DET_ID {} MPU {} File {}".format(i, det_id, mpu, ufiles[mpu]))
     # Only read the raw MPU file once per MPU since all the FPMs for this MPU are in this file
     if mpu != t_mpu:
-        cmd = "niextract-events {0} eventsout={1} timefile='{2}[GTI]' clobber=yes".format(
-            ufiles[mpu], "tmp.evt", args.gtifile
+        cmd = (
+            "niextract-events {0} eventsout={1} timefile='{2}[GTI]' clobber=yes".format(
+                ufiles[mpu], "tmp.evt", args.gtifile
+            )
         )
         st = check_call(cmd, shell=True)
         if st != 0:

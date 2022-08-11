@@ -1,16 +1,10 @@
 #!/usr/bin/env python
 import os, sys
-import pint.logging                                                                                                                                                      
-from loguru import logger as log                                                                                                                                         
-                                                                                                                                                                         
-log.remove()                                                                                                                                                             
-log.add(                                                                                                                                                                 
-    sys.stderr,                                                                                                                                                          
-    level="INFO",                                                                                                                                                     
-    colorize=True,                                                                                                                                                       
-    format=pint.logging.format,                                                                                                                                          
-    filter=pint.logging.LogFilter(),                                                                                                                                     
-)                                             
+import pint.logging
+from loguru import logger as log
+
+pint.logging.setup(level=pint.logging.script_level)
+
 
 # Hack to add this to pythonpath
 # sys.path.append('/Users/paulr/src/NICERsoft')
@@ -156,24 +150,24 @@ parser.add_argument(
     help="Standard filters used by Keith Gendreau for Space-Weather backgrounds",
     action="store_true",
 )
-parser.add_argument(                                                                                                                                                 
-    "--log-level",                                                                                                                                                   
-    type=str,                                                                                                                                                        
-    choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),                                                                                                          
-    default="INFO",                                                                                                                                               
-    help="Logging level",                                                                                                                                            
-    dest="loglevel",                                                                                                                                                 
-)                                                                                                                                                                    
+parser.add_argument(
+    "--log-level",
+    type=str,
+    choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),
+    default="INFO",
+    help="Logging level",
+    dest="loglevel",
+)
 
 args = parser.parse_args()
-log.remove()                                                                                                                                                         
-log.add(                                                                                                                                                             
-    sys.stderr,                                                                                                                                                      
-    level=args.loglevel,                                                                                                                                             
-    colorize=True,                                                                                                                                                   
-    format=pint.logging.format,                                                                                                                                      
-    filter=pint.logging.LogFilter(),                                                                                                                                 
-)                                                                                                                                                                    
+log.remove()
+log.add(
+    sys.stderr,
+    level=args.loglevel,
+    colorize=True,
+    format=pint.logging.format,
+    filter=pint.logging.LogFilter(),
+)
 
 # ------------------------------Getting the data and concatenating------------------------------
 if np.logical_or(args.obsdir is not None, args.infiles is not None):

@@ -14,11 +14,6 @@ from astropy.stats import mad_std, sigma_clipped_stats
 import astropy.io.fits as pyfits
 import astropy.units as u
 
-# Python 2 (xrange) and Python 3 (range) compatibility
-try:
-    xrange
-except NameError:
-    xrange = range
 
 # ------------------------THIS MAKES THE TOTAL COUNT HISTOGRAM---------------------------
 def event_counter(etable):

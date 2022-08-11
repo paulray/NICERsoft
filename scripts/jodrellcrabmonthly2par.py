@@ -2,7 +2,6 @@
 # Code to write out Tempo2-format PAR files based on Jodrell Crab monthly ephemeris parameters
 # Update the text file with the monthly ephemeris:
 # % curl -O https://www.jb.man.ac.uk/pulsar/crab/crab2.txt
-from __future__ import division, print_function
 import numpy as np
 import astropy.units as u
 import argparse
@@ -11,19 +10,34 @@ from astropy import log
 import sys
 import os.path as path
 
-desc="Write out Tempo2 par files based on Jodrell montly ephemeris"
-parser=argparse.ArgumentParser(description=desc)
-parser.add_argument("MJD",help="MJD to extract ephemeris for",type=float)
+desc = "Write out Tempo2 par files based on Jodrell montly ephemeris"
+parser = argparse.ArgumentParser(description=desc)
+parser.add_argument("MJD", help="MJD to extract ephemeris for", type=float)
 
 ## Parse arguments
 args = parser.parse_args()
 
-if not path.exists('crab2.txt'):
-    log.error('crab2.txt does not exist!  Download with "curl -O https://www.jb.man.ac.uk/pulsar/crab/crab2.txt"')
+if not path.exists("crab2.txt"):
+    log.error(
+        'crab2.txt does not exist!  Download with "curl -O https://www.jb.man.ac.uk/pulsar/crab/crab2.txt"'
+    )
     sys.exit(2)
 
-validmonths = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'JLY', 'AUG', 
-    'SEP', 'OCT', 'NOV', 'DEC']
+validmonths = [
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "JLY",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC",
+]
 
 day = []
 mon = []
@@ -35,11 +49,11 @@ f0 = []
 f1 = []
 dm = []
 dm1 = []
-for line in open('crab2.txt'):
+for line in open("crab2.txt"):
     line = line.strip()
-    if len(line)==0:
+    if len(line) == 0:
         continue
-    line = (line.replace('(',' ')).replace(')',' ')
+    line = (line.replace("(", " ")).replace(")", " ")
     cols = line.split()
     # Make sure second column is a valid month, or skip line. This skips headers, etc.
     if not cols[1] in validmonths:
@@ -47,7 +61,7 @@ for line in open('crab2.txt'):
     # Skip entries before 55910 when DM1 column was added.
     if float(cols[3]) < 55910:
         continue
-    #print(line)
+    # print(line)
     day.append(int(cols[0]))
     mon.append(cols[1])
     yr.append(int(cols[2]))
@@ -55,28 +69,32 @@ for line in open('crab2.txt'):
     tJPL.append(float(cols[4]))
     tacc.append(float(cols[5]))
     f0.append(float(cols[6]))
-    f1.append(float(cols[8])*1.0E-15)
+    f1.append(float(cols[8]) * 1.0e-15)
     dm.append(float(cols[10]))
     dm1.append(float(cols[11]))
 
-jtab = Table([day,mon,yr,mjd,tJPL,tacc,f0,f1,dm,dm1], 
-        names=('day', 'month', 'year', 'mjd', 'tJPL', 'tacc', 'f0', 'f1', 'dm', 'dm1'),
-        dtype=('i', 'S3', 'i4', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8', 'f8'))
+jtab = Table(
+    [day, mon, yr, mjd, tJPL, tacc, f0, f1, dm, dm1],
+    names=("day", "month", "year", "mjd", "tJPL", "tacc", "f0", "f1", "dm", "dm1"),
+    dtype=("i", "S3", "i4", "f8", "f8", "f8", "f8", "f8", "f8", "f8"),
+)
 
-diff = np.abs(jtab['mjd']-args.MJD)
+diff = np.abs(jtab["mjd"] - args.MJD)
 idx = diff.argmin()
 
 if diff[idx] > 18:
-    log.warning('Too large a difference ({} days) to closest ephemeris entry!'.format(diff[idx]))
-    #sys.exit(1)
-    
-f0 = jtab[idx]['f0']
-f1 = jtab[idx]['f1']
-p0 = 1.0/f0
-p1 = -f1/(f0*f0)
+    log.warning(
+        "Too large a difference ({} days) to closest ephemeris entry!".format(diff[idx])
+    )
+    # sys.exit(1)
+
+f0 = jtab[idx]["f0"]
+f1 = jtab[idx]["f1"]
+p0 = 1.0 / f0
+p1 = -f1 / (f0 * f0)
 # This calculation of F2 comes from the C code at the end of the
 # explanatory notes for the Jodrell ephemeris
-f2 = 2.0*p1*p1/(p0*p0*p0)
+f2 = 2.0 * p1 * p1 / (p0 * p0 * p0)
 
 skel = """
 PSR B0531+21
@@ -105,9 +123,21 @@ TRES {10:.3f}
 # are quoted at the arrival time, using the DE200 ephemeris
 # So we use this value for both the period epoch and for TZRMJD
 # This is in TDB units
-mjd = jtab[idx]['mjd']
-pepoch = mjd + jtab[idx]['tJPL']/86400.0
+mjd = jtab[idx]["mjd"]
+pepoch = mjd + jtab[idx]["tJPL"] / 86400.0
 
-print(skel.format(f0,f1,f2,pepoch,pepoch,mjd-16,mjd+16,
-    jtab[idx]['dm'],jtab[idx]['dm1'],pepoch,jtab[idx]['tacc']))
-
+print(
+    skel.format(
+        f0,
+        f1,
+        f2,
+        pepoch,
+        pepoch,
+        mjd - 16,
+        mjd + 16,
+        jtab[idx]["dm"],
+        jtab[idx]["dm1"],
+        pepoch,
+        jtab[idx]["tacc"],
+    )
+)

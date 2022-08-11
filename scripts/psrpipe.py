@@ -1,16 +1,10 @@
 #!/usr/bin/env python
 import os, sys
-import pint.logging                                                                                                                                                      
-from loguru import logger as log                                                                                                                                         
-                                                                                                                                                                         
-log.remove()                                                                                                                                                             
-log.add(                                                                                                                                                                 
-    sys.stderr,                                                                                                                                                          
-    level="INFO",                                                                                                                                                     
-    colorize=True,                                                                                                                                                       
-    format=pint.logging.format,                                                                                                                                          
-    filter=pint.logging.LogFilter(),                                                                                                                                     
-)                                             
+import pint.logging
+from loguru import logger as log
+
+pint.logging.setup(level=pint.logging.script_level)
+
 import numpy as np
 import argparse
 from os import path
@@ -172,25 +166,25 @@ parser.add_argument(
     help="Don't make maps (for use if cartopy is not working)",
     action="store_true",
 )
-parser.add_argument(                                                                                                                                                 
-    "--log-level",                                                                                                                                                   
-    type=str,                                                                                                                                                        
-    choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),                                                                                                          
-    default="INFO",                                                                                                                                               
-    help="Logging level",                                                                                                                                            
-    dest="loglevel",                                                                                                                                                 
-)                                                                                                                                                                    
+parser.add_argument(
+    "--log-level",
+    type=str,
+    choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),
+    default="INFO",
+    help="Logging level",
+    dest="loglevel",
+)
 
 # parser.add_argument("--crabnorm", help="normalize the spectrum with the crab (only if --merge)", action='store_true')
 args = parser.parse_args()
-log.remove()                                                                                                                                                         
-log.add(                                                                                                                                                             
-    sys.stderr,                                                                                                                                                      
-    level=args.loglevel,                                                                                                                                             
-    colorize=True,                                                                                                                                                   
-    format=pint.logging.format,                                                                                                                                      
-    filter=pint.logging.LogFilter(),                                                                                                                                 
-)                                                                                                                                                                    
+log.remove()
+log.add(
+    sys.stderr,
+    level=args.loglevel,
+    colorize=True,
+    format=pint.logging.format,
+    filter=pint.logging.LogFilter(),
+)
 
 
 os.environ["HEADASNOQUERY"] = " "
