@@ -645,7 +645,7 @@ def pulse_profile(ax, etable, args):
     #    ts.compute_posvels(ephem='DE421',planets=True)
 
     # Compute phases
-    phss = modelin.phase(ts, abs_phase=True)[1]
+    phss = modelin.phase(ts, abs_phase=True).frac
     # Strip the units, because PINT may return u.cycle
     phss = np.array(phss)
     # ensure all postive

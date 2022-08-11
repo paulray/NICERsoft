@@ -41,11 +41,12 @@ from pint.observatory.special_locations import T2SpacecraftObs
 
 import pint.logging
 from loguru import logger as log
+
 pint.logging.setup(level=pint.logging.script_level)
 
 
 def local_load_NICER_TOAs(eventname):
-    """ Local override to add MET field to each TOA object."""
+    """Local override to add MET field to each TOA object."""
     # TODO -- add this to PINT method ?
     tl = load_NICER_TOAs(eventname)
     f = pyfits.open(eventname)
@@ -58,7 +59,7 @@ def local_load_NICER_TOAs(eventname):
 
 
 def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
-    """ Return a pint TOA object for the provided times and phases.
+    """Return a pint TOA object for the provided times and phases.
 
     Longer description here.
 
@@ -85,8 +86,7 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
         which can be the Barycenter.
     tmid : Time (default=None)
         Fiducial time for TOA. If None, then use photon time closest to midpoint.
-        Should be at observatory if topo, else should be a BAT
-"""
+        Should be at observatory if topo, else should be a BAT"""
 
     # Given some subset of the event times, phases, and weights, compute
     # the TOA based on a reference event near the middle of the span.
@@ -460,7 +460,7 @@ mjds = (
 )  # TT topocentric MJDs as floats; only used to find the index of the photon time closest to the middle of the MJD range
 
 # Compute model phase for each TOA;
-phss = modelin.phase(ts, abs_phase=True)[1].value  # discard units
+phss = modelin.phase(ts, abs_phase=True).frac.value  # discard units
 
 # Note that you can compute barycentric TOAs from topocentric data, so
 # just because topo is False does NOT mean that data are barycentered!
