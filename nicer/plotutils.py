@@ -294,7 +294,7 @@ def plot_slowfast(etable, args):
     fastquart = 0.0
 
     x = np.array(etable["PI"], dtype=np.float)
-    ratio_cut = fastconst + (fastsig / 10.0) / x + fastquart * x ** 3
+    ratio_cut = fastconst + (fastsig / 10.0) / x + fastquart * x**3
 
     colors = np.array(["k"] * len(ratio))
     idx = np.where(ratio > ratio_cut)[0]
@@ -319,7 +319,7 @@ def plot_slowfast(etable, args):
     plot.annotate(bad, xy=(0.03, 0.7), xycoords="axes fraction")
     # plot.annotate("Ratio cut = {0:.2f}".format(ratio_cut),xy=(0.65,0.85),xycoords='axes fraction')
     x = np.linspace(min(etable["PI"]), max(etable["PI"]), 100, dtype=np.float)
-    cutline = fastconst + (fastsig / 10.0) / x + fastquart * x ** 3
+    cutline = fastconst + (fastsig / 10.0) / x + fastquart * x**3
     plot.plot(x * PI_TO_KEV, cutline, "g--", linewidth=1.5)
     return
 
@@ -746,10 +746,15 @@ def plot_overshoot(mktable, ovbintable, gtitable, args):
         mktable["TIME"], mktable["FPM_OVERONLY_COUNT"], gtitable
     )
 
+    cortime, cor, corcc = convert_to_elapsed_goodtime(
+        mktable["TIME"], mktable["COR_SAX"], gtitable
+    )
+
     # Delete the nan values from undershoot and cc so they don't plot
     etimeNan = np.where(np.isnan(overshoot))
     ovtime = np.delete(etime, etimeNan)
     overshoot = np.delete(overshoot, etimeNan)
+    cor = np.delete(cor, etimeNan)
     cc = np.delete(cc, etimeNan)
 
     colornames, cmap, norm = gti_colormap()
@@ -764,16 +769,24 @@ def plot_overshoot(mktable, ovbintable, gtitable, args):
         label="Overshoots/FPM",
     )
 
+    # Add this to plot overonly_expr="1.52*OVERONLY_NORM*COR_SAX**(-0.633)"
+    OVERONLY_NORM = 1.0
+    plot.plot(ovtime, 1.52 * OVERONLY_NORM * cor ** (-0.633), color="r", linewidth=3.0)
+
     if ovbintable is not None:
         etime, binnedOV, cc = convert_to_elapsed_goodtime(
-            ovbintable["TIME"], ovbintable["FPM_OVERONLY_COUNT"], gtitable,
+            ovbintable["TIME"],
+            ovbintable["FPM_OVERONLY_COUNT"],
+            gtitable,
         )
         plot.plot(etime, binnedOV, linewidth=2.0)
     else:
         # if bothrate is not None:
         #      etime, both, cc = convert_to_elapsed_goodtime(hkmet, bothrate, gtitable)
         etime, both, cc = convert_to_elapsed_goodtime(
-            mktable["TIME"], mktable["FPM_DOUBLE_COUNT"], gtitable,
+            mktable["TIME"],
+            mktable["FPM_DOUBLE_COUNT"],
+            gtitable,
         )
         plot.scatter(
             etime, both, color="c", marker=".", label="Both Under and Over Flags"
@@ -1025,7 +1038,7 @@ def filt_ratio_trumpet(etable):
     fastquart = 0.0
 
     x = np.array(etable["PI"], dtype=np.float)
-    ratio_cut = fastconst + (fastsig / 10.0) / x + fastquart * x ** 3
+    ratio_cut = fastconst + (fastsig / 10.0) / x + fastquart * x**3
 
     etable = etable[np.where(ratio < ratio_cut)[0]]
     return etable
