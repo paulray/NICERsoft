@@ -89,7 +89,7 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
     lcf = lcfitters.LCFitter(deepcopy(template), phases)
     # fitbg does not work!  Disabling.
     #    if args.fitbg:
-    #        for i in xrange(2):
+    #        for i in range(2):
     #            lcf.fit_position(unbinned=False)
     #            lcf.fit_background(unbinned=False)
     dphi, dphierr = lcf.fit_position(unbinned=args.unbinned, track=args.track)

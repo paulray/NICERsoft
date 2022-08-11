@@ -65,9 +65,9 @@ class InteractiveLC(object):
 
     def getgoodtimes(self):
         if len(self.starts) > 0:  # If there were clicks
-            for idx in xrange(0, len(self.gtitable["CUMTIME"])):  # For every GTI
+            for idx in range(0, len(self.gtitable["CUMTIME"])):  # For every GTI
                 goodlist = np.array([])
-                for sidx in xrange(0, len(self.starts)):  # For every click
+                for sidx in range(0, len(self.starts)):  # For every click
                     if self.gticheck(
                         self.starts[sidx], idx
                     ):  # Check if any of the clicks were in this GTI
@@ -76,7 +76,7 @@ class InteractiveLC(object):
                 if len(goodlist) > 0:  # If there were clicks
                     # The first interval will start here
                     start = self.gtitable["START"][idx]
-                    for index in xrange(
+                    for index in range(
                         0, len(goodlist)
                     ):  # for every click in this GTI
                         if np.logical_and(
@@ -147,7 +147,7 @@ class InteractiveLC(object):
         startmets, stopmets = convert_from_elapsed_goodtime(
             self.starts, self.stops, self.gtitable
         )
-        for i in xrange(0, len(startmets)):
+        for i in range(0, len(startmets)):
             print(
                 "The MET interval you chose is from {0} to {1} s".format(
                     startmets[i], stopmets[i]

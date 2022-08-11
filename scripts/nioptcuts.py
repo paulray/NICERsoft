@@ -10,13 +10,6 @@ import astropy.units as u
 from pint.eventstats import hm, z2m, h2sig
 
 
-# Python 2 (xrange) and Python 3 (range) compatibility
-try:
-    xrange
-except NameError:
-    xrange = range
-
-
 def cached_hm(mask):
     nph = mask.sum()
     if nph == 0:
@@ -109,7 +102,7 @@ else:
 
 # assemble cache
 cache = np.empty([m, 2, len(phasesinitial)], dtype=np.float32)
-for i in xrange(m):
+for i in range(m):
     cache[i, 0] = np.cos(phasesinitial * (2 * np.pi * (i + 1)))
     cache[i, 1] = np.sin(phasesinitial * (2 * np.pi * (i + 1)))
 cached_hm._cache = cached_zm._cache = cache

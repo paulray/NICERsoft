@@ -108,7 +108,7 @@ def structure(etable, num_events):
     # of each detector, while the value is the # of counts
     structure = np.zeros(shape=(7, 8))
 
-    for i in xrange(len(rawx)):
+    for i in range(len(rawx)):
         if rawx[i] >= 0 and rawy[i] >= 0:
             structure[rawy[i]][rawx[i]] = num_events[i]
 
@@ -186,7 +186,7 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0, noplot=False, plot_po
     cc = np.zeros_like(bins, dtype=np.float)
     cumtime = bins[-1] + binsize
     # THE REST OF THE GOOD INTERVALS
-    for i in xrange(1, len(gtitable["START"])):
+    for i in range(1, len(gtitable["START"])):
         mybins, mysums = light_curve(
             etable, gtitable["START"][i], gtitable["STOP"][i], binsize=binsize
         )
@@ -686,10 +686,10 @@ def convert_from_elapsed_goodtime(elapsedstarts, elapsedstops, gtitable):
     "Given a set of elapsed time starts and stops will convert to MET"
     startmets = np.array([])
     stopmets = np.array([])
-    for timex in xrange(0, len(elapsedstarts)):
+    for timex in range(0, len(elapsedstarts)):
         starttime = elapsedstarts[timex]
         stoptime = elapsedstarts[timex]
-        for idx in xrange(0, len(gtitable)):
+        for idx in range(0, len(gtitable)):
             if idx < len(gtitable) - 1:
                 if np.logical_and(
                     starttime >= gtitable["CUMTIME"][idx],
