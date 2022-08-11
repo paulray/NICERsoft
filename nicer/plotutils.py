@@ -771,7 +771,13 @@ def plot_overshoot(mktable, ovbintable, gtitable, args):
 
     # Add this to plot overonly_expr="1.52*OVERONLY_NORM*COR_SAX**(-0.633)"
     OVERONLY_NORM = 1.0
-    plot.plot(ovtime, 1.52 * OVERONLY_NORM * cor ** (-0.633), color="r", linewidth=3.0)
+    plot.plot(
+        ovtime,
+        1.52 * OVERONLY_NORM * cor ** (-0.633),
+        color="r",
+        linewidth=3.0,
+        label="OVERONLY_EXPR",
+    )
 
     if ovbintable is not None:
         etime, binnedOV, cc = convert_to_elapsed_goodtime(
