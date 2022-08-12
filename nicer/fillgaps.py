@@ -644,7 +644,6 @@ def fillgaps(datafile, method):
     plt.show()  # displays graphs of data before/after imputation
 
 
-
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         raise ValueError("Need two arguments: data file and imputation method.")

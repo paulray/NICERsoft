@@ -76,9 +76,7 @@ class InteractiveLC(object):
                 if len(goodlist) > 0:  # If there were clicks
                     # The first interval will start here
                     start = self.gtitable["START"][idx]
-                    for index in range(
-                        0, len(goodlist)
-                    ):  # for every click in this GTI
+                    for index in range(0, len(goodlist)):  # for every click in this GTI
                         if np.logical_and(
                             index == 0, index == (len(goodlist) - 1)
                         ):  # if it's the first AND ONLY one in goodlist

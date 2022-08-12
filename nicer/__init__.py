@@ -2,4 +2,3 @@
 """
 NICERsoft analysis software
 """
-
