@@ -7,10 +7,11 @@ from collections import deque
 import glob
 import os
 import sys
+import tqdm
 from subprocess import check_call
 
 import astropy.units as u
-from astropy import log
+from loguru import logger as log
 from astropy.io import fits
 from astropy.time import Time
 import numpy as np
@@ -380,7 +381,7 @@ def write_gtis(gti_start, gti_stop, outfile, merge_gti=False):
         toks = line.split("=")
         if (len(toks) > 0) and (toks[0].strip() == "TIMEZERO"):
             if float(toks[1].strip().split()[0]) != 0:
-                print("WARNING! TIMEZERO in output GTI not consistent.")
+                log.warning("TIMEZERO in output GTI not consistent.")
             break
 
     ## Making the GTI file from the text file
@@ -558,10 +559,7 @@ if args.writegti:
     try:
         check_call("nicerversion", env=os.environ)
     except:
-        print(
-            "You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!",
-            file=sys.stderr,
-        )
+        log.error("You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!")
         exit()
 
     # Checking the presence of gti header and columns in data/
@@ -589,7 +587,16 @@ eminlist = []
 emaxlist = []
 hgrid = []
 
-for emin in all_emin:
+log.info("Energy cuts: ")
+if args.gridsearch:
+    log.info("  Emin range: {:0.2f}-{:0.2f} keV with steps of {:0.2f} keV".format(all_emin[0],all_emin[-1],args.delta_emin))
+    log.info("  Emax range: {:0.2f}-{:0.2f} keV with steps of {:0.2f} keV".format(args.minemax,args.emax,args.delta_emax))
+else:
+    log.info("  Emin: {:0.2f} keV".format(args.emin))
+    log.info("  Emax: {:0.2f} keV".format(args.emax))
+
+
+for emin in tqdm.tqdm(all_emin,position=0, leave=True):
 
     if args.gridsearch:
         all_emax = np.arange(args.minemax, args.emax + 0.005, args.delta_emax)
@@ -600,27 +607,16 @@ for emin in all_emin:
     if len(all_emax) == 0:
         break
 
-    if args.verbosity >= 1:
-        print(
-            "emin={:0.2f}, emax ranging from {:0.2f}-{:0.2f} by {:0.2f} keV".format(
-                emin, all_emax[0], all_emax[-1], args.delta_emax
-            )
-        )
-
-    for emax in all_emax:
-
-        if args.verbosity >= 3:
-            print("    emin={:0.2f}, emax={:0.2f}".format(emin, emax))
+    for emax in tqdm.tqdm(all_emax, desc="Emin={:0.2f} keV".format(emin),leave=False):
 
         # test for energy bandwidth
         if args.gridsearch and (args.minbw is not None):
             if emax / emin - 1 < args.minbw:
-                if args.verbosity >= 2:
-                    print(
-                        "    excluding emin={:0.2f}, emax={:0.2f} because smaller than specified minbw".format(
-                            emin, emax
-                        )
+                log.debug(
+                    "Excluding emin={:0.2f}, emax={:0.2f} because smaller than specified minbw".format(
+                        emin, emax
                     )
+                )
                 continue
 
         local_data = data_diced.apply_pi_mask(emin, emax)
@@ -759,7 +755,7 @@ if args.gridsearch:
     plt.savefig("{}_sig_bestrange.png".format(args.outfile))
 
     plt.clf()
-    plt.scatter(eminlist, emaxlist, c=hgrid, s=10, edgecolor="")
+    plt.scatter(eminlist, emaxlist, c=hgrid, s=10)
     cbar = plt.colorbar()
     if args.usez:
         cbar.set_label("Z-test")
@@ -793,27 +789,27 @@ if args.gridsearch:
     plt.title(args.name)
     plt.savefig("{}_profile.png".format(args.outfile))
 
-    print("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
-    print(
+    log.info("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
+    log.info(
         "   obtained in {:0.2f} (out of {:0.2f} ksec)".format(
             exposure[Hmax] / 1000, exposure[-1] / 1000
         )
     )
-    print("   between {:0.2f} and {:0.2f} keV".format(eminbest, emaxbest))
-    print("   for {} events".format(len(select_ph)))
+    log.info("   between {:0.2f} and {:0.2f} keV".format(eminbest, emaxbest))
+    log.info("   for {} events".format(len(select_ph)))
 
     if args.writegti:
         write_gtis(gti_t0_s[: Hmax + 1], gti_t1_s[: Hmax + 1], args.outfile)
 
 else:
 
-    print("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
-    print(
+    log.info("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
+    log.info(
         "   obtained in {:0.2f} ksec (out of {:0.2f} ksec)".format(
             exposure[Hmax] / 1000, exposure[-1] / 1000
         )
     )
-    print("   for {} events".format(len(select_ph)))
+    log.info("   for {} events".format(len(select_ph)))
 
 # output summary results to text file
 a50 = int(round(len(gti_rts_s) * 0.5))
