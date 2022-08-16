@@ -31,6 +31,11 @@ cloned NICERsoft.
 
 ## PREREQUISITES:
 
+* pip-installable packages:
+  * numpy, matplotlib, scipy, astropy, pint-pulsar, loguru, tqdm
+
+
 * Heasoft (with NICER Data Analysis Software)
+
 
 * Scripts using PyXspec require Heasoft to be compiled from source.
