@@ -273,7 +273,11 @@ for obsdir in all_obsids:
     log.info("Cleaned Event Files: {0}".format("\n" + "    \n".join(evfiles)))
 
     # Get filter file
-    mkfile = glob(path.join(obsdir, "auxil/ni*.mkf"))[0]
+    mkfile = glob(path.join(obsdir, "auxil/ni*.mkf*"))[0]
+    if len(glob(path.join(obsdir, "auxil/ni*.mkf*"))):
+        log.info("Multiple MKF files found :")
+        for f in glob(path.join(obsdir, "auxil/ni*.mkf*")):
+            log.info("  -> {}".format(path.basename(f)))
     log.info("MKF File: {0}".format(mkfile))
     # Check if MKF file contains the new columns (try opening one of the new columns)
     try:
@@ -372,9 +376,9 @@ for obsdir in all_obsids:
     # Get orbit file
     orbfile = glob(path.join(obsdir, "auxil/ni*.orb*"))[0]
     if len(glob(path.join(obsdir, "auxil/ni*.orb*"))):
-        log.debug("Multiple orbit files found :")
+        log.info("Multiple orbit files found :")
         for f in glob(path.join(obsdir, "auxil/ni*.orb*")):
-            log.debug("  -> {}".format(path.basename(f)))
+            log.info("  -> {}".format(path.basename(f)))
     log.info("Orbit File: {0}".format(orbfile))
     # Copy orbit file to results dir for pulsar analysis
     shutil.copy(orbfile, pipedir)
@@ -382,9 +386,9 @@ for obsdir in all_obsids:
     #  Get ATT hk files
     attfile = glob(path.join(obsdir, "auxil/ni*.att*"))[0]
     if len(glob(path.join(obsdir, "auxil/ni*.att*"))):
-        log.debug("Multiple ATT HK files found :")
+        log.info("Multiple ATT HK files found :")
         for f in glob(path.join(obsdir, "auxil/ni*.att*")):
-            log.debug("  -> {}".format(path.basename(f)))
+            log.info("  -> {}".format(path.basename(f)))
     log.info("ATT HK File: {0}".format(attfile))
 
     #  Get BKF file for filtering based on background indicators
