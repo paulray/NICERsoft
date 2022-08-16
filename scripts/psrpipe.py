@@ -370,13 +370,21 @@ for obsdir in all_obsids:
         runcmd(cmd)
 
     # Get orbit file
-    orbfile = glob(path.join(obsdir, "auxil/ni*.orb"))[0]
+    orbfile = glob(path.join(obsdir, "auxil/ni*.orb*"))[0]
+    if len(glob(path.join(obsdir, "auxil/ni*.orb*"))):
+        log.debug("Multiple orbit files found :")
+        for f in glob(path.join(obsdir, "auxil/ni*.orb*")):
+            log.debug("  -> {}".format(path.basename(f)))
     log.info("Orbit File: {0}".format(orbfile))
     # Copy orbit file to results dir for pulsar analysis
     shutil.copy(orbfile, pipedir)
 
     #  Get ATT hk files
-    attfile = glob(path.join(obsdir, "auxil/ni*.att"))[0]
+    attfile = glob(path.join(obsdir, "auxil/ni*.att*"))[0]
+    if len(glob(path.join(obsdir, "auxil/ni*.att*"))):
+        log.debug("Multiple ATT HK files found :")
+        for f in glob(path.join(obsdir, "auxil/ni*.att*")):
+            log.debug("  -> {}".format(path.basename(f)))
     log.info("ATT HK File: {0}".format(attfile))
 
     #  Get BKF file for filtering based on background indicators
