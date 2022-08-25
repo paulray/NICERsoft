@@ -274,7 +274,7 @@ for obsdir in all_obsids:
 
     # Get filter file
     mkfile = glob(path.join(obsdir, "auxil/ni*.mkf*"))[0]
-    if len(glob(path.join(obsdir, "auxil/ni*.mkf*"))):
+    if len(glob(path.join(obsdir, "auxil/ni*.mkf*")))>1:
         log.info("Multiple MKF files found :")
         for f in glob(path.join(obsdir, "auxil/ni*.mkf*")):
             log.info("  -> {}".format(path.basename(f)))
@@ -375,7 +375,7 @@ for obsdir in all_obsids:
 
     # Get orbit file
     orbfile = glob(path.join(obsdir, "auxil/ni*.orb*"))[0]
-    if len(glob(path.join(obsdir, "auxil/ni*.orb*"))):
+    if len(glob(path.join(obsdir, "auxil/ni*.orb*")))>1:
         log.info("Multiple orbit files found :")
         for f in glob(path.join(obsdir, "auxil/ni*.orb*")):
             log.info("  -> {}".format(path.basename(f)))
@@ -385,7 +385,7 @@ for obsdir in all_obsids:
 
     #  Get ATT hk files
     attfile = glob(path.join(obsdir, "auxil/ni*.att*"))[0]
-    if len(glob(path.join(obsdir, "auxil/ni*.att*"))):
+    if len(glob(path.join(obsdir, "auxil/ni*.att*")))>1:
         log.info("Multiple ATT HK files found :")
         for f in glob(path.join(obsdir, "auxil/ni*.att*")):
             log.info("  -> {}".format(path.basename(f)))
