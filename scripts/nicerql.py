@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import os, sys
-import pint.logging
+#import pint.logging
 from loguru import logger as log
 
-pint.logging.setup(level=pint.logging.script_level)
+#pint.logging.setup(level=pint.logging.script_level)
 
 
 # Hack to add this to pythonpath
@@ -165,8 +165,8 @@ log.add(
     sys.stderr,
     level=args.loglevel,
     colorize=True,
-    format=pint.logging.format,
-    filter=pint.logging.LogFilter(),
+    format='<level>{level: <8}</level> ({name: <30}): <level>{message}</level>'
+    #filter=pint.logging.LogFilter(),
 )
 
 # ------------------------------Getting the data and concatenating------------------------------
@@ -534,7 +534,7 @@ if args.sci:
 
 # Map plot is overshoot and undershoot rates on maps
 if args.map:
-    log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
+    #log.info("I'M THE MAP I'M THE MAP I'M THE MAAAAP")
     # if eventovershoots is not None:
     #     figure3 = cartography(hkmet, eventovershoots, args, eventundershoots,
     #         filttable, mktable, gtitable)

@@ -881,16 +881,18 @@ def plot_angles(mktable, gtitable):
     goodtime, moonangle, cc = convert_to_elapsed_goodtime(met, moon, gtitable)
     goodtime, elvangle, cc = convert_to_elapsed_goodtime(met, elv, gtitable)
 
-    plot.scatter(goodtime, sunangle, marker=".", color="y", alpha=0.5, label="Sun")
+    plot.scatter(goodtime, sunangle, marker=".", s=3, color="y", alpha=0.5, label="Sun")
     plot.scatter(
-        goodtime, earthangle, marker=".", color="b", alpha=0.5, label="Bright Earth"
+        goodtime, earthangle, marker=".", s=3, color="b", alpha=0.5, label="Bright Earth"
     )
-    plot.scatter(goodtime, moonangle, marker=".", color="grey", alpha=0.5, label="Moon")
-    plot.scatter(goodtime, elvangle, marker=".", color="m", alpha=0.5, label="ELV")
+    plot.scatter(goodtime, moonangle, marker=".", s=3, color="grey", alpha=0.5, label="Moon")
+    plot.scatter(goodtime, elvangle, marker=".", s=3, color="m", alpha=0.5, label="ELV")
     plot.legend(loc=2)
     plot.ylim((0.0, 180.0))
     plot.grid(True)
     plot.yticks([0.0, 45.0, 90.0, 135.0, 180.0])
+    plot.minorticks_on()
+    plot.grid(which='minor', axis='y', linewidth=0.5, alpha=0.4)
     plot.ylabel("Angle (deg)")
 
     return
@@ -963,15 +965,18 @@ def plot_cor(mktable, gtitable):
         c=np.fmod(cc, len(colornames)),
         norm=norm,
         cmap=cmap,
-        marker="^",
+        marker=".",
+        s=3,
         label="COR_SAX",
     )
     # plot.scatter(time, lon, c = colors, cmap = cmap, marker = '_', label = 'Longitude')
     plot.legend(loc=2)
     plot.ylim((0.0, 20.0))
-    plot.axhline(5.0, linestyle="--", color="r")
+    plot.axhline(1.5, linestyle="--", color="r")
     plot.xlabel("Elapsed Time (s)", labelpad=1)
     plot.grid(True)
+    plot.minorticks_on()
+    plot.grid(which='minor', axis='y', linewidth=0.5, alpha=0.3)
     plot.ylabel("GeV")
     return
 
@@ -1004,7 +1009,7 @@ def calc_nresets(mktable, IDS):
 def plot_resetrate(IDS, reset_rates):
     "Plots reset rates"
     reset = plot.bar(IDS, reset_rates, width=0.85)
-    plot.title("Reset Rate by Detector")
+    plot.title("Undershoot-only reset rate by Detector")
     plot.ylabel("Reset Rate [Hz]")
     plot.xlabel("DET_ID")
     # plot.ylim([0, np.max(reset_rates)+2])

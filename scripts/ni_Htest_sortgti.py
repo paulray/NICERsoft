@@ -123,6 +123,13 @@ parser.add_argument(
     action="store_true",
     default=False,
 )
+
+parser.add_argument(
+    "--save_profile",
+    help="export optimal profile as ascii file",
+    action="store_true",
+    default=False,
+)
 parser.add_argument(
     "--usez",
     help="Use Z^2_2 test instead of H test.",
@@ -810,6 +817,12 @@ else:
         )
     )
     log.info("   for {} events".format(len(select_ph)))
+
+if args.save_profile:
+    output_data = np.array([bbins - (0.5 / nbins), fullprof, fullprof**0.5]).T
+    np.savetxt("{}_profile.txt".format(args.outfile),
+               output_data,
+               header='Phase      Counts     ErrorBar')
 
 # output summary results to text file
 a50 = int(round(len(gti_rts_s) * 0.5))
