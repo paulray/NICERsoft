@@ -108,7 +108,24 @@ parser.add_argument(
     default=None,
 )
 
+parser.add_argument(
+    "--log-level",
+    type=str,
+    choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),
+    default="INFO",
+    help="Logging level",
+    dest="loglevel",
+)
+
 args = parser.parse_args()
+log.remove()
+log.add(
+    sys.stderr,
+    level=args.loglevel,
+    colorize=True,
+    format='<level>{level: <8}</level> ({name: <30}): <level>{message}</level>'
+    #filter=pint.logging.LogFilter(),
+)
 
 ################################################
 ##  STEP 0 - open event file and get GTI

@@ -130,6 +130,14 @@ parser.add_argument(
     action="store_true",
     default=False,
 )
+
+parser.add_argument(
+    "--save_rates",
+    help="export count rates from optimal GTI selection (also saves a figure)",
+    action="store_true",
+    default=False,
+)
+
 parser.add_argument(
     "--usez",
     help="Use Z^2_2 test instead of H test.",
@@ -145,7 +153,26 @@ parser.add_argument(
 parser.add_argument(
     "--name", help="Pulsar name for output figure", type=str, default=""
 )
+
+parser.add_argument(
+    "--log-level",
+    type=str,
+    choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),
+    default="INFO",
+    help="Logging level",
+    dest="loglevel",
+)
+
 args = parser.parse_args()
+
+log.remove()
+log.add(
+    sys.stderr,
+    level=args.loglevel,
+    colorize=True,
+    format='<level>{level: <8}</level> ({name: <30}): <level>{message}</level>'
+    #filter=pint.logging.LogFilter(),
+)
 
 import matplotlib
 
@@ -670,6 +697,7 @@ for emin in tqdm.tqdm(all_emin,position=0, leave=True):
             plt.legend(loc="lower right")
             plt.savefig("{}_sig.png".format(args.outfile))
 
+            log.info("Effective count rate cut: {:0.3f} ct/s".format(gti_rts_s[Hmax]))
             plt.clf()
             nbins = args.nbins
             select_ph = np.concatenate(ph_gti[: Hmax + 1]).ravel()
@@ -755,6 +783,7 @@ if args.gridsearch:
             ls="--",
             label="Max H-test (sig={:0.3f})".format(hsig[Hmax]),
         )
+    log.info("Effective count rate cut: {:0.3f} ct/s".format(gti_rts_s[Hmax]))
     plt.xlabel("Background Rate (ct/s)")
     plt.ylabel("Significance (sigma)")
     plt.title("{} - [{:0.2f},{:0.2f}]".format(args.name, eminbest, emaxbest))
@@ -795,7 +824,7 @@ if args.gridsearch:
     plt.xlabel("Phase")
     plt.title(args.name)
     plt.savefig("{}_profile.png".format(args.outfile))
-
+    plt.clf()
     log.info("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
     log.info(
         "   obtained in {:0.2f} (out of {:0.2f} ksec)".format(
@@ -823,6 +852,30 @@ if args.save_profile:
     np.savetxt("{}_profile.txt".format(args.outfile),
                output_data,
                header='Phase      Counts     ErrorBar')
+
+if args.save_rates:
+
+    gti_centers = 0.5 * (gti_t0_s[: Hmax + 1] + gti_t1_s[: Hmax + 1])
+    select_rates = gti_rts_s[: Hmax + 1]
+    sorted_ind = gti_centers.argsort()
+    # gti_centers = gti_centers[sorted_ind[::-1]]
+    # select_rates = select_rates[sorted_ind[::-1]]
+    gti_centers = gti_centers[sorted_ind]
+    select_rates = select_rates[sorted_ind]
+
+    # Figure of count rate
+    plt.scatter(gti_centers-gti_centers[0], select_rates, s=1)
+    plt.xlabel('Elapsed time (s)')
+    plt.ylabel('Count rate (ct/s) in selected GTIs')
+    plt.title('Count rate light curve in selected GTIs'.format(args.name))
+    plt.tight_layout()
+    plt.savefig("{}_lightcurve.png".format(args.outfile))
+
+    # Dump data points
+    output_data = np.array([gti_centers,select_rates]).T
+    np.savetxt("{}_lightcurve.txt".format(args.outfile),
+               output_data,
+               header='GTI Center (s)    Count rate (c/s)')
 
 # output summary results to text file
 a50 = int(round(len(gti_rts_s) * 0.5))
