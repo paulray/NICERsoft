@@ -34,10 +34,10 @@ import astropy.constants as const
 from pint.observatory import get_observatory
 from pint.observatory.special_locations import T2SpacecraftObs
 
-import pint.logging
+#import pint.logging
 from loguru import logger as log
 
-pint.logging.setup(level=pint.logging.script_level)
+#pint.logging.setup(level=pint.logging.script_level)
 
 
 def local_load_NICER_TOAs(eventname):

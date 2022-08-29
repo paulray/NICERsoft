@@ -29,7 +29,7 @@ def eng_plots(etable, args, mktable, filttable, gtitable):
 
     # RESET RATE PER DETECTOR
     if mktable is not None:
-        log.info("Computing reset rates")
+        log.info("Computing undershoot-only reset rate")
         plot.subplot(sci_grid[:2, 2:4])
         reset_rates = calc_nresets(mktable, IDS) / etable.meta["EXPOSURE"]
         if reset_rates is not None:

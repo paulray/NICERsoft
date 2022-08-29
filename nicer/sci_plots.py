@@ -85,23 +85,50 @@ def sci_plots(etable, gtitable, args):
     plt.figtext(
         0.07,
         0.93,
-        "Start time is {0}, End time is {1}".format(tstart.iso, tend.iso),
+        "Start time: {0} - End time: {1}".format(tstart.iso, tend.iso),
         fontsize=10,
     )
     plt.figtext(
         0.07,
         0.90,
-        "Exposure is {0:.1f} s, Good time fraction is {1:.3f}".format(
+        "Total clock time between start and stop: {0:.1f} s".format(
+            float(etable.meta["TSTOP"]) - float(etable.meta["TSTART"])
+        ),
+        fontsize=10,
+    )
+    plt.figtext(
+        0.07,
+        0.87,
+        "Exposure: {0:.1f} s   -->   Coverage fraction is {1:.3f}".format(
             exposure, fraction
         ),
         fontsize=10,
     )
-    plt.figtext(0.07, 0.87, "Mean count rate {0:.3f} c/s".format(meanrate), fontsize=10)
+    plt.figtext(0.07, 0.84, "Mean count rate:  {0:.3f} c/s".format(meanrate), fontsize=10)
     # plt.figtext(.07, .84, etable.meta['FILT_STR'], fontsize=10)
     if args.mask:
         plt.figtext(0.07, 0.81, "IDS {0} are masked".format(args.mask), fontsize=10)
-    plt.figtext(0.5, 0.77, str(gtitable["START"][:]), fontsize=9)
-    plt.figtext(0.58, 0.77, str(gtitable["STOP"][:]), fontsize=9)
-    plt.figtext(0.66, 0.77, str(gtitable["DURATION"][:]), fontsize=9)
+
+    stringtable_start = str(gtitable["START"][:]).split('\n')
+    stringtable_stop = str(gtitable["STOP"][:]).split('\n')
+    stringtable_duration = str(gtitable["DURATION"][:]).split('\n')
+
+    # Bit of formatting of the duration table
+    stringtable_duration[0:2] = ["  {}".format(i) for i in stringtable_duration[0:2]]
+    stringtable_duration[2] = "---{}".format(stringtable_duration[2])
+    stringtable_duration[3:] = ["  {}".format(i) for i in stringtable_duration[3:]]
+
+    # omits GTIs in the display table if there are more than 7 (the first 3 lines are for the table header)
+    if len(stringtable_start)> 10:
+        stringtable_start = stringtable_start[0:6] + ['...'] + stringtable_start[-3:]
+        stringtable_stop = stringtable_stop[0:6] + ['...'] + stringtable_stop[-3:]
+        stringtable_duration = stringtable_duration[0:6] + ['({:9.1f})'.format(np.sum(list(map(float, stringtable_duration[7:-3]))))] + stringtable_duration[-3:]
+    stringtable_start ='\n'.join(stringtable_start)
+    stringtable_stop ='\n'.join(stringtable_stop)
+    stringtable_duration ='\n'.join(stringtable_duration)
+
+    plt.figtext(0.5, 0.77, stringtable_start, fontsize=10, fontname='Courier')
+    plt.figtext(0.58, 0.77, stringtable_stop, fontsize=10, fontname='Courier')
+    plt.figtext(0.66, 0.77, stringtable_duration, fontsize=10, fontname='Courier')
 
     return figure2

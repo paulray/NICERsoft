@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import os, sys
-import pint.logging
+#import pint.logging
 from loguru import logger as log
 
-pint.logging.setup(level=pint.logging.script_level)
+#pint.logging.setup(level=pint.logging.script_level)
 
 import numpy as np
 import argparse
@@ -182,8 +182,8 @@ log.add(
     sys.stderr,
     level=args.loglevel,
     colorize=True,
-    format=pint.logging.format,
-    filter=pint.logging.LogFilter(),
+    format='<level>{level: <8}</level> ({name: <30}): <level>{message}</level>'
+    #filter=pint.logging.LogFilter(),
 )
 
 
