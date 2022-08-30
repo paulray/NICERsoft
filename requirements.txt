@@ -1,0 +1,8 @@
+## SPECIFIC VERSIONS REQUIRED ?
+numpy
+astropy
+loguru
+pint-pulsar
+scipy
+matplotlib
+tqdm

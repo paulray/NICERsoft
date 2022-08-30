@@ -1,0 +1,4 @@
+## WILL PROBABLY CHANGE WITH RE-ORGANIZE DIRECTORIES
+include data/*
+include nicer/*
+include script/*
