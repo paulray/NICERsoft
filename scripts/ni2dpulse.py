@@ -29,7 +29,7 @@ pirange = pimin + arange(args.nebins) * downsamp
 print("PI bins ", pirange)
 
 phase2 = np.append(phase, phase + 1.0)
-phrange = arange(args.nbins * 2 + 1, dtype=np.float) / float(args.nbins)
+phrange = arange(args.nbins * 2 + 1, dtype=float) / float(args.nbins)
 
 H, piedges, phedges = np.histogram2d(pi2, phase2, bins=[pirange, phrange])
 eedges = piedges * PI_TO_KEV
