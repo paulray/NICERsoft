@@ -30,7 +30,7 @@ ph = dat["PULSE_PHASE"]
 
 try:
     print(
-        "Z test = {} ({} sig)".format(z2m(ph)[-1], sig2sigma(sf_z2m(z2m(ph)[-1], lo)))
+        "Z test = {} ({} sig)".format(z2m(ph)[-1], sig2sigma(sf_z2m(z2m(ph)[-1])))
     )
 except:
     pass
