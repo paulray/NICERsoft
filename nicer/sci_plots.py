@@ -131,13 +131,14 @@ def sci_plots(etable, gtitable, args):
     if len(stringtable_start)> 10:
         stringtable_start = stringtable_start[0:6] + ['...'] + stringtable_start[-3:]
         stringtable_stop = stringtable_stop[0:6] + ['...'] + stringtable_stop[-3:]
-        stringtable_duration = stringtable_duration[0:6] + ['({:9.1f})'.format(np.sum(list(map(float, stringtable_duration[7:-3]))))] + stringtable_duration[-3:]
+        # stringtable_duration = stringtable_duration[0:6] + ['({:9.1f})'.format(np.sum(list(map(float, stringtable_duration[7:-3]))))] + stringtable_duration[-3:]
+        stringtable_duration = stringtable_duration[0:6] + ['...'] + stringtable_duration[-3:]
     stringtable_start ='\n'.join(stringtable_start)
     stringtable_stop ='\n'.join(stringtable_stop)
     stringtable_duration ='\n'.join(stringtable_duration)
 
     plt.figtext(0.5, 0.77, stringtable_start, fontsize=10, fontname='Courier')
-    plt.figtext(0.58, 0.77, stringtable_stop, fontsize=10, fontname='Courier')
-    plt.figtext(0.66, 0.77, stringtable_duration, fontsize=10, fontname='Courier')
+    plt.figtext(0.62, 0.77, stringtable_stop, fontsize=10, fontname='Courier')
+    plt.figtext(0.74, 0.77, stringtable_duration, fontsize=10, fontname='Courier')
 
     return figure2
