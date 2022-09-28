@@ -113,6 +113,15 @@ def sci_plots(etable, gtitable, args):
     stringtable_stop = str(gtitable["STOP"][:]).split('\n')
     stringtable_duration = str(gtitable["DURATION"][:]).split('\n')
 
+    # In case the duration_table contains '...'
+    bad_durations = np.char.endswith(stringtable_duration, '...')
+    if bad_durations.any():
+        idx_to_remove = np.argwhere(bad_durations).flatten()
+        for idx in np.flip(idx_to_remove):
+            del stringtable_start[idx]
+            del stringtable_stop[idx]
+            del stringtable_duration[idx]
+
     # Bit of formatting of the duration table
     stringtable_duration[0:2] = ["  {}".format(i) for i in stringtable_duration[0:2]]
     stringtable_duration[2] = "---{}".format(stringtable_duration[2])
