@@ -109,36 +109,15 @@ def sci_plots(etable, gtitable, args):
     if args.mask:
         plt.figtext(0.07, 0.81, "IDS {0} are masked".format(args.mask), fontsize=10)
 
-    stringtable_start = str(gtitable["START"][:]).split('\n')
-    stringtable_stop = str(gtitable["STOP"][:]).split('\n')
-    stringtable_duration = str(gtitable["DURATION"][:]).split('\n')
-
-    # In case the duration_table contains '...'
-    bad_durations = np.char.endswith(stringtable_duration, '...')
-    if bad_durations.any():
-        idx_to_remove = np.argwhere(bad_durations).flatten()
-        for idx in np.flip(idx_to_remove):
-            del stringtable_start[idx]
-            del stringtable_stop[idx]
-            del stringtable_duration[idx]
-
-    # Bit of formatting of the duration table
-    stringtable_duration[0:2] = ["  {}".format(i) for i in stringtable_duration[0:2]]
-    stringtable_duration[2] = "---{}".format(stringtable_duration[2])
-    stringtable_duration[3:] = ["  {}".format(i) for i in stringtable_duration[3:]]
-
-    # omits GTIs in the display table if there are more than 7 (the first 3 lines are for the table header)
-    if len(stringtable_start)> 10:
-        stringtable_start = stringtable_start[0:6] + ['...'] + stringtable_start[-3:]
-        stringtable_stop = stringtable_stop[0:6] + ['...'] + stringtable_stop[-3:]
-        # stringtable_duration = stringtable_duration[0:6] + ['({:9.1f})'.format(np.sum(list(map(float, stringtable_duration[7:-3]))))] + stringtable_duration[-3:]
-        stringtable_duration = stringtable_duration[0:6] + ['...'] + stringtable_duration[-3:]
-    stringtable_start ='\n'.join(stringtable_start)
-    stringtable_stop ='\n'.join(stringtable_stop)
-    stringtable_duration ='\n'.join(stringtable_duration)
+    stringtable_start, _ = format_gti_longstring(gtitable["START"], nCut=3)
+    stringtable_stop, _ = format_gti_longstring(gtitable["STOP"], nCut=3)
+    stringtable_duration, nb_omitted_gtis = format_gti_longstring(gtitable["DURATION"], nCut=3)
 
     plt.figtext(0.5, 0.77, stringtable_start, fontsize=10, fontname='Courier')
-    plt.figtext(0.62, 0.77, stringtable_stop, fontsize=10, fontname='Courier')
-    plt.figtext(0.74, 0.77, stringtable_duration, fontsize=10, fontname='Courier')
+    plt.figtext(0.58, 0.77, stringtable_stop, fontsize=10, fontname='Courier')
+    plt.figtext(0.66, 0.77, stringtable_duration, fontsize=10, fontname='Courier')
+
+    if nb_omitted_gtis>0:
+        plt.figtext(0.55, 0.75, "with {} omitted GTIS".format(nb_omitted_gtis), fontsize=10, fontname='Courier')
 
     return figure2
