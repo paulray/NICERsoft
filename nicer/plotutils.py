@@ -1053,3 +1053,36 @@ def filt_ratio_trumpet(etable):
 
     etable = etable[np.where(ratio < ratio_cut)[0]]
     return etable
+
+def format_gti_longstring(gticolumn, nCut=3):
+
+    gtidata = gticolumn.data
+    units = "({})".format(gticolumn.unit.name)
+
+    if gticolumn.name == 'DURATION':
+        omitted_gtis_duration = np.sum(gtidata[nCut:-nCut])
+        sumgti = "({:.1f})".format(omitted_gtis_duration)
+    else:
+        sumgti = '...'
+
+    # Find column width
+    width = max( len(str(np.max(gtidata))) + 1,
+                 len(gticolumn.name),
+                 len(sumgti))
+
+    # String header
+    string_gtidata = "{}\n{}\n{}\n".format(gticolumn.name.center(width," "),
+                                           units.center(width," "),
+                                           "_"*width)
+
+    # String body (without omitted GTIs is too many GTIs)
+    if len(gtidata) > nCut*2:
+        short_gtidata = np.delete(gtidata, np.arange(nCut,len(gtidata)-nCut,1))
+        string_gtidata += '\n'.join(["{val: {width}}".format(val=i, width=width) for i in short_gtidata[:nCut]])
+        string_gtidata += "\n{}\n".format(sumgti.rjust(width," "))
+        string_gtidata += '\n'.join(["{val: {width}}".format(val=i, width=width) for i in short_gtidata[-nCut:]])
+    else:
+        short_gtidata = gtidata
+        string_gtidata += '\n'.join(["{val: {width}}".format(val=i, width=width) for i in short_gtidata])
+
+    return string_gtidata, len(gtidata[nCut:-nCut])
