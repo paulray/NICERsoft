@@ -76,6 +76,11 @@ parser.add_argument(
     default=38,
 )
 parser.add_argument(
+    "--mingti",
+    help="Set minimum duration (in seconds) of a GTI to be kept (default=16)",
+    default=16,
+)
+parser.add_argument(
     "--maxovershoot",
     help="Select data where overshoot rate (per FPM) is below this limit (default: 1.5)",
     type=float,
@@ -461,6 +466,7 @@ for obsdir in all_obsids:
 
     # Make final merged GTI using nimaketime
     gtiname_merged = path.join(pipedir, "tot.gti")
+    gtiname_clipped = path.join(pipedir, "tot_clipped.gti")
 
     # Manage extra_expr for nimaketime (ST_VALID, DARK/DAY, and FPM_OVER_ONLY filters from --KEITH)
     list_extra_expr = ["ST_VALID.eq.1"]
@@ -523,6 +529,17 @@ for obsdir in all_obsids:
     # case where no good time is selected.  This differs from the normal
     # maketime, which produces a GTI file with no rows in that case
 
+    # Now run ftadjustgti to discard short GTIs
+    cmd = [
+        "ftadjustgti",
+        "infile={0}".format(gtiname_merged),
+        "outfile={0}".format(gtiname_clipped),
+        "mingti={}".format(args.mingti),
+        "copyall=NO",
+        "clobber=YES"
+    ]
+    runcmd(cmd)
+
     ###  Extract filtered events and apply merged GTI
     filteredname = path.join(pipedir, "cleanfilt.evt")
     intermediatename = path.join(pipedir, "intermediate.evt")
@@ -545,7 +562,7 @@ for obsdir in all_obsids:
         "niextract-events",
         "filename=@{0}[{1}]".format(evlistname, evfilt_expr),
         "eventsout={0}".format(intermediatename),
-        "timefile={0}".format(gtiname_merged),
+        "timefile={0}".format(gtiname_clipped),
         "gti=GTI",
         "clobber=yes",
     ]
@@ -587,7 +604,9 @@ for obsdir in all_obsids:
 
     # Now filter any bad detectors.
     # Start with launch detectors, but with MPU1 excluded during timing issue
-    detfilt_expr = "launch,MPU1(bti:174061082-175382522)"
+    # This bti is no longer needed since niautoscreen takes care of it
+    # detfilt_expr = "launch,MPU1(bti:174061082-175382522)"
+    detfilt_expr = "launch"
 
     # Filter any explicitly specified masked detectors
     if args.mask is not None:
