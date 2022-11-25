@@ -4,6 +4,7 @@ import numpy as np
 import astropy.io.fits as pyfits
 import argparse
 from pint.eventstats import z2m, hm, sf_z2m, sf_hm, sig2sigma, h2sig
+from nicer.values import *
 
 parser = argparse.ArgumentParser(
     description="Plot a binned light curve from a PULSE_PHASE column in a FITS file"
@@ -13,6 +14,12 @@ parser.add_argument(
 )
 parser.add_argument(
     "--nbins", help="Number of profile bins (default 32)", default=32, type=int
+)
+parser.add_argument(
+     "--emin", type=float, default=0.25, help="Minimum energy to include."
+)
+parser.add_argument(
+    "--emax", type=float, default=12.0, help="Maximum energy to include."
 )
 parser.add_argument(
     "--outfile",
@@ -28,12 +35,22 @@ hdr = hdulist[1].header
 
 ph = dat["PULSE_PHASE"]
 
+# FILTER ON ENERGY
+en = dat["PI"] * PI_TO_KEV
+idx = np.where(np.logical_and((en >= args.emin), (en <= args.emax)))
+ph = ph[idx]
+print(f"Energy cuts left {len(ph)} out of {len(en)} events in {args.emin} to {args.emax} keV.")
+
+print(
+    "Z^2_2 test = {}".format(z2m(ph)[-1]), end=" "
+)
 try:
-    print(
-        "Z test = {} ({} sig)".format(z2m(ph)[-1], sig2sigma(sf_z2m(z2m(ph)[-1])))
-    )
+    print("({} sig)".format(sig2sigma(sf_z2m(z2m(ph)[-1]))))
+
 except:
-    pass
+    print("")
+
+
 print("H test = {} ({} sig)".format(hm(ph), h2sig(hm(ph))))
 
 fig, ax = plt.subplots(figsize=(8, 4.5))
