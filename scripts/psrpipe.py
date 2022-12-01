@@ -113,6 +113,12 @@ parser.add_argument(
     default=200,
 )
 parser.add_argument(
+    "--medianundershoot",
+    help="Select data where MEDIAN undershoot rate is below this limit",
+    type=float,
+    default=None,
+)
+parser.add_argument(
     "--nounderfilt",
     help="Don't filter good times based on UNDERONLY rate",
     action="store_true",
@@ -159,6 +165,11 @@ parser.add_argument(
 parser.add_argument(
     "--keith",
     help="Standard filters used by Keith Gendreau for Space-Weather backgrounds (Masks detectors 14, 34, 54; cormin 1.5; custom cut on overshoot rate + COR_SAX)",
+    action="store_true",
+)
+parser.add_argument(
+    "--overonlyexpr",
+    help="Turn on the expression to filter on overshoot rate based on COR_SAX",
     action="store_true",
 )
 parser.add_argument(
@@ -301,7 +312,7 @@ for obsdir in all_obsids:
         log.warning("No KP column in MKF file. Will not use any KP based filters!")
         has_KP = False
 
-    # Copy orbit file to results dir for pulsar analysis
+    # Copy MKF file to results dir for pulsar analysis
     if not args.tidy:
         shutil.copy(mkfile, pipedir)
 
@@ -478,7 +489,7 @@ for obsdir in all_obsids:
 
     if args.keith:
         list_extra_expr.append("FPM_OVERONLY_COUNT<1")
-        list_extra_expr.append("FPM_OVERONLY_COUNT<(1.52*COR_SAX**(-0.633))")
+        list_extra_expr.append("FPM_OVERONLY_COUNT.lt.(1.52*COR_SAX**(-0.633))")
         # list_extra_expr.append('FPM_UNDERONLY_COUNT<200')
         if has_KP:
             list_extra_expr.append("(COR_SAX.gt.(1.914*KP**0.684+0.25)).and.KP.lt.5")
@@ -491,6 +502,12 @@ for obsdir in all_obsids:
         list_extra_expr.append(
             "(SUN_ANGLE.gt.{0}.or.SUNSHINE.eq.0)".format(args.minsun)
         )
+
+    if args.overonlyexpr:
+        list_extra_expr.append("FPM_OVERONLY_COUNT<1.52*COR_SAX**(-0.633)")
+    if args.medianundershoot:
+        # Exclude data when the MEDIAN undershoot is above this level
+        list_extra_expr.append(f"(MEDIAN_UNDERONLY_COUNT.lt.{args.medianundershoot})")
 
     extra_expr = "(" + " && ".join("%s" % expr for expr in list_extra_expr) + ")"
 
