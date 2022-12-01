@@ -19,6 +19,9 @@ FLAG_SWTRIG = 5
 FLAG_OVERSHOOT = 6
 FLAG_UNDERSHOOT = 7
 
+# IDs of the 4 detectors that were dead at launch
+DEAD_DETS = set([11, 20, 22, 60])
+
 # Array of DET_IDs that are used
 IDS = np.array(
     [
