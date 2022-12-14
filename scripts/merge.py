@@ -134,8 +134,10 @@ if args.par and args.orb:
     else:
         inputorb = args.orb
     all_orbfiles = open(inputorb, "r").readlines()
-    if len(all_evfiles) != len(all_orbfiles):
-        log.error("Different numbers of event files and orbit files! Exiting...")
+    #if len(all_evfiles) != len(all_orbfiles):
+    #    log.error("Different numbers of event files and orbit files! Exiting...")
+    if len(all_evfiles) > len(all_orbfiles):
+        log.error("Number of event files is larger than number of orbit files! Exiting...")
         exit()
     else:
         log.info(
