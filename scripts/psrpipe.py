@@ -183,6 +183,11 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
+    "--copymkf",
+    help="Copy ni*.mkf into the _pipe output directory, for convenience. Warning, mkf files are large!",
+    action="store_true",
+)
+parser.add_argument(
     "--log-level",
     type=str,
     choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),
@@ -313,7 +318,7 @@ for obsdir in all_obsids:
         has_KP = False
 
     # Copy MKF file to results dir for pulsar analysis
-    if not args.tidy:
+    if args.copymkf:
         shutil.copy(mkfile, pipedir)
 
     if args.keith:
