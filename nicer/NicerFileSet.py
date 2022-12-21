@@ -292,7 +292,7 @@ class NicerFileSet:
     #             myreset = mytd['MPU_UNDER_COUNT'].sum(axis=0)
     #             nresets = np.append(nresets,myreset)
     #         del hdulist
-    #         self.reset_rates = nresets / np.float(self.etable.meta['EXPOSURE'])
+    #         self.reset_rates = nresets / float(self.etable.meta['EXPOSURE'])
 
     #         timecol = pyfits.Column(name='HKTIME',array=self.hkmet, format = 'D')
     #         ovscol = pyfits.Column(name = 'HK_OVERSHOOT', array = self.hkovershoots, format = 'D')
@@ -354,7 +354,7 @@ class NicerFileSet:
         else:
             badtable = get_badratioevents_ftools(self.ufafiles, workdir=None)
         badlightcurve = np.histogram(badtable["TIME"], hkmetbins)[0]
-        badlightcurve = np.array(badlightcurve, dtype=np.float)
+        badlightcurve = np.array(badlightcurve, dtype=float)
         # Really should convolve in GTI segments!
         # kernel = np.ones(32)/32.0
         # badlightcurve = np.convolve(badlightcurve,kernel,mode='same')

@@ -40,7 +40,7 @@ def evaluate_fourier(n, c, s, nbins, k=None):
     # This should be updated to do a little integral over each bin.
     # Currently evaluates the model at the center of each bin
     model = np.zeros(nbins) + n / nbins
-    theta = 2.0 * np.pi * np.arange(nbins, dtype=np.float) / nbins
+    theta = 2.0 * np.pi * np.arange(nbins, dtype=float) / nbins
     theta += theta[1] / 2.0
     if k is not None:
         model += (n / nbins) * (
@@ -330,8 +330,8 @@ if __name__ == "__main__":
     colorbins = 32
     softbins, softn = compute_phist(ph[softidx], nbins=colorbins)
     hardbins, hardn = compute_phist(ph[hardidx], nbins=colorbins)
-    softn = np.asarray(softn, dtype=np.float)
-    hardn = np.asarray(hardn, dtype=np.float)
+    softn = np.asarray(softn, dtype=float)
+    hardn = np.asarray(hardn, dtype=float)
     fig, ax = plt.subplots()
     color = hardn / softn
     # Propagate Poisson errors to get error in ratio

@@ -35,7 +35,7 @@ def bkg_plots(etable, gtitable, args, mktable, ovbintable):
     # else:
     #     badtable = get_badratioevents_ftools(data.ufafiles,workdir=None)
     # badlightcurve = np.histogram(badtable['TIME'], hkmetbins)[0]
-    # badlightcurve = np.array(badlightcurve,dtype=np.float)
+    # badlightcurve = np.array(badlightcurve,dtype=float)
 
     badlightcurve = mktable["NUM_FPM_ON"] * mktable["FPM_RATIO_REJ_COUNT"]
 

@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import argparse
 import tqdm
-#from astropy import log
+
+# from astropy import log
 from loguru import logger as log
 from nicer.values import *
 from astropy.io import fits
@@ -91,7 +92,7 @@ for fn in args.evfiles:
     log.info("Reading file {0}".format(fn))
     if object is None:
         try:
-            object = fits.open(fn)[0].header["OBJECT"].replace("_"," ")
+            object = fits.open(fn)[0].header["OBJECT"].replace("_", " ")
         except:
             object = "unknown object"
         log.info("Opening events for {}".format(object))
@@ -115,7 +116,7 @@ del tlist
 
 m = args.maxharm
 ts_func = cached_zm if args.ztest else cached_hm
-phasesinitial = etable["PULSE_PHASE"].astype(np.float32)
+phasesinitial = etable["PULSE_PHASE"].astype(float)
 h_ini = z2m(phasesinitial, m=m)[-1] if args.ztest else hm(phasesinitial, m=m)
 hbest = h_ini
 eminbest = 0.0
@@ -124,20 +125,25 @@ ts_name = "Ztest" if args.ztest else "Htest"
 if args.ztest:
     log.info(
         "Initial {0} = {1} in range {2:.2f}-{3:.2f} keV ".format(
-        ts_name, np.round(hbest, 3),
-        min(etable["PI"] * PI_TO_KEV), max(etable["PI"] * PI_TO_KEV)
+            ts_name,
+            np.round(hbest, 3),
+            min(etable["PI"] * PI_TO_KEV),
+            max(etable["PI"] * PI_TO_KEV),
         )
     )
 else:
     log.info(
         "Initial {0} = {1} ({2} sigma) in range {3:.2f}-{4:.2f} keV".format(
-            ts_name, np.round(hbest, 3), np.round(h2sig(hbest), 3),
-            min(etable["PI"] * PI_TO_KEV), max(etable["PI"] * PI_TO_KEV)
+            ts_name,
+            np.round(hbest, 3),
+            np.round(h2sig(hbest), 3),
+            min(etable["PI"] * PI_TO_KEV),
+            max(etable["PI"] * PI_TO_KEV),
         )
     )
 
 # assemble cache
-cache = np.empty([m, 2, len(phasesinitial)], dtype=np.float32)
+cache = np.empty([m, 2, len(phasesinitial)], dtype=float)
 for i in range(m):
     cache[i, 0] = np.cos(phasesinitial * (2 * np.pi * (i + 1)))
     cache[i, 1] = np.sin(phasesinitial * (2 * np.pi * (i + 1)))
@@ -187,11 +193,13 @@ log.info(
 
 if not args.noplot:
     profbins = np.linspace(0.0, 1.0, args.nbins + 1, endpoint=True)
-    bbins = np.concatenate((profbins, profbins[1:]+1.0, profbins[1:]+2.0))
+    bbins = np.concatenate((profbins, profbins[1:] + 1.0, profbins[1:] + 2.0))
 
     # Initial pulse profile
     prof_ini, edges_ini = np.histogram(phasesinitial, bins=profbins)
-    fullprof_ini = np.concatenate((prof_ini, prof_ini, prof_ini, np.array([prof_ini[0]])))
+    fullprof_ini = np.concatenate(
+        (prof_ini, prof_ini, prof_ini, np.array([prof_ini[0]]))
+    )
 
     # Optimal pulse profile
     idx = np.where(
@@ -201,27 +209,35 @@ if not args.noplot:
     )[0]
     phases = etable["PULSE_PHASE"][idx]
     prof_opt, edges_ini = np.histogram(phases, bins=profbins)
-    fullprof_opt = np.concatenate((prof_opt, prof_opt, prof_opt, np.array([prof_opt[0]])))
+    fullprof_opt = np.concatenate(
+        (prof_opt, prof_opt, prof_opt, np.array([prof_opt[0]]))
+    )
 
     fig, ax = plt.subplots()
 
-    ax.errorbar(bbins-(0.5/args.nbins),fullprof_ini,
-             yerr=fullprof_ini**0.5,
-             marker ='',
-             linewidth=1.5,
-             color='r',
-             label= 'Init. E range ({0} = {1:.2f})'.format(ts_name, np.round(h_ini, 3)),
-             drawstyle='steps-mid',
-            )
+    ax.errorbar(
+        bbins - (0.5 / args.nbins),
+        fullprof_ini,
+        yerr=fullprof_ini**0.5,
+        marker="",
+        linewidth=1.5,
+        color="r",
+        label="Init. E range ({0} = {1:.2f})".format(ts_name, np.round(h_ini, 3)),
+        drawstyle="steps-mid",
+    )
 
-    ax.errorbar(bbins-(0.5/args.nbins),fullprof_opt,
-             yerr=fullprof_opt**0.5,
-             marker ='',
-             linewidth=1.5,
-             color='b',
-             label= '{:0.2f}-{:0.2f} keV ({} = {:.2f})'.format(eminbest,emaxbest, ts_name, np.round(hbest, 3)),
-             drawstyle='steps-mid',
-            )
+    ax.errorbar(
+        bbins - (0.5 / args.nbins),
+        fullprof_opt,
+        yerr=fullprof_opt**0.5,
+        marker="",
+        linewidth=1.5,
+        color="b",
+        label="{:0.2f}-{:0.2f} keV ({} = {:.2f})".format(
+            eminbest, emaxbest, ts_name, np.round(hbest, 3)
+        ),
+        drawstyle="steps-mid",
+    )
 
     # ax.text(
     #     0.1,
@@ -234,9 +250,12 @@ if not args.noplot:
     ax.set_xlabel("Pulse Phase")
     ax.set_title("Pulse Profile for {}".format(object))
     ax.set_xlim(0.0, 2.0)
-    ax.set_ylim(ax.get_ylim()[0], 1.1*ax.get_ylim()[1])
-    ax.legend(loc='best')
-    plt.savefig("OptimalProfile_{:.2f}keV_{:.2f}keV.png".format(eminbest,emaxbest),bbox_inches="tight")
+    ax.set_ylim(ax.get_ylim()[0], 1.1 * ax.get_ylim()[1])
+    ax.legend(loc="best")
+    plt.savefig(
+        "OptimalProfile_{:.2f}keV_{:.2f}keV.png".format(eminbest, emaxbest),
+        bbox_inches="tight",
+    )
     plt.clf()
 
 if args.grid:
@@ -246,4 +265,4 @@ if args.grid:
     plt.title("{} vs energy range for {}".format(ts_name, object))
     plt.xlabel("Low Energy Cut (keV)")
     plt.ylabel("High Energy Cut (keV)")
-    plt.savefig('GridSearch.png')
+    plt.savefig("GridSearch.png")

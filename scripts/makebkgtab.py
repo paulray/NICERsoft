@@ -108,9 +108,9 @@ for pipedir in args.pipedirs:
         band3lc, edges = np.histogram(etable["TIME"][band3idx], bins=chunkbins)
 
         # Conver lcs to rates
-        band1lc = np.array(band1lc, dtype=np.float) / chunklen
-        band2lc = np.array(band2lc, dtype=np.float) / chunklen
-        band3lc = np.array(band3lc, dtype=np.float) / chunklen
+        band1lc = np.array(band1lc, dtype=float) / chunklen
+        band2lc = np.array(band2lc, dtype=float) / chunklen
+        band3lc = np.array(band3lc, dtype=float) / chunklen
 
         # Extract MKF variables and take mean (or other appropriate combination) in each chunk
 

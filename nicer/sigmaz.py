@@ -105,14 +105,14 @@ def sigmaz(t, y, err, nseg, diagplot=False):
                     # NOTE: polyfit needs 1/sigma, not 1/sigma^2 weights. Times and residuals need to be in the same units, here are in seconds
                     p, pcov = np.polyfit(
                         (toas[desind] - centertime) * 86400.0,
-                        res.astype(np.float),
+                        res.astype(float),
                         polyorder,
                         cov=True,
                         full=False,
                         w=np.abs(1.0 / toaerrs),
                     )
                     # p = np.polyfit((toas[desind]-centertime)*86400.0,
-                    #    res.astype(np.float),polyorder, cov=False, full=False, w = np.abs(1./toaerrs) )
+                    #    res.astype(float),polyorder, cov=False, full=False, w = np.abs(1./toaerrs) )
                 except:
                     # print('Polyfit failed!')
                     # traceback.print_exc()
@@ -141,10 +141,10 @@ def sigmaz(t, y, err, nseg, diagplot=False):
                 fig = plt.figure()
                 ax = fig.add_subplot(1, 1, 1)
                 toas_secs = (toas[desind] - centertime) * 86400.0
-                ax.plot(toas[desind], res.astype(np.float) * 1.0e6, "ko")
+                ax.plot(toas[desind], res.astype(float) * 1.0e6, "ko")
                 ax.errorbar(
                     toas[desind],
-                    res.astype(np.float) * 1.0e6,
+                    res.astype(float) * 1.0e6,
                     yerr=toaerr[desind] * 1.0e6,
                     fmt="none",
                     color="k",

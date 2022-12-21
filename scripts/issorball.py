@@ -97,7 +97,7 @@ def PulsarVis(sourcename,times):
             return SkyCoord(PortPoleRA(t).value,PortPoleDec(t).value,unit=u.deg,frame="icrs")
         
     now = Time.now()
-    doy_now = np.float(now.yday.split(':')[1])
+    doy_now = float(now.yday.split(':')[1])
     #   print("Current DOY = {0}".format(np.int(doy_now)))
     #print("StarboardPoleRA (now) = {0:.3f}".format(StarboardPoleRA(now)))
     #print("PortPoleRA (now) = {0:.3f}".format(PortPoleRA(now)))

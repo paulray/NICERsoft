@@ -78,7 +78,7 @@ except:
     pass
 
 
-fullprof = np.asarray(fullprof, dtype=np.float)
+fullprof = np.asarray(fullprof, dtype=float)
 if options.bkg > 0.0:
     bkgperbin = options.bkg * evhdr["EXPOSURE"] / options.nbins
     log.info("Subtracting {0} counts/bin of background".format(bkgperbin))

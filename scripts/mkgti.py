@@ -53,8 +53,8 @@ desc = """
 Create a simple GTI file from a pair of NICER METs. This is handy as an input file to niextract-events timefile=xxx.gti
 """
 parser = argparse.ArgumentParser(description=desc)
-parser.add_argument("startmet", help="Starting MET for GTI", type=np.float64)
-parser.add_argument("stopmet", help="Ending MET for GTI", type=np.float64)
+parser.add_argument("startmet", help="Starting MET for GTI", type=float)
+parser.add_argument("stopmet", help="Ending MET for GTI", type=float)
 parser.add_argument(
     "--gtiname",
     help="Name of output GTI FITS file (default gti.fits)",

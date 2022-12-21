@@ -57,7 +57,7 @@ def hist_use(etable):
     # stdev = np.std(temp)
 
     # Set points that are off by more than 2 sigma to red
-    # diff = np.array(IDevents,dtype=np.float)-np.mean(temp)
+    # diff = np.array(IDevents,dtype=float)-np.mean(temp)
     # idx = np.where(diff>2.0*stdev)[0]
     # colors[idx] = 'r'
 
@@ -183,7 +183,7 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0, noplot=False, plot_po
     bins, sums = light_curve(
         etable, gtitable["START"][0], gtitable["STOP"][0], binsize=binsize
     )
-    cc = np.zeros_like(bins, dtype=np.float)
+    cc = np.zeros_like(bins, dtype=float)
     cumtime = bins[-1] + binsize
     # THE REST OF THE GOOD INTERVALS
     for i in range(1, len(gtitable["START"])):
@@ -193,7 +193,7 @@ def plot_light_curve(etable, lclog, gtitable, binsize=1.0, noplot=False, plot_po
         bins = np.append(bins, mybins + cumtime)
         cumtime += mybins[-1] + binsize
         sums = np.append(sums, mysums)
-        mycolors = np.zeros_like(mybins, dtype=np.float) + np.float(i)
+        mycolors = np.zeros_like(mybins, dtype=float) + float(i)
         cc = np.append(cc, mycolors)
 
     # Compute mean rate
@@ -277,8 +277,8 @@ def plot_slowfast(etable, args):
         etable = etable[::downsampfac]
     log.info("Computing ratio")
     # Ratio is SLOW to FAST. Edge events should have ratio bigger than cut
-    ratio = np.array(etable["PI"], dtype=np.float) / np.array(
-        etable["PI_FAST"], dtype=np.float
+    ratio = np.array(etable["PI"], dtype=float) / np.array(
+        etable["PI_FAST"], dtype=float
     )
 
     #    fastconst = 1.0
@@ -288,7 +288,7 @@ def plot_slowfast(etable, args):
     fastsig = 1200.0
     fastquart = 0.0
 
-    x = np.array(etable["PI"], dtype=np.float)
+    x = np.array(etable["PI"], dtype=float)
     ratio_cut = fastconst + (fastsig / 10.0) / x + fastquart * x**3
 
     colors = np.array(["k"] * len(ratio))
@@ -313,7 +313,7 @@ def plot_slowfast(etable, args):
     plot.annotate(total, xy=(0.03, 0.75), xycoords="axes fraction")
     plot.annotate(bad, xy=(0.03, 0.7), xycoords="axes fraction")
     # plot.annotate("Ratio cut = {0:.2f}".format(ratio_cut),xy=(0.65,0.85),xycoords='axes fraction')
-    x = np.linspace(min(etable["PI"]), max(etable["PI"]), 100, dtype=np.float)
+    x = np.linspace(min(etable["PI"]), max(etable["PI"]), 100, dtype=float)
     cutline = fastconst + (fastsig / 10.0) / x + fastquart * x**3
     plot.plot(x * PI_TO_KEV, cutline, "g--", linewidth=1.5)
     return
@@ -327,7 +327,7 @@ def calc_pi(etable, calfile):
     det_ids, e0s, gains = np.loadtxt(calfile, unpack=True)
     det_ids = np.array(det_ids, dtype=int)
 
-    e_keV = np.zeros_like(etable["PHA"], dtype=np.float)
+    e_keV = np.zeros_like(etable["PHA"], dtype=float)
 
     for d, e0, g in zip(det_ids, e0s, gains):
         idx = np.where(etable["DET_ID"] == d)[0]
@@ -715,7 +715,7 @@ def convert_to_elapsed_goodtime(mets, vals, gtitable):
     )
     goodvals = vals[idx]
     etimes = mets[idx] - gtitable["START"][0]
-    cc = np.zeros_like(goodvals, dtype=np.float)
+    cc = np.zeros_like(goodvals, dtype=float)
     for ii in range(1, len(gtitable["START"])):
         idx = np.where(
             np.logical_and(mets > gtitable["START"][ii], mets < gtitable["STOP"][ii])
@@ -724,7 +724,7 @@ def convert_to_elapsed_goodtime(mets, vals, gtitable):
         etimes = np.append(
             etimes, mets[idx] - gtitable["START"][ii] + gtitable["CUMTIME"][ii]
         )
-        cc = np.append(cc, np.zeros_like(vals[idx], dtype=np.float) + np.float(ii))
+        cc = np.append(cc, np.zeros_like(vals[idx], dtype=float) + float(ii))
 
     # Returns the arrays of elapsed times, values, and an array of what segment it is in, used for setting plot colors by GTI segment
     return etimes, goodvals, cc
@@ -1023,10 +1023,10 @@ def plot_resetrate(IDS, reset_rates):
 # ----------------------Filter Ratio Cut-----------------------------------------
 def filt_ratio(etable, ratiocut):
     # Filters out the points > filtratio
-    ratio = np.zeros_like(etable["PI"], dtype=np.float)
+    ratio = np.zeros_like(etable["PI"], dtype=float)
     idx = np.where(np.logical_and(etable["PHA"] > 0, etable["PHA_FAST"] > 0))[0]
-    ratio[idx] = np.asarray(etable["PHA"][idx], dtype=np.float) / np.asarray(
-        etable["PHA_FAST"][idx], dtype=np.float
+    ratio[idx] = np.asarray(etable["PHA"][idx], dtype=float) / np.asarray(
+        etable["PHA_FAST"][idx], dtype=float
     )
     etable = etable[np.where(ratio < ratiocut)[0]]
     return etable
@@ -1034,10 +1034,10 @@ def filt_ratio(etable, ratiocut):
 
 def filt_ratio_trumpet(etable):
     # Filters out the points > filtratio
-    ratio = np.zeros_like(etable["PI"], dtype=np.float)
+    ratio = np.zeros_like(etable["PI"], dtype=float)
     idx = np.where(np.logical_and(etable["PI"] > 0, etable["PI_FAST"] > 0))[0]
-    ratio[idx] = np.asarray(etable["PI"][idx], dtype=np.float) / np.asarray(
-        etable["PI_FAST"][idx], dtype=np.float
+    ratio[idx] = np.asarray(etable["PI"][idx], dtype=float) / np.asarray(
+        etable["PI_FAST"][idx], dtype=float
     )
     # Old version
     # fastconst = 1.0
@@ -1048,7 +1048,7 @@ def filt_ratio_trumpet(etable):
     fastsig = 1200.0
     fastquart = 0.0
 
-    x = np.array(etable["PI"], dtype=np.float)
+    x = np.array(etable["PI"], dtype=float)
     ratio_cut = fastconst + (fastsig / 10.0) / x + fastquart * x**3
 
     etable = etable[np.where(ratio < ratio_cut)[0]]
