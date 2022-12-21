@@ -90,8 +90,8 @@ def plot_total_count_hist(etable, ax_rate, ax_counts):
 # ----------------------THIS MAKES THE GRAYSCALE ID/EVENT COUNT CHART---------------------
 def structure(etable, num_events):
     "Creates a grid where the xy pair corresponds to RAWX,RAWY and value at each entry is event count"
-    rawx = np.zeros_like(IDS, dtype=np.int)
-    rawy = np.zeros_like(IDS, dtype=np.int)
+    rawx = np.zeros_like(IDS, dtype=int)
+    rawy = np.zeros_like(IDS, dtype=int)
 
     # getting RAWX and RAWY vals for each ID
     for count, detid in enumerate(IDS):
@@ -333,7 +333,7 @@ def calc_pi(etable, calfile):
         idx = np.where(etable["DET_ID"] == d)[0]
         e_keV[idx] = e0 + g * etable["PHA"][idx]
 
-    pi = np.array(e_keV / PI_TO_KEV, dtype=np.int)
+    pi = np.array(e_keV / PI_TO_KEV, dtype=int)
     return pi
 
 
@@ -883,21 +883,29 @@ def plot_angles(mktable, gtitable):
 
     plot.scatter(goodtime, sunangle, marker=".", s=3, color="y", alpha=0.5, label="Sun")
     plot.scatter(
-        goodtime, earthangle, marker=".", s=3, color="b", alpha=0.5, label="Bright Earth"
+        goodtime,
+        earthangle,
+        marker=".",
+        s=3,
+        color="b",
+        alpha=0.5,
+        label="Bright Earth",
     )
-    plot.scatter(goodtime, moonangle, marker=".", s=3, color="grey", alpha=0.5, label="Moon")
+    plot.scatter(
+        goodtime, moonangle, marker=".", s=3, color="grey", alpha=0.5, label="Moon"
+    )
     plot.scatter(goodtime, elvangle, marker=".", s=3, color="m", alpha=0.5, label="ELV")
     plot.legend(loc=2)
     plot.ylim((0.0, 180.0))
     plot.grid(True)
-    #plot.yticks([0.0, 45.0, 90.0, 135.0, 180.0])
-    #plot.yticks(np.arange(0, 180, 15.0), minor=True)
+    # plot.yticks([0.0, 45.0, 90.0, 135.0, 180.0])
+    # plot.yticks(np.arange(0, 180, 15.0), minor=True)
     frame1 = plot.gca()
     frame1.axes.set_yticks([0.0, 45.0, 90.0, 135.0, 180.0], minor=False)
     frame1.axes.set_yticks(np.arange(0, 180, 15.0), minor=True)
-    #plot.minorticks_on()
-    plot.grid(which='major', axis='y', linewidth=0.5, alpha=1.0)
-    plot.grid(which='minor', axis='y', linewidth=0.5, alpha=0.4)
+    # plot.minorticks_on()
+    plot.grid(which="major", axis="y", linewidth=0.5, alpha=1.0)
+    plot.grid(which="minor", axis="y", linewidth=0.5, alpha=0.4)
     plot.ylabel("Angle (deg)")
 
     return
@@ -981,7 +989,7 @@ def plot_cor(mktable, gtitable):
     plot.xlabel("Elapsed Time (s)", labelpad=1)
     plot.grid(True)
     plot.minorticks_on()
-    plot.grid(which='minor', axis='y', linewidth=0.5, alpha=0.3)
+    plot.grid(which="minor", axis="y", linewidth=0.5, alpha=0.3)
     plot.ylabel("GeV")
     return
 
@@ -1054,35 +1062,40 @@ def filt_ratio_trumpet(etable):
     etable = etable[np.where(ratio < ratio_cut)[0]]
     return etable
 
+
 def format_gti_longstring(gticolumn, nCut=3):
 
     gtidata = gticolumn.data
     units = "({})".format(gticolumn.unit.name)
 
-    if gticolumn.name == 'DURATION':
+    if gticolumn.name == "DURATION":
         omitted_gtis_duration = np.sum(gtidata[nCut:-nCut])
         sumgti = "({:.1f})".format(omitted_gtis_duration)
     else:
-        sumgti = '...'
+        sumgti = "..."
 
     # Find column width
-    width = max( len(str(np.max(gtidata))) + 1,
-                 len(gticolumn.name),
-                 len(sumgti))
+    width = max(len(str(np.max(gtidata))) + 1, len(gticolumn.name), len(sumgti))
 
     # String header
-    string_gtidata = "{}\n{}\n{}\n".format(gticolumn.name.center(width," "),
-                                           units.center(width," "),
-                                           "_"*width)
+    string_gtidata = "{}\n{}\n{}\n".format(
+        gticolumn.name.center(width, " "), units.center(width, " "), "_" * width
+    )
 
     # String body (without omitted GTIs is too many GTIs)
-    if len(gtidata) > nCut*2:
-        short_gtidata = np.delete(gtidata, np.arange(nCut,len(gtidata)-nCut,1))
-        string_gtidata += '\n'.join(["{val: {width}}".format(val=i, width=width) for i in short_gtidata[:nCut]])
-        string_gtidata += "\n{}\n".format(sumgti.rjust(width," "))
-        string_gtidata += '\n'.join(["{val: {width}}".format(val=i, width=width) for i in short_gtidata[-nCut:]])
+    if len(gtidata) > nCut * 2:
+        short_gtidata = np.delete(gtidata, np.arange(nCut, len(gtidata) - nCut, 1))
+        string_gtidata += "\n".join(
+            ["{val: {width}}".format(val=i, width=width) for i in short_gtidata[:nCut]]
+        )
+        string_gtidata += "\n{}\n".format(sumgti.rjust(width, " "))
+        string_gtidata += "\n".join(
+            ["{val: {width}}".format(val=i, width=width) for i in short_gtidata[-nCut:]]
+        )
     else:
         short_gtidata = gtidata
-        string_gtidata += '\n'.join(["{val: {width}}".format(val=i, width=width) for i in short_gtidata])
+        string_gtidata += "\n".join(
+            ["{val: {width}}".format(val=i, width=width) for i in short_gtidata]
+        )
 
     return string_gtidata, len(gtidata[nCut:-nCut])

@@ -131,7 +131,7 @@ for i in range(len(in_any)):
 tstarts = np.array(tstartlist)
 tstops = np.array(tstoplist)
 durs = np.array(durlist) * u.s
-accesses = np.array(accesslist, dtype=np.int)
+accesses = np.array(accesslist, dtype=int)
 
 # Global Statistics
 # -----------------
