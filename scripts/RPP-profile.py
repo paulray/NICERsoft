@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import astropy.io.fits as pyfits
 import astropy.stats
+import astropy.units as u
 import argparse
 from pint.eventstats import z2m, hm, sf_z2m, sf_hm, sig2sigma, h2sig
 from nicer.values import *
@@ -31,6 +32,11 @@ parser.add_argument(
 parser.add_argument(
     "--outfile",
     help="Output file for plot (type determined by extension)",
+    default=None,
+)
+parser.add_argument(
+    "--fermi",
+    help="Fermi LAT event file (FT1) name, with PULSE_PHASE and MODEL_WEIGHT columns",
     default=None,
 )
 args = parser.parse_args()
@@ -147,5 +153,23 @@ axs[2].set_xlabel("Phase")
 
 if args.outfile is not None:
     plt.savefig(args.outfile)
+
+if args.fermi:
+    from pint.fits_utils import read_fits_event_mjds
+
+    latfig, latax = plt.subplots(1, 1)
+    f = pyfits.open(args.fermi)
+    latph = f["EVENTS"].data.field("PULSE_PHASE")
+    laten = f["EVENTS"].data.field("ENERGY")
+    latwt = f["EVENTS"].data.field("MODEL_WEIGHT")
+    latmjds = read_fits_event_mjds(f["EVENTS"]) * u.d
+    nfermi, fedges = np.histogram(
+        latph, bins=np.linspace(0.0, 1.0, 64, endpoint=True), weights=latwt
+    )
+    x = np.concatenate((fedges[:-1], fedges[:-1] + 1.0))
+    latax.step(x, np.concatenate((nfermi, nfermi)), where="post")
+    latax.set_xlim((0.0, 2.0))
+    latax.set_title("LAT Profile")
+
 
 plt.show()
