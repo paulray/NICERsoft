@@ -2,24 +2,31 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import astropy.io.fits as pyfits
+import astropy.stats
 import argparse
 from pint.eventstats import z2m, hm, sf_z2m, sf_hm, sig2sigma, h2sig
 from nicer.values import *
+from nicer.fourier import *
 
 parser = argparse.ArgumentParser(
-    description="Do RPP catalog pulse profile analysis on a merged event file."
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    description="Do RPP catalog pulse profile analysis on a merged event file.",
 )
 parser.add_argument(
     "evtfile", help="Input event file to process. Must have PULSE_PHASE column"
 )
+parser.add_argument("--nbins", help="Number of profile bins", default=32, type=int)
 parser.add_argument(
-    "--nbins", help="Number of profile bins (default 32)", default=32, type=int
+    "--numharm",
+    help="Number of Fourier harmonics to use (-1=auto)",
+    default=4,
+    type=int,
 )
 parser.add_argument(
-     "--emin", type=float, default=0.25, help="Minimum energy to include."
+    "--optemin", type=float, default=0.4, help="Minimum energy to include."
 )
 parser.add_argument(
-    "--emax", type=float, default=12.0, help="Maximum energy to include."
+    "--optemax", type=float, default=2.0, help="Maximum energy to include."
 )
 parser.add_argument(
     "--outfile",
@@ -33,53 +40,111 @@ hdulist = pyfits.open(args.evtfile)
 dat = hdulist[1].data
 hdr = hdulist[1].header
 
-ph = dat["PULSE_PHASE"]
+exp = float(hdr["EXPOSURE"])
+objname = hdr["OBJECT"]
 
-# FILTER ON ENERGY
-en = dat["PI"] * PI_TO_KEV
-idx = np.where(np.logical_and((en >= args.emin), (en <= args.emax)))
-ph = ph[idx]
-print(f"Energy cuts left {len(ph)} out of {len(en)} events in {args.emin} to {args.emax} keV.")
+print(f"Object {objname}")
+print(f"Exposure = {exp/1000.0} ks")
 
-print(
-    "Z^2_2 test = {}".format(z2m(ph)[-1]), end=" "
-)
-try:
-    print("({} sig)".format(sig2sigma(sf_z2m(z2m(ph)[-1]))))
+# Get phases and sort them in order
+phases = dat["PULSE_PHASE"]
+sortidx = np.argsort(phases)
+ph = phases[sortidx]
 
-except:
-    print("")
+# Get photon energies, with same sort
+energies = dat["PI"] * PI_TO_KEV
+en = energies[sortidx]
+
+# Make 3 sets of events: optimal band, soft band, hard band
+opt_idx = np.where(np.logical_and((en >= args.optemin), (en <= args.optemax)))
+ph_opt = ph[opt_idx]
+soft_idx = np.where(np.logical_and((en >= SOFT_EMIN), (en <= SOFT_EMAX)))
+ph_soft = ph[soft_idx]
+hard_idx = np.where(np.logical_and((en >= HARD_EMIN), (en <= HARD_EMAX)))
+ph_hard = ph[hard_idx]
 
 
-print("H test = {} ({} sig)".format(hm(ph), h2sig(hm(ph))))
+def band_analysis(ph_band, bandemin, bandemax, ax=None):
+    print(
+        f"Band  {bandemin} - {bandemax}: {len(ph_band)} photons, {len(ph_band)/exp:.3f} c/s"
+    )
+    z = z2m(ph_band)
+    h = hm(ph_band)
+    print(f"    Z^2_2 test = {z[-1]:.2f}", end=" ")
+    try:
+        print(f"({sig2sigma(sf_z2m(z[-1])):.2f} sig)")
 
-fig, ax = plt.subplots(figsize=(8, 4.5))
+    except:
+        print("")
+    print(f"    H test = {h:.2f} ({h2sig(h):.2f} sig)")
+    n, c, s = compute_fourier(ph_band, nh=args.numharm)
+    model = evaluate_fourier(n, c, s, args.nbins)
+    model_bins = np.arange(args.nbins) / args.nbins
+    pcounts = (model - model.min()).sum()
+    pcounts_err = np.sqrt(model.sum() + model.min() * len(model))
+
+    print(
+        "    Pulsed counts = {0:.3f}, pulsed count rate = {1:.3f}+/-{2:.4f} c/s".format(
+            pcounts, pcounts / exp, pcounts_err / exp
+        )
+    )
+
+    prof, edges = np.histogram(
+        ph_band, bins=np.linspace(0.0, 1.0, args.nbins, endpoint=True)
+    )
+    prof = np.array(prof, dtype=float)
+    rates = prof / (exp / args.nbins)
+
+    # Compute Fvar, which is the fractional RMS variability amplitude (excess
+    # above Poisson)
+    # Equation 10 of Vaughan et al (2003, MNRAS, 345, 1271)
+    if prof.var() - prof.mean() >= 0.0:
+        fracrms = np.sqrt(prof.var() - prof.mean()) / prof.mean()
+    else:
+        fracrms = -1
+    print("    Fractional RMS is {0:.4f}".format(fracrms))
+
+    # Compute the Bayesian Block histogram
+    bb_hist, bb_edges = astropy.stats.histogram(
+        ph_band, bins="blocks", range=[0.0, 1.0]
+    )
+    bb_widths = bb_edges[1:] - bb_edges[:-1]
+    # print(f"{len(bb_hist)} {len(bb_edges)} {len(bb_widths)}")
+    bb_rates = bb_hist / (exp * bb_widths)
+    print(f"    BB Edges : {bb_edges}")
+
+    if ax:
+        ax.step(
+            np.concatenate((edges[:-1], 1.0 + edges)),
+            np.concatenate((rates, rates, np.array(rates[-1:]))),
+            where="post",
+        )
+        ax.step(
+            bb_edges,
+            np.concatenate((bb_rates, np.array(bb_rates[-1:]))),
+            where="post",
+            color="r",
+        )
+        ax.plot(
+            model_bins + model_bins[1] / 2.0,
+            model / (exp / args.nbins),
+            color="g",
+            lw=1,
+        )
+        ax.set_ylabel("Rate (c/s)")
+        ax.set_xlim((0.0, 2.0))
 
 
-h, edges = np.histogram(ph, bins=np.linspace(0.0, 1.0, args.nbins, endpoint=True))
-try:
-    if hdr["EXPOSURE"] > 0:
-        h = np.array(h, dtype=float) / (float(hdr["EXPOSURE"]) / args.nbins)
-        rates = True
-except:
-    rates = False
-ax.step(
-    np.concatenate((edges[:-1], 1.0 + edges)),
-    np.concatenate((h, h, np.array(h[-1:]))),
-    where="post",
-)
-ax.set_xlabel("Phase")
-if rates:
-    ax.set_ylabel("Rate (c/s)")
-else:
-    ax.set_ylabel("Counts")
+fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(9, 16), sharex=True)
 
-try:
-    tstart = (hdr["TSTART"] + hdr["TIMEZERO"]) / 86400 + hdr["MJDREFF"] + hdr["MJDREFI"]
-    ax.set_title(f'{hdr["OBJECT"]}')
-except:
-    ax.set_title("{0}".format(hdr["DATE-OBS"]))
-ax.set_xlim((0.0, 2.0))
+# Analyze all 3 bands
+band_analysis(ph_opt, args.optemin, args.optemax, ax=axs[0])
+band_analysis(ph_soft, SOFT_EMIN, SOFT_EMAX, ax=axs[1])
+band_analysis(ph_hard, HARD_EMIN, HARD_EMAX, ax=axs[2])
+
+axs[0].set_title(f"{objname} Exp={exp/1000.0:.3f} ks")
+axs[2].set_xlabel("Phase")
+
 if args.outfile is not None:
     plt.savefig(args.outfile)
 
