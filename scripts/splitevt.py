@@ -31,7 +31,7 @@ def mjd2met(m):
 
 def runcmd(cmd):
     # CMD should be a list of strings since it is not processed by a shell
-    log.info("CMD: " + " ".join(cmd))
+    log.debug("CMD: " + " ".join(cmd))
     # log.info(cmd)
     check_call(cmd, env=os.environ)
 
@@ -66,13 +66,16 @@ def write_chunk(evname, met0, met1, basename, index):
     runcmd(cmd)
     fp.close()
     # Call nextract-events to extract the file
+    fpmsel = "no"
+    if args.fpmsel:
+        fpmsel="yes"
     cmd = [
         "niextract-events",
         "filename={0}".format(evname),
         "eventsout={0}{1:04d}.evt".format(basename, index),
         "timefile={0}".format(gtiname),
         "gti=GTI",
-        "fpmsel=no",
+        f"fpmsel={fpmsel}",
         "clobber=yes",
     ]
     runcmd(cmd)
@@ -104,6 +107,12 @@ parser.add_argument(
     help="Minimum exposure for each chunk to not be discarded (s).",
     default=0.0,
     type=float,
+)
+parser.add_argument(
+    "--fpmsel",
+    help="Include FPM_SEL extension in output files",
+    action="store_true",
+    default=False
 )
 # parser.add_argument("--mkf",help="MKF file to use for FPM information",default=None)
 
@@ -159,8 +168,8 @@ while i < len(gti_t0):
         if (exp > args.minexp) and (span > args.minspan):
             # This GTI pushes us beyond MAX, so write chunk and start new
             log.info(
-                "Writing chunk {0} - {1} (span {2}, exp {3})".format(
-                    t0, t1, (t1 - t0) * 86400, exp
+                "Writing chunk {0} - {1} (span {2}, exp {3}, gap {4})".format(
+                    t0, t1, (t1 - t0) * 86400, exp, gap
                 )
             )
             log.debug(
