@@ -85,6 +85,6 @@ if options.bkg > 0.0:
     fullprof -= bkgperbin
 
 # Compute Fvar, which is the fractional RMS variability amplitude
-# Equation 10 of Vaughan et al (2003, MNRAS, 345, 1271)
+# Equation 10 of Vaughan, S. et al (2003, MNRAS, 345, 1271)
 fracrms = np.sqrt(fullprof.var() - fullprof.mean()) / fullprof.mean()
 print("Fractional RMS is {0}".format(fracrms))

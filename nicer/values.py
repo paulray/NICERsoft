@@ -11,6 +11,12 @@ GPS0 = Time("1980-01-06T00:00:00", scale="utc")
 PI_TO_KEV = 10.0 / 1000.0
 KEV_TO_PI = 1000.0 / 10.0
 
+# Standard energy bands for RPP catalog analysis
+SOFT_EMIN = 0.4
+SOFT_EMAX = 2.0
+HARD_EMIN = 2.0
+HARD_EMAX = 10.0
+
 # Bit assignments in the EVENT_FLAGS housekeeping
 FLAG_FIRST_MPU = 2
 FLAG_SLOW = 3
@@ -20,7 +26,7 @@ FLAG_OVERSHOOT = 6
 FLAG_UNDERSHOOT = 7
 
 # IDs of the 4 detectors that were dead at launch
-DEAD_DETS = set([11, 20, 22, 60])
+DEAD_DETS = {11, 20, 22, 60}
 
 # Array of DET_IDs that are used
 IDS = np.array(
