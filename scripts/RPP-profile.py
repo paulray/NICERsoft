@@ -8,6 +8,11 @@ import argparse
 from pint.eventstats import z2m, hm, sf_z2m, sf_hm, sig2sigma, h2sig
 from nicer.values import *
 from nicer.fourier import *
+import yaml
+import os.path
+
+outdict = dict()
+
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -45,6 +50,7 @@ args = parser.parse_args()
 hdulist = pyfits.open(args.evtfile)
 dat = hdulist[1].data
 hdr = hdulist[1].header
+basename = os.path.splitext(args.evtfile)[0]
 
 exp = float(hdr["EXPOSURE"])
 objname = hdr["OBJECT"]
@@ -71,11 +77,15 @@ ph_hard = ph[hard_idx]
 
 
 def band_analysis(ph_band, bandemin, bandemax, ax=None):
+    "Perform analysis for a specific energy band and return dict of results"
+    resdict = dict()
     print(
         f"Band  {bandemin} - {bandemax}: {len(ph_band)} photons, {len(ph_band)/exp:.3f} c/s"
     )
     z = z2m(ph_band)
     h = hm(ph_band)
+    resdict['Htest'] = float(h)
+    resdict['Ztest'] = float(z[-1])
     print(f"    Z^2_2 test = {z[-1]:.2f}", end=" ")
     try:
         print(f"({sig2sigma(sf_z2m(z[-1])):.2f} sig)")
@@ -88,7 +98,9 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None):
     model_bins = np.arange(args.nbins) / args.nbins
     pcounts = (model - model.min()).sum()
     pcounts_err = np.sqrt(model.sum() + model.min() * len(model))
-
+    resdict['pulsed_rate'] = float(pcounts/exp)
+    resdict['pulsed_rate_err'] = float(pcounts_err/exp)
+    
     print(
         "    Pulsed counts = {0:.3f}, pulsed count rate = {1:.3f}+/-{2:.4f} c/s".format(
             pcounts, pcounts / exp, pcounts_err / exp
@@ -109,15 +121,20 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None):
     else:
         fracrms = -1
     print("    Fractional RMS is {0:.4f}".format(fracrms))
+    resdict['Fvar'] = float(fracrms)
 
     # Compute the Bayesian Block histogram
+    ##### WARNING, this probably doesn't handle wrapping through 1.0 correctly. Need to fix that!!!
     bb_hist, bb_edges = astropy.stats.histogram(
         ph_band, bins="blocks", range=[0.0, 1.0]
     )
     bb_widths = bb_edges[1:] - bb_edges[:-1]
     # print(f"{len(bb_hist)} {len(bb_edges)} {len(bb_widths)}")
     bb_rates = bb_hist / (exp * bb_widths)
+    minidx = np.argmin(bb_rates)
     print(f"    BB Edges : {bb_edges}")
+    print(f"    BB Rates : {bb_rates}")
+    resdict['BB_OFFPULSE'] = [float(bb_edges[minidx]), float(bb_edges[minidx+1])]
 
     if ax:
         ax.step(
@@ -139,14 +156,24 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None):
         )
         ax.set_ylabel("Rate (c/s)")
         ax.set_xlim((0.0, 2.0))
+    return resdict
 
 
 fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(9, 16), sharex=True)
 
 # Analyze all 3 bands
-band_analysis(ph_opt, args.optemin, args.optemax, ax=axs[0])
-band_analysis(ph_soft, SOFT_EMIN, SOFT_EMAX, ax=axs[1])
-band_analysis(ph_hard, HARD_EMIN, HARD_EMAX, ax=axs[2])
+optres = band_analysis(ph_opt, args.optemin, args.optemax, ax=axs[0])
+softres = band_analysis(ph_soft, SOFT_EMIN, SOFT_EMAX, ax=axs[1])
+hardres = band_analysis(ph_hard, HARD_EMIN, HARD_EMAX, ax=axs[2])
+
+with open(f"{basename}_profinfo.yml", 'w') as outfile:
+    outdict["name"] = objname
+    outdict["exposure"] = exp
+    outdict["optres"] = optres
+    outdict["softres"] = softres
+    outdict["hardres"] = hardres
+    yaml.dump(outdict, outfile, default_flow_style=False)
+
 
 axs[0].set_title(f"{objname} Exp={exp/1000.0:.3f} ks")
 axs[2].set_xlabel("Phase")
