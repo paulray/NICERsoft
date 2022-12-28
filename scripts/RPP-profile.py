@@ -11,7 +11,7 @@ from nicer.fourier import *
 import yaml
 import os.path
 
-outdict = dict()
+outdict = {}
 
 
 parser = argparse.ArgumentParser(
@@ -55,6 +55,8 @@ basename = os.path.splitext(args.evtfile)[0]
 exp = float(hdr["EXPOSURE"])
 objname = hdr["OBJECT"]
 
+outdict[objname] = {}
+
 print(f"Object {objname}")
 print(f"Exposure = {exp/1000.0} ks")
 
@@ -78,18 +80,20 @@ ph_hard = ph[hard_idx]
 
 def band_analysis(ph_band, bandemin, bandemax, ax=None):
     "Perform analysis for a specific energy band and return dict of results"
-    resdict = dict()
     print(
         f"Band  {bandemin} - {bandemax}: {len(ph_band)} photons, {len(ph_band)/exp:.3f} c/s"
     )
     z = z2m(ph_band)
     h = hm(ph_band)
-    resdict['Htest'] = float(h)
-    resdict['Ztest'] = float(z[-1])
+    resdict = {
+        "Htest": float(h),
+        "Ztest": float(z[-1]),
+        "Emin": float(bandemin),
+        "Emax": float(bandemax),
+    }
     print(f"    Z^2_2 test = {z[-1]:.2f}", end=" ")
     try:
         print(f"({sig2sigma(sf_z2m(z[-1])):.2f} sig)")
-
     except:
         print("")
     print(f"    H test = {h:.2f} ({h2sig(h):.2f} sig)")
@@ -98,9 +102,9 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None):
     model_bins = np.arange(args.nbins) / args.nbins
     pcounts = (model - model.min()).sum()
     pcounts_err = np.sqrt(model.sum() + model.min() * len(model))
-    resdict['pulsed_rate'] = float(pcounts/exp)
-    resdict['pulsed_rate_err'] = float(pcounts_err/exp)
-    
+    resdict["pulsed_rate"] = float(pcounts / exp)
+    resdict["pulsed_rate_err"] = float(pcounts_err / exp)
+
     print(
         "    Pulsed counts = {0:.3f}, pulsed count rate = {1:.3f}+/-{2:.4f} c/s".format(
             pcounts, pcounts / exp, pcounts_err / exp
@@ -120,8 +124,8 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None):
         fracrms = np.sqrt(prof.var() - prof.mean()) / prof.mean()
     else:
         fracrms = -1
-    print("    Fractional RMS is {0:.4f}".format(fracrms))
-    resdict['Fvar'] = float(fracrms)
+    print("    Fractional RMS (Fvar) is {0:.4f}".format(fracrms))
+    resdict["Fvar"] = float(fracrms)
 
     # Compute the Bayesian Block histogram
     ##### WARNING, this probably doesn't handle wrapping through 1.0 correctly. Need to fix that!!!
@@ -134,7 +138,7 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None):
     minidx = np.argmin(bb_rates)
     print(f"    BB Edges : {bb_edges}")
     print(f"    BB Rates : {bb_rates}")
-    resdict['BB_OFFPULSE'] = [float(bb_edges[minidx]), float(bb_edges[minidx+1])]
+    resdict["BB_OFFPULSE"] = [float(bb_edges[minidx]), float(bb_edges[minidx + 1])]
 
     if ax:
         ax.step(
@@ -166,12 +170,12 @@ optres = band_analysis(ph_opt, args.optemin, args.optemax, ax=axs[0])
 softres = band_analysis(ph_soft, SOFT_EMIN, SOFT_EMAX, ax=axs[1])
 hardres = band_analysis(ph_hard, HARD_EMIN, HARD_EMAX, ax=axs[2])
 
-with open(f"{basename}_profinfo.yml", 'w') as outfile:
-    outdict["name"] = objname
-    outdict["exposure"] = exp
-    outdict["optres"] = optres
-    outdict["softres"] = softres
-    outdict["hardres"] = hardres
+with open(f"{basename}_profinfo.yml", "w") as outfile:
+    outdict[objname]["name"] = objname
+    outdict[objname]["exposure"] = exp
+    outdict[objname]["optres"] = optres
+    outdict[objname]["softres"] = softres
+    outdict[objname]["hardres"] = hardres
     yaml.dump(outdict, outfile, default_flow_style=False)
 
 
