@@ -22,7 +22,6 @@ from nicer.plotutils import plot_light_curve
 ##  - fix the os.system() or check_call()
 ##  - add consistency checks:
 ##     1) cut is within (min,max) of RATE values in light curve
-##     2) if --lcfile and -- timebin are given, check that time bin is consistent
 ##  - give total time after filtering
 ##  - consider making the FITS file manipulation (ftcalc, ftcreate, etc.) directly in python
 ############################################################################################
@@ -146,9 +145,10 @@ etable.columns["TIME"].name = "MET"
 ################################################
 ##  STEP 1 -- making light curve
 if not args.lcfile:
+    filterbinsize = args.filterbinsize
     log.info(
         "No light curve file provided. Making light curve with timebin {0} sec".format(
-            args.filterbinsize
+            filterbinsize
         )
     )
     lcfile = path.splitext(eventfile)[0] + ".lcurve"
@@ -159,7 +159,7 @@ if not args.lcfile:
         "imgfile=none",
         "phafile=none",
         "fitsbinlc={0}".format(lcfile),
-        "binlc={0}".format(args.filterbinsize),
+        "binlc={0}".format(filterbinsize),
         "regionfile=none",
         "timefile=none",
         "xcolf=RAWX",
@@ -171,7 +171,17 @@ if not args.lcfile:
     runcmd(cmd)
 else:
     lcfile = args.lcfile
-    log.info("Using light curve file provided: {0}".format(lcfile))
+    try:
+        filterbinsize = fits.open(lcfile)[0].header["TIMEDEL"]
+        log.info("Using light curve file provided: {0}".format(lcfile))
+    except KeyError:
+        log.warning('Cannot find TIMEDEL Keywords in {}. Using default time binning.'.format(lcfile))
+        filterbinsize = args.filterbinsize
+    except FileNotFoundError:
+        log.error('Cannot find or open {}'.format(lcfile))
+        exit()
+    if filterbinsize != args.filterbinsize:
+        log.warning('Using {} sec time binning from {}'.format(filterbinsize, lcfile))
 
 
 ################################################
@@ -185,7 +195,7 @@ else:
         "I will now show you the light curve to choose: Please close the display and choose your CRcut:"
     )
     plt.subplot(1, 1, 1)
-    meanrate, a = plot_light_curve(etable, False, eventgti, binsize=args.filterbinsize)
+    meanrate, a = plot_light_curve(etable, False, eventgti, binsize=filterbinsize)
     plt.title("Light Curve")
     plt.ylabel("Count rate (c/s)")
     plt.xlabel("Time Elapsed (s)")
@@ -224,7 +234,7 @@ cmd = [
     lcfile_cut,
     lcfile_cut,
     "TSTART",
-    '"TIME-(0.5*{0})+#TIMEZERO"'.format(args.filterbinsize),
+    '"TIME-(0.5*{0})+#TIMEZERO"'.format(filterbinsize),
     "clobber=yes",
 ]
 runcmd(cmd)
@@ -233,7 +243,7 @@ cmd = [
     lcfile_cut,
     lcfile_cut,
     "TEND",
-    '"TIME+(0.5*{0})+#TIMEZERO"'.format(args.filterbinsize),
+    '"TIME+(0.5*{0})+#TIMEZERO"'.format(filterbinsize),
     "clobber=yes",
 ]
 runcmd(cmd)
@@ -324,7 +334,7 @@ if args.plotfilt:
     filtetable.columns["TIME"].name = "MET"
     plt.subplot(1, 1, 1)
     meanrate, a = plot_light_curve(
-        filtetable, False, filteventgti, binsize=args.filterbinsize
+        filtetable, False, filteventgti, binsize=filterbinsize
     )
     plt.title("Light Curve")
     plt.xlabel("Time Elapsed (s)")
