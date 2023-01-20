@@ -351,33 +351,6 @@ for obsdir in all_obsids:
         args.dark = False
         args.day = False
 
-    ## TODO:  Remove commented lines about the UFA files ?
-    # # Get ufa file (unfiltered events)
-    # ufafiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_ufa.evt*'))
-    # ufafiles.sort()
-    # log.info('Unfiltered Event Files: {0}'.format("\n" + "    \n".join(ufafiles)))
-
-    # ufaevents = 0
-    # for ufafile in ufafiles:
-    #     hdulist = fits.open(ufafile, memmap=True)
-    #     nevents = hdulist[1].header['NAXIS2']
-    #     hdulist.close()
-    #     ufaevents = ufaevents + nevents
-
-    # if ufaevents < 10000000:
-    #     cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "{}".format(args.lcbinsize), ##  "--allspec","--alllc",
-    #            "--lclog", "--useftools", "--extraphkshootrate",
-    #            "--eventshootrate",
-    #            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
-    #            "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
-    #            "--basename", path.join(pipedir,basename)+'_prefilt']
-    # else:
-    #     cmd = ["nicerql.py", "--save", "--filtall", "--lcbinsize", "{}".format(args.lcbinsize), ## "--allspec","--alllc",
-    #            "--lclog", "--useftools", "--extraphkshootrate",
-    #            "--emin", "{0}".format(args.emin), "--emax", "{0}".format(args.emax),
-    #            "--sci", "--eng", "--bkg", "--map", "--obsdir", obsdir,
-    #            "--basename", path.join(pipedir,basename)+'_prefilt']
-
     cmd = [
         "nicerql.py",
         "--save",
@@ -426,27 +399,12 @@ for obsdir in all_obsids:
     # Copy orbit file to results dir for pulsar analysis
     shutil.copy(orbfile, pipedir)
 
-    #  Get ATT hk files
-    # TODO: REMOVE ATT FILES ? -- UNUSED...
-    attfile = glob(path.join(obsdir, "auxil/ni*.att*"))[0]
-    if len(glob(path.join(obsdir, "auxil/ni*.att*")))>1:
-        log.info("Multiple ATT HK files found :")
-        for f in glob(path.join(obsdir, "auxil/ni*.att*")):
-            log.info("  -> {}".format(path.basename(f)))
-    log.info("ATT HK File: {0}".format(attfile))
-
     #  Get BKF file for filtering based on background indicators
     if args.badcut > 0:
         bkffile = path.join(pipedir, basename) + "_prefilt.bkf"
         log.info("BKF File: {0}".format(bkffile))
     else:
         bkffile = None
-
-    #  Get MPU hk files
-    # TODO: REMOVE HK FILE ? -- UNUSED...
-    hkfiles = glob(path.join(obsdir, "xti/hk/ni*.hk"))
-    hkfiles.sort()
-    log.info("MPU HK Files: {0}".format("\n" + "    \n".join(hkfiles)))
 
     # Create any additional GTIs beyond what nimaketime does...
     extragtis = "NONE"
