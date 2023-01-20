@@ -104,7 +104,9 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
     # Here, convert tmid if not topo and data not barycentered
 
     if topo:
-        tplus = tmid + TimeDelta(1 * u.s, scale=tmid.scale)
+        # Note that you can't create a TimeDelta in UTC scale so use TAI, which
+        # has the same length second.
+        tplus = tmid + TimeDelta(1 * u.s, scale="tai")
         toamid = pint.toa.TOA(tmid, obs=obs.name)
         toaplus = pint.toa.TOA(tplus, obs=obs.name)
     else:
