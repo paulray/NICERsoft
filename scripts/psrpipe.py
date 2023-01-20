@@ -182,6 +182,13 @@ parser.add_argument(
     help="Don't make maps (for use if cartopy is not working)",
     action="store_true",
 )
+# Not implementing this for the moment (requires lots of check when multiple ObsID are provided at once)
+# parser.add_argument(
+#     "--mkfile",
+#     help="Specific input MKF files if different than that present in /auxil/",
+#     nargs="+",
+#     default=None
+# )
 parser.add_argument(
     "--copymkf",
     help="Copy ni*.mkf into the _pipe output directory, for convenience. Warning, mkf files are large!",
@@ -293,13 +300,27 @@ for obsdir in all_obsids:
     evfiles.sort()
     log.info("Cleaned Event Files: {0}".format("\n" + "    \n".join(evfiles)))
 
+    # TODO: Consider implementing user-input MKF file(s).
     # Get filter file
-    mkfile = glob(path.join(obsdir, "auxil/ni*.mkf*"))[0]
-    if len(glob(path.join(obsdir, "auxil/ni*.mkf*")))>1:
-        log.info("Multiple MKF files found :")
-        for f in glob(path.join(obsdir, "auxil/ni*.mkf*")):
-            log.info("  -> {}".format(path.basename(f)))
+    # Searching for *mkf file
+    list_mkfiles = glob(path.join(obsdir, "auxil/ni*.mkf"))
+    if len(list_mkfiles) == 0:
+        # Searching for *mkf.gz file
+        list_mkfiles = glob(path.join(obsdir, "auxil/ni*.mkf.gz"))
+        log.info('Using the *.mkf.gz file found instead of a *.mkf file.')
+        if len(list_mkfiles) == 0:
+            log.error('No *mkf or *mkf.gz files found. Exiting.')
+            exit()
+
+    if len(list_mkfiles)==1:
+        mkfile = list_mkfiles[0]
+    else:
+        # When more than one mkf or mkf.gz file found, using the most recent one
+        mkfile = max(list_mkfiles, key=os.path.getmtime)
+        log.warning('Multiple MKF files found. Using the most recent one.')
+
     log.info("MKF File: {0}".format(mkfile))
+
     # Check if MKF file contains the new columns (try opening one of the new columns)
     try:
         mkftest = fits.open(mkfile)[1].data["FPM_OVERONLY_COUNT"]
@@ -330,6 +351,7 @@ for obsdir in all_obsids:
         args.dark = False
         args.day = False
 
+    ## TODO:  Remove commented lines about the UFA files ?
     # # Get ufa file (unfiltered events)
     # ufafiles = glob(path.join(obsdir,'xti/event_cl/ni*mpu7_ufa.evt*'))
     # ufafiles.sort()
@@ -405,6 +427,7 @@ for obsdir in all_obsids:
     shutil.copy(orbfile, pipedir)
 
     #  Get ATT hk files
+    # TODO: REMOVE ATT FILES ? -- UNUSED...
     attfile = glob(path.join(obsdir, "auxil/ni*.att*"))[0]
     if len(glob(path.join(obsdir, "auxil/ni*.att*")))>1:
         log.info("Multiple ATT HK files found :")
@@ -420,6 +443,7 @@ for obsdir in all_obsids:
         bkffile = None
 
     #  Get MPU hk files
+    # TODO: REMOVE HK FILE ? -- UNUSED...
     hkfiles = glob(path.join(obsdir, "xti/hk/ni*.hk"))
     hkfiles.sort()
     log.info("MPU HK Files: {0}".format("\n" + "    \n".join(hkfiles)))
