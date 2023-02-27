@@ -78,6 +78,49 @@ hard_idx = np.where(np.logical_and((en >= HARD_EMIN), (en <= HARD_EMAX)))
 ph_hard = ph[hard_idx]
 
 
+def compute_blocks(ph):
+    "Compute Bayesian Block edges for a set of photon phases."
+
+    # Replicate photons before and after so they go from [-1.0, 2.0)
+    bbphases = np.concatenate([ph - 1.0, ph, ph + 1.0])
+
+    if len(ph) < 50000:
+        # Compute unbinned Bayesian Block edges
+        edges = astropy.stats.bayesian_blocks(bbphases, fitness="events", p0=0.01)
+    else:
+        # Compute binned to speed up process
+        h, hedges = np.histogram(
+            bbphases,
+            range=(-1.0, 2.0),
+            bins=np.linspace(-1.0, 2.0, 301, endpoint=True),
+        )
+        edges = astropy.stats.bayesian_blocks(
+            t=hedges[:-1],
+            x=h,
+            sigma=np.sqrt(h + 1),
+            fitness="events",
+            p0=0.005,
+        )
+    # Select out only the bin edges between 0 and 1
+    idx = np.logical_and(edges >= 0.0, edges < 1.0)
+    mybins = np.concatenate((np.zeros(1), edges[idx], np.ones(1)))
+    bb_hist, bb_edges = np.histogram(ph, range=(0.0, 1.0), bins=mybins)
+    bb_widths = bb_edges[1:] - bb_edges[:-1]
+    # Note that the first and last bin should be merged, i.e. it is (mybins[0],mybins[1]) U (mybins[-2],mybins[-1])
+    c1 = bb_hist[0]
+    c2 = bb_hist[-1]
+    w1 = bb_widths[0]
+    w2 = bb_widths[-1]
+    cnts = c1 + c2
+    width = w1 + w2
+    rate = cnts / width
+    c1new = rate * w1
+    c2new = rate * w2
+    bb_hist[0] = c1new
+    bb_hist[-1] = c2new
+    return bb_hist, bb_edges
+
+
 def band_analysis(ph_band, bandemin, bandemax, ax=None):
     "Perform analysis for a specific energy band and return dict of results"
     print(
@@ -112,10 +155,14 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None):
     )
 
     prof, edges = np.histogram(
-        ph_band, bins=np.linspace(0.0, 1.0, args.nbins, endpoint=True)
+        ph_band,
+        range=(0.0, 1.0),
+        bins=np.linspace(0.0, 1.0, args.nbins + 1, endpoint=True),
     )
+    # print(f"Edges {edges}")
     prof = np.array(prof, dtype=float)
     rates = prof / (exp / args.nbins)
+    # print(f"sum of prof {prof.sum()}, mean rate {rates.mean()} {len(rates)/args.nbins}")
 
     # Compute Fvar, which is the fractional RMS variability amplitude (excess
     # above Poisson)
@@ -127,15 +174,15 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None):
     print("    Fractional RMS (Fvar) is {0:.4f}".format(fracrms))
     resdict["Fvar"] = float(fracrms)
 
-    # Compute the Bayesian Block histogram
-    ##### WARNING, this probably doesn't handle wrapping through 1.0 correctly. Need to fix that!!!
-    bb_hist, bb_edges = astropy.stats.histogram(
-        ph_band, bins="blocks", range=[0.0, 1.0]
-    )
+    # Compute the Bayesian Block histogram, handling wrapping at 1.0
+    bb_hist, bb_edges = compute_blocks(ph_band)
+
+    # Convert histogram to rates
     bb_widths = bb_edges[1:] - bb_edges[:-1]
-    # print(f"{len(bb_hist)} {len(bb_edges)} {len(bb_widths)}")
     bb_rates = bb_hist / (exp * bb_widths)
+
     minidx = np.argmin(bb_rates)
+    # print(f" Sum of bb_hist {bb_hist.sum()}, sum of bb_widths {bb_widths.sum()}")
     print(f"    BB Edges : {bb_edges}")
     print(f"    BB Rates : {bb_rates}")
     resdict["BB_OFFPULSE"] = [float(bb_edges[minidx]), float(bb_edges[minidx + 1])]
@@ -158,8 +205,9 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None):
             color="g",
             lw=1,
         )
-        ax.set_ylabel("Rate (c/s)")
+        ax.set_ylabel(f"{bandemin}-{bandemax} keV Rate (c/s)")
         ax.set_xlim((0.0, 2.0))
+        ax.grid(True)
     return resdict
 
 
