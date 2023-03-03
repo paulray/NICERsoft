@@ -13,9 +13,10 @@ parser.add_argument("--outfile", help="Name of output file for plot")
 parser.add_argument("--nbins", help="Number of phase bins", type=int, default=32)
 parser.add_argument("--emin", help="Min energy to plot", type=float, default=0.3)
 parser.add_argument("--emax", help="Max energy to plot", type=float, default=2.0)
-parser.add_argument("--nebins", help="Number of phase bins", type=int, default=35)
+parser.add_argument("--nebins", help="Number of energy bins", type=int, default=35)
 parser.add_argument("--log", help="Log scale histogram", action="store_true")
 parser.add_argument("--sqrt", help="Log scale histogram", action="store_true")
+parser.add_argument("--norm_effarea", help="Normalized by effective area", action="store_true")
 args = parser.parse_args()
 
 pi = pyfits.getdata(args.evfile, "EVENTS").field("PI")
@@ -33,6 +34,21 @@ phrange = arange(args.nbins * 2 + 1, dtype=float) / float(args.nbins)
 
 H, piedges, phedges = np.histogram2d(pi2, phase2, bins=[pirange, phrange])
 eedges = piedges * PI_TO_KEV
+
+if args.norm_effarea:
+    ## TO DO -- read from user provided ARF, other wise take ARF from /data/
+    effarea_elow, effarea_ehigh, effarea = np.loadtxt(
+        '/Users/sebastien/Research/XPSI_RUNS/DATA/model_data/nixtiaveonaxis20170601v004_offaxis_d51_arf.txt',
+        skiprows=3, usecols=(1, 2, 3), unpack=True)
+    effarea_energy = (effarea_ehigh + effarea_elow) / 2.
+
+    for e, ebin in enumerate(eedges[:-1]):
+        # Calculate energy bin central energy
+        energy = (ebin+eedges[e+1])/2
+        # linear interp with the effective area curve
+        eff = np.interp(energy, effarea_energy, effarea)
+        # Normalize each "row" of the 2D histogram by the effective area at the central energy of the bin
+        H[e,:] = H[e,:]/eff
 
 if args.log:
     pcolormesh(phedges, eedges, np.log10(H), cmap="jet")
