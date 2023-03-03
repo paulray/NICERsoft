@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 import argparse
 import numpy as np
+from os import path
 from pylab import *
 import astropy.io.fits as pyfits
 from nicer.values import PI_TO_KEV
+from nicer.values import datadir
 
 parser = argparse.ArgumentParser(
     description="Read event file with PULSE_PHASE and PI columns and make 2-D plot"
@@ -17,6 +19,7 @@ parser.add_argument("--nebins", help="Number of energy bins", type=int, default=
 parser.add_argument("--log", help="Log scale histogram", action="store_true")
 parser.add_argument("--sqrt", help="Log scale histogram", action="store_true")
 parser.add_argument("--norm_effarea", help="Normalized by effective area", action="store_true")
+parser.add_argument("--arfile", help="ARF file for effective area normalization", action="store_true")
 args = parser.parse_args()
 
 pi = pyfits.getdata(args.evfile, "EVENTS").field("PI")
@@ -37,10 +40,18 @@ eedges = piedges * PI_TO_KEV
 
 if args.norm_effarea:
     ## TO DO -- read from user provided ARF, other wise take ARF from /data/
-    effarea_elow, effarea_ehigh, effarea = np.loadtxt(
-        '/Users/sebastien/Research/XPSI_RUNS/DATA/model_data/nixtiaveonaxis20170601v004_offaxis_d51_arf.txt',
-        skiprows=3, usecols=(1, 2, 3), unpack=True)
-    effarea_energy = (effarea_ehigh + effarea_elow) / 2.
+    if args.arfile:
+        arfile = args.arfile
+    else:
+        arfile = path.join(datadir, "nicer.arf")
+
+    effarea = pyfits.getdata(arfile, "SPECRESP").field("SPECRESP")
+    try:
+        effarea_energy = pyfits.getdata(arfile, "SPECRESP").field("ENERGY")
+    except:
+        effarea_elow = pyfits.getdata(arfile, "SPECRESP").field("ENERG_LO")
+        effarea_ehigh = pyfits.getdata(arfile, "SPECRESP").field("ENERG_HI")
+        effarea_energy = (effarea_ehigh + effarea_elow) / 2.
 
     for e, ebin in enumerate(eedges[:-1]):
         # Calculate energy bin central energy
