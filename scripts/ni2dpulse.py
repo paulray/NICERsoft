@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 import argparse
 import numpy as np
-from os import path
+import os
+import glob
 from pylab import *
 import astropy.io.fits as pyfits
 from nicer.values import PI_TO_KEV
@@ -19,7 +20,7 @@ parser.add_argument("--nebins", help="Number of energy bins", type=int, default=
 parser.add_argument("--log", help="Log scale histogram", action="store_true")
 parser.add_argument("--sqrt", help="Log scale histogram", action="store_true")
 parser.add_argument("--norm_effarea", help="Normalized by effective area", action="store_true")
-parser.add_argument("--arfile", help="ARF file for effective area normalization", action="store_true")
+parser.add_argument("--arfile", help="ARF file for effective area normalization (default: Arf in CALDB)", type=str, default=None)
 args = parser.parse_args()
 
 pi = pyfits.getdata(args.evfile, "EVENTS").field("PI")
@@ -39,11 +40,19 @@ H, piedges, phedges = np.histogram2d(pi2, phase2, bins=[pirange, phrange])
 eedges = piedges * PI_TO_KEV
 
 if args.norm_effarea:
-    ## TO DO -- read from user provided ARF, other wise take ARF from /data/
     if args.arfile:
         arfile = args.arfile
     else:
-        arfile = path.join(datadir, "nicer.arf")
+        try:
+            path_caldb = os.path.join(os.environ['CALDB'],"data/nicer/xti/cpf/arf/")
+            all_arfile = glob.glob(os.path.join(path_caldb, "ni*.arf"))
+            arfile = max(all_arfile, key=os.path.getmtime)
+            print("Using the most recent CALDB ARF file for normalization:")
+            print("  {}".format(arfile))
+        except:
+            print("Cannot find CALDB ARF files (did you define your CALDB environment variable?) ")
+            print("Using an ARF file distributed with NICERsoft...")
+            arfile = os.path.join(datadir, "nicer.arf")
 
     effarea = pyfits.getdata(arfile, "SPECRESP").field("SPECRESP")
     try:
