@@ -24,8 +24,17 @@ parser.add_argument(
     "psrname", help="PSR name for output figures and yaml"
 )
 parser.add_argument("--outroot", help="rootname of output files",type=str, default=None)
+parser.add_argument("--ylim", help="tuple for y-limits. Ex: --ylim 1e-6 1e-2",
+                    nargs="+",type=float, default=None)
 
 args = parser.parse_args()
+
+if args.outroot is not None:
+    figfile = "{}.png".format(args.outroot)
+    ymlfile = "{}.yml".format(args.outroot)
+else:
+    figfile = "{}.png".format(os.path.splitext(args.xcmfile)[0])
+    ymlfile = "{}.yml".format(os.path.splitext(args.xcmfile)[0])
 
 Plot.splashPage = False
 XspecSettings.restore(args.xcmfile, args.xcmfile)
@@ -43,6 +52,10 @@ Fit.statMethod = "pgstat"
 Fit.nIterations = 1000
 Fit.query = "no"
 Fit.perform()
+
+# TODO: Check for pegged parameters
+# TODO: Check for "bad" nullhyp
+# TODO: Check for standards...
 
 # Get the fluxes
 # Eflux, Eflux,min, Eflux,max, Phflux, Phflux,min, Phflux,max, ... for each of the 3 sources
@@ -65,42 +78,43 @@ for i in range(1,src.nParameters+1):
                                      src(i).error[1],
                                     ]
 
-
-
-
 Plot("ldata")
 en = Plot.x()
+en_err = Plot.xErr()
 rates = Plot.y()
 rates_err = Plot.yErr()
 folded = Plot.model()
 Plot('ratio')
 en = Plot.x()
+en_err = Plot.xErr()
 ratio = Plot.y()
 ratio_err = Plot.yErr()
 
-fig, ax = plt.subplots(2, 1, height_ratios=[2,1],sharex=True)
+fig, ax = plt.subplots(2, 1, height_ratios=[2,1],sharex='all')
 fig.subplots_adjust(hspace=0.0)
 
 # Top panel
-
-# TODO:  figure out how to get the X-error bars from the Plot(ldata) and/or Plot(ratio)
-ax[0].errorbar(en, rates, yerr=rates_err, label="Data", alpha=1.0,linestyle='')
+ax[0].errorbar(en, rates, xerr=en_err, yerr=rates_err, label="Data", alpha=1.0,linestyle='')
 ax[0].step(en, folded, label="Full Model")
 ax[0].step(en, sky.folded(1),  label="Sky", alpha=0.3)
 ax[0].step(en, nxb.folded(1), label="NXB", alpha=0.3)
 ax[0].step(en, src.folded(1), label="PSR")
 ax[0].set_xscale("log")
 ax[0].set_yscale("log")
+ax[0].set_ylabel("Photon flux\n(counts/s/keV)")
 ax[0].legend()
-ax[0].set_ylim(1e-7,1.0)
+if args.ylim is not None:
+    ax[0].set_ylim(tuple(args.ylim))
 
 # Residuals panel
-lims = ax[0].get_xlim()
-ax[1].set_xlim(lims[0],15.0)
-ax[1].set_ylim(0.85,1.15)
-ax[1].errorbar(en, ratio, xerr=0.0125, yerr=ratio_err, label="ratio", alpha=0.5,linestyle='')
-ax[1].hlines(y=1.0, xmin=lims[0], xmax=lims[1], alpha=0.7, linewidth=0.5,color='k')
-plt.show()
+ax[1].set_xlim(0.22,15.0)
+ax[1].set_ylim(0.8,1.2)
+ax[1].errorbar(en, ratio, xerr=en_err, yerr=ratio_err, alpha=0.5,linestyle='')
+ax[1].hlines(y=1.0, xmin=0.1, xmax=15.0, alpha=0.7, linewidth=0.5, color='k')
+ax[1].set_xlabel("Energy (keV)")
+ax[1].set_ylabel("Ratio (data/model)")
+ax[1].tick_params('x', top=True, which='both', labeltop=False)
+plt.savefig(figfile)
 
 
 outdict = {}
@@ -109,16 +123,15 @@ outdict[objname] = {}
 outdict[objname]["name"] = objname
 outdict[objname]["psr model"] = src.expression
 outdict[objname]["parameter (bestfit, -90%, +90%)"] = param_errors
-outdict[objname]["fit"] = Fit.statistic
+outdict[objname]["fit pgstat"] = Fit.statistic
+outdict[objname]["fit NHP (chi2)"] = Fit.nullhyp
 outdict[objname]["flux (central, -90%, +90%)"] = fluxarray
 
-ymlfile = "{}.yml".format(os.path.splitext(args.xcmfile)[0])
 with open(ymlfile, "w") as outfile:
     yaml.dump(outdict, outfile, default_flow_style=False)
 
 
 # Now need to output several things:
-# * XSPEC model file
 # * YAML output file with all the useful parameters like band fluxes, spectral
 #   parameters with errors, etc. Whatever is needed for Tables or further
 #   analysis
