@@ -39,6 +39,14 @@ phrange = arange(args.nbins * 2 + 1, dtype=float) / float(args.nbins)
 H, piedges, phedges = np.histogram2d(pi2, phase2, bins=[pirange, phrange])
 eedges = piedges * PI_TO_KEV
 
+
+## TODO: NORMALIZATION BY Phase-average counts in each energy channel
+# My recollection is that Teru simply subtracted, then divided by,
+# the time- (i.e., phase-) averaged counts in each energy channel.
+# colorbar at right is centered on zero,
+# which I think is a reflection of the fact t
+# hat the mean "pixel" value is zero.
+
 if args.norm_effarea:
     if args.arfile:
         arfile = args.arfile
