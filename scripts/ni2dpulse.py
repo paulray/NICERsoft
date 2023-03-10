@@ -19,6 +19,7 @@ parser.add_argument("--emax", help="Max energy to plot", type=float, default=2.0
 parser.add_argument("--nebins", help="Number of energy bins", type=int, default=35)
 parser.add_argument("--log", help="Log scale histogram", action="store_true")
 parser.add_argument("--sqrt", help="Log scale histogram", action="store_true")
+parser.add_argument("--norm_mean", help="Normalized by mean cts per channel", action="store_true")
 parser.add_argument("--norm_effarea", help="Normalized by effective area", action="store_true")
 parser.add_argument("--arfile", help="ARF file for effective area normalization (default: Arf in CALDB)", type=str, default=None)
 args = parser.parse_args()
@@ -40,12 +41,11 @@ H, piedges, phedges = np.histogram2d(pi2, phase2, bins=[pirange, phrange])
 eedges = piedges * PI_TO_KEV
 
 
-## TODO: NORMALIZATION BY Phase-average counts in each energy channel
-# My recollection is that Teru simply subtracted, then divided by,
-# the time- (i.e., phase-) averaged counts in each energy channel.
-# colorbar at right is centered on zero,
-# which I think is a reflection of the fact t
-# hat the mean "pixel" value is zero.
+# NORMALIZATION BY average counts in each energy channel
+if args.norm_mean:
+    for e, ebin in enumerate(eedges[:-1]):
+        meancts = np.mean(H[e,:])
+        H[e, :] = (H[e,:]-meancts)/meancts
 
 if args.norm_effarea:
     if args.arfile:
