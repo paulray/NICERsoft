@@ -66,6 +66,15 @@ parser.add_option(
     "-t", "--tmin", type="float", default=0.0, help="Minimum time to include (MJD)"
 )
 # parser.add_option("-t","--tmax",type="float",default=0.0,help="Maximum time to include (MJD)")
+parser.add_option(
+    "-p",
+    "--profonly",
+    default=False,
+    action='store_true',
+    help="Make only pulse profile plot.",
+)
+
+
 ## Parse arguments
 (options, args) = parser.parse_args()
 if len(args) != 1:
@@ -179,23 +188,29 @@ b = a.reshape(options.ntoa, options.nbins)
 
 c = np.hstack([b, b])
 
-pylab.figure(1, figsize=(6.0, 8.0))
+if not options.profonly:
+    pylab.figure(1, figsize=(6.0, 8.0))
 
-# This axis is the 2-d phaseogram
-ax1 = pylab.axes([0.15, 0.05, 0.75, 0.6])
-ax1.imshow(
-    c,
-    interpolation="nearest",
-    origin="lower",
-    cmap=pylab.cm.binary,
-    extent=(0, 2.0, MJDSTART, MJDSTOP),
-    aspect=2.0 / (MJDSTOP - MJDSTART),
-)
-pylab.xlabel("Pulse Phase")
-pylab.ylabel("Time (MJD)")
+    # This axis is the 2-d phaseogram
+    ax1 = pylab.axes([0.15, 0.05, 0.75, 0.6])
+    ax1.imshow(
+        c,
+        interpolation="nearest",
+        origin="lower",
+        cmap=pylab.cm.binary,
+        extent=(0, 2.0, MJDSTART, MJDSTOP),
+        aspect=2.0 / (MJDSTOP - MJDSTART),
+    )
+    pylab.xlabel("Pulse Phase")
+    pylab.ylabel("Time (MJD)")
+else:
+    pylab.figure(1, figsize=(6.0, 3.2))
 
 # This axis is the summed profile plot
-ax2 = pylab.axes([0.15, 0.65, 0.75, 0.3])
+if not options.profonly:
+    ax2 = pylab.axes([0.15, 0.65, 0.75, 0.3])
+else:
+    ax2 = pylab.axes()
 bbins = np.concatenate((profbins, profbins[1:] + 1.0))
 ax2.step(
     bbins,
@@ -206,6 +221,8 @@ ax2.step(
 )
 py = np.concatenate((fullprof, fullprof))
 pylab.ylabel("Photons")
+if options.profonly:
+    pylab.xlabel("Pulse Phase")
 pylab.setp(ax2.get_xticklabels(), visible=False)
 pymin = py.min() - 0.1 * (py.max() - py.min())
 pymax = py.max() + 0.1 * (py.max() - py.min())
