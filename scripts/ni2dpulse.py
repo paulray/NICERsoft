@@ -79,15 +79,17 @@ if args.norm_effarea:
         H[e,:] = H[e,:]/eff
 
 if args.log:
-    pcolormesh(phedges, eedges, np.log10(H), cmap="jet")
+    if args.norm_mean:
+        H = H+np.abs(np.min(H))
+    pcolormesh(phedges, eedges, np.log10(H), cmap="plasma")
     cbar = colorbar()
     cbar.set_label("Log10(Photon count)")
 elif args.sqrt:
-    pcolormesh(phedges, eedges, np.sqrt(H), cmap="jet")
+    pcolormesh(phedges, eedges, np.sqrt(H), cmap="plasma")
     cbar = colorbar()
     cbar.set_label("Sqrt(Photon count)")
 else:
-    pcolormesh(phedges, eedges, H, cmap="jet")
+    pcolormesh(phedges, eedges, H, cmap="plasma")
     cbar = colorbar()
     cbar.set_label("Photon count")
 
