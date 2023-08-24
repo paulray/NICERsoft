@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 import os, sys
-#import pint.logging
+
+# import pint.logging
 from loguru import logger as log
 
-#pint.logging.setup(level=pint.logging.script_level)
+# pint.logging.setup(level=pint.logging.script_level)
 
 import numpy as np
 import argparse
@@ -210,8 +211,8 @@ log.add(
     sys.stderr,
     level=args.loglevel,
     colorize=True,
-    format='<level>{level: <8}</level> ({name: <30}): <level>{message}</level>'
-    #filter=pint.logging.LogFilter(),
+    format="<level>{level: <8}</level> ({name: <30}): <level>{message}</level>"
+    # filter=pint.logging.LogFilter(),
 )
 
 
@@ -278,7 +279,6 @@ else:
 
 # Start processing all ObsIDs
 for obsdir in all_obsids:
-
     # Set up a basename and make a work directory
     if args.obsid is not None:
         basename = args.obsid
@@ -307,17 +307,17 @@ for obsdir in all_obsids:
     if len(list_mkfiles) == 0:
         # Searching for *mkf.gz file
         list_mkfiles = glob(path.join(obsdir, "auxil/ni*.mkf.gz"))
-        log.info('Using the *.mkf.gz file found instead of a *.mkf file.')
+        log.info("Using the *.mkf.gz file found instead of a *.mkf file.")
         if len(list_mkfiles) == 0:
-            log.error('No *mkf or *mkf.gz files found. Exiting.')
+            log.error("No *mkf or *mkf.gz files found. Exiting.")
             exit()
 
-    if len(list_mkfiles)==1:
+    if len(list_mkfiles) == 1:
         mkfile = list_mkfiles[0]
     else:
         # When more than one mkf or mkf.gz file found, using the most recent one
         mkfile = max(list_mkfiles, key=os.path.getmtime)
-        log.warning('Multiple MKF files found. Using the most recent one.')
+        log.warning("Multiple MKF files found. Using the most recent one.")
 
     log.info("MKF File: {0}".format(mkfile))
 
@@ -391,7 +391,7 @@ for obsdir in all_obsids:
 
     # Get orbit file
     orbfile = glob(path.join(obsdir, "auxil/ni*.orb*"))[0]
-    if len(glob(path.join(obsdir, "auxil/ni*.orb*")))>1:
+    if len(glob(path.join(obsdir, "auxil/ni*.orb*"))) > 1:
         log.info("Multiple orbit files found :")
         for f in glob(path.join(obsdir, "auxil/ni*.orb*")):
             log.info("  -> {}".format(path.basename(f)))
@@ -464,6 +464,7 @@ for obsdir in all_obsids:
 
     # Make final merged GTI using nimaketime
     gtiname_merged = path.join(pipedir, "tot.gti")
+    gtiname_merged_and_eventgti = path.join(pipedir, "tot_and_eventgti.gti")
     gtiname_clipped = path.join(pipedir, "tot_clipped.gti")
 
     # Manage extra_expr for nimaketime (ST_VALID, DARK/DAY, and FPM_OVER_ONLY filters from --KEITH)
@@ -529,6 +530,20 @@ for obsdir in all_obsids:
     ]
     runcmd(cmd)
 
+    # Make a GTI file that is the AND of gtiname_merged and the event file GTI
+    if len(evfiles) > 1:
+        raise RuntimeError("Too many event files for mgtime")
+    # mgtime won't overwrite a file, so delete it if it exists
+    if path.isfile(gtiname_merged_and_eventgti):
+        os.remove(gtiname_merged_and_eventgti)
+    cmd = [
+        "mgtime",
+        f"{evfiles[0]}[GTI],{gtiname_merged}",
+        f"outgti={gtiname_merged_and_eventgti}",
+        "merge=AND",
+    ]
+    runcmd(cmd)
+
     # nimaketime gives an output GTI file with 1 row and START==STOP in the
     # case where no good time is selected.  This differs from the normal
     # maketime, which produces a GTI file with no rows in that case
@@ -536,11 +551,11 @@ for obsdir in all_obsids:
     # Now run ftadjustgti to discard short GTIs
     cmd = [
         "ftadjustgti",
-        "infile={0}".format(gtiname_merged),
+        "infile={0}".format(gtiname_merged_and_eventgti),
         "outfile={0}".format(gtiname_clipped),
         "mingti={}".format(args.mingti),
         "copyall=NO",
-        "clobber=YES"
+        "clobber=YES",
     ]
     runcmd(cmd)
 
