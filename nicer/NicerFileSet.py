@@ -430,7 +430,6 @@ class NicerFileSet:
     def getgti(self):
         # Read the GTIs from the first event FITS file
         self.gtitable = Table.read(self.ufafiles[0], hdu="GTI")
-        print(self.gtitable)
         if "TIMEZERO" in self.gtitable.meta:
             tz = self.gtitable.meta["TIMEZERO"]
             # If there are multiple TIMEZERO entries in the header, just take the last
