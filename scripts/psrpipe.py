@@ -533,11 +533,12 @@ for obsdir in all_obsids:
     # Make a GTI file that is the AND of gtiname_merged and the event file GTI
     if len(evfiles) > 1:
         raise RuntimeError("Too many event files for mgtime")
-    # mgtime won't overwrite a file, so delete it if it exists
+    # ftmgtime will overwrite a file if the file exists and if clobber=YES, 
+    # For now, however, delete the old file if it exists and don't use clobber=YES.
     if path.isfile(gtiname_merged_and_eventgti):
         os.remove(gtiname_merged_and_eventgti)
     cmd = [
-        "mgtime",
+        "ftmgtime",
         f"{evfiles[0]}[GTI],{gtiname_merged}",
         f"outgti={gtiname_merged_and_eventgti}",
         "merge=AND",
