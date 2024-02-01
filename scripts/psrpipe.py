@@ -183,6 +183,11 @@ parser.add_argument(
     help="Don't make maps (for use if cartopy is not working)",
     action="store_true",
 )
+parser.add_argument(
+    "--noplot",
+    help='Do not make any plot',
+    action='store_true'
+)
 # Not implementing this for the moment (requires lots of check when multiple ObsID are provided at once)
 # parser.add_argument(
 #     "--mkfile",
@@ -279,6 +284,7 @@ else:
 
 # Start processing all ObsIDs
 for obsdir in all_obsids:
+
     # Set up a basename and make a work directory
     if args.obsid is not None:
         basename = args.obsid
@@ -351,43 +357,46 @@ for obsdir in all_obsids:
         args.dark = False
         args.day = False
 
-    cmd = [
-        "nicerql.py",
-        "--save",
-        "--filtall",
-        "--lcbinsize",
-        "{}".format(args.lcbinsize),
-        "--lclog",
-        "--useftools",
-        "--filterbinsize",
-        "{}".format(args.filterbinsize),
-        "--emin",
-        "{0}".format(args.emin),
-        "--emax",
-        "{0}".format(args.emax),
-        "--sci",
-        "--eng",
-        "--bkg",
-        "--obsdir",
-        obsdir,
-        "--basename",
-        path.join(pipedir, basename) + "_prefilt",
-    ]
-    if not args.nomap:
-        cmd.append("--map")
+    # Finished the set up
+    # Plots for the obsid
+    if not args.noplot: 
+        cmd = [
+            "nicerql.py",
+            "--save",
+            "--filtall",
+            "--lcbinsize",
+            "{}".format(args.lcbinsize),
+            "--lclog",
+            "--useftools",
+            "--filterbinsize",
+            "{}".format(args.filterbinsize),
+            "--emin",
+            "{0}".format(args.emin),
+            "--emax",
+            "{0}".format(args.emax),
+            "--sci",
+            "--eng",
+            "--bkg",
+            "--obsdir",
+            obsdir,
+            "--basename",
+            path.join(pipedir, basename) + "_prefilt",
+        ]
+        if not args.nomap:
+            cmd.append("--map")
 
-    if args.mask is not None:
-        cmd.append("--mask")
-        for detid in args.mask:
-            cmd.append("{0}".format(detid))
-    if args.keith:
-        cmd.append("--keith")
+        if args.mask is not None:
+            cmd.append("--mask")
+            for detid in args.mask:
+                cmd.append("{0}".format(detid))
+        if args.keith:
+            cmd.append("--keith")
 
-    if args.badcut > 0:
-        cmd.append("--writebkf")
+        if args.badcut > 0:
+            cmd.append("--writebkf")
 
-    if not args.tidy:
-        runcmd(cmd)
+        if not args.tidy:
+            runcmd(cmd)
 
     # Get orbit file
     orbfile = glob(path.join(obsdir, "auxil/ni*.orb*"))[0]
@@ -603,24 +612,26 @@ for obsdir in all_obsids:
         bad_dets = find_hot_detectors(etable)
         if bad_dets is not None:
             log.info("Found hot detectors {0}!!".format(bad_dets))
+
         # Make intermediate eng plot to show bad detectors
-        cmd = [
-            "nicerql.py",
-            "--save",
-            "--eng",
-            intermediatename,
-            "--lcbinsize",
-            "{}".format(args.lcbinsize),
-            "--filterbinsize",
-            "{}".format(args.filterbinsize),
-            "--basename",
-            path.join(pipedir, basename) + "_intermediate",
-        ]
+        if not args.noplot:
+            cmd = [
+                "nicerql.py",
+                "--save",
+                "--eng",
+                intermediatename,
+                "--lcbinsize",
+                "{}".format(args.lcbinsize),
+                "--filterbinsize",
+                "{}".format(args.filterbinsize),
+                "--basename",
+                path.join(pipedir, basename) + "_intermediate",
+            ]
 
-        if args.keith:
-            cmd.append("--keith")
+            if args.keith:
+                cmd.append("--keith")
 
-        runcmd(cmd)
+            runcmd(cmd)
 
     # Now filter any bad detectors.
     # Start with launch detectors, but with MPU1 excluded during timing issue
@@ -651,6 +662,7 @@ for obsdir in all_obsids:
         "history=yes",
     ]
     runcmd(cmd)
+
     # Remove intermediate file
     if args.tidy:
         os.remove(intermediatename)
@@ -673,35 +685,36 @@ for obsdir in all_obsids:
     runcmd(cmd)
 
     # Make final clean plot
-    cmd = [
-        "nicerql.py",
-        "--save",
-        "--orb",
-        orbfile,
-        #        path.join(pipedir, path.basename(orbfile)),
-        "--sci",
-        "--eng",
-        filteredname,
-        # "--allspec",
-        # "--alllc",
-        "--lcbinsize",
-        "{}".format(args.lcbinsize),
-        "--filterbinsize",
-        "{}".format(args.filterbinsize),
-        "--mkf",
-        cleanfilt_mkf,
-        "--bkg",
-        "--basename",
-        path.join(pipedir, basename) + "_cleanfilt",
-    ]
-    if not args.nomap:
-        cmd.append("--map")
-    if args.par is not None:
-        cmd.append("--par")
-        cmd.append("{0}".format(args.par))
-    if args.keith:
-        cmd.append("--keith")
-    runcmd(cmd)
+    if not args.noplot:
+        cmd = [
+            "nicerql.py",
+            "--save",
+            "--orb",
+            orbfile,
+            #        path.join(pipedir, path.basename(orbfile)),
+            "--sci",
+            "--eng",
+            filteredname,
+            # "--allspec",
+            # "--alllc",
+            "--lcbinsize",
+            "{}".format(args.lcbinsize),
+            "--filterbinsize",
+            "{}".format(args.filterbinsize),
+            "--mkf",
+            cleanfilt_mkf,
+            "--bkg",
+            "--basename",
+            path.join(pipedir, basename) + "_cleanfilt",
+        ]
+        if not args.nomap:
+            cmd.append("--map")
+        if args.par is not None:
+            cmd.append("--par")
+            cmd.append("{0}".format(args.par))
+        if args.keith:
+            cmd.append("--keith")
+        runcmd(cmd)
 
     # Add phases
     if args.par is not None:
@@ -714,13 +727,14 @@ for obsdir in all_obsids:
             args.ephem,
             "--orb",
             orbfile,
-            "--plot",
-            "--plotfile",
-            plotfile,
             "--addphase",
             filteredname,
             args.par,
         ]
+        if not args.noplot:
+            cmd.append("--plot")
+            cmd.append("--plotfile")
+            cmd.append(plotfile)
         runcmd(cmd)
 
     # Extract simple PHA file and light curve
@@ -777,7 +791,8 @@ if args.merge and (len(all_evfiles) > 1):
         cmd.append("--cut")
         cmd.append("--filterbinsize")
         cmd.append("{}".format(args.filterbinsize))
-
+    if args.noplot:
+        cmd.append("--noplot")
     # if args.crabnorm:
     #     cmd.append("--crabnorm")
     # if args.dark:
@@ -803,5 +818,3 @@ else:
     #         runcmd(cmd)
 
 shutil.rmtree(tempdir)
-
-# Test

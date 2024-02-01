@@ -40,6 +40,7 @@ parser.add_argument("--orb", help="text file containing the paths to all orbits 
 parser.add_argument(
     "--cut", help="perform count rate cut at the end", action="store_true"
 )
+parser.add_argument("--crcut", type=float, help='Count rate in (cts/s) for the cut.')
 parser.add_argument(
     "--lcbinsize",
     help="Lightcurve bin size (sec, default=4.0)",
@@ -54,6 +55,11 @@ parser.add_argument(
 )
 parser.add_argument(
     "--clobber", help="replace existing merged files", action="store_true"
+)
+parser.add_argument(
+    "--noplot",
+    help='Do not make any plot',
+    action='store_true'
 )
 args = parser.parse_args()
 
@@ -241,6 +247,8 @@ cmd = [
 runcmd(cmd)
 
 # Call to cr_cut.py
+if args.crcut is not None:
+    args.cut = True
 if args.cut:
     cmd = [
         "cr_cut.py",
@@ -249,25 +257,29 @@ if args.cut:
         "{}".format(args.filterbinsize),
         "--plotfilt",
     ]
+    if args.crcut is not None:
+        cmd.append("--cut")
+        cmd.append(f'{args.crcut}')
     runcmd(cmd)
 
     outname_cut = path.join(pipedir, "{}_cut.evt".format(args.outroot))
 
     # Make final merged_cut clean plot
-    cmd = [
-        "nicerql.py",
-        "--save",
-        "--merge",
-        "--sci",
-        outname_cut,
-        "--allspec",
-        "--alllc",
-        "--lcbinsize",
-        "{}".format(args.lcbinsize),
-        "--basename",
-        path.splitext(outname_cut)[0],
-    ]
-    runcmd(cmd)
+    if not args.noplot:
+        cmd = [
+            "nicerql.py",
+            "--save",
+            "--merge",
+            "--sci",
+            outname_cut,
+            "--allspec",
+            "--alllc",
+            "--lcbinsize",
+            "{}".format(args.lcbinsize),
+            "--basename",
+            path.splitext(outname_cut)[0],
+        ]
+        runcmd(cmd)
 
     # load merged_cut events file
     merged_cut_table = Table.read(outname_cut, hdu=1)
@@ -276,8 +288,9 @@ if args.cut:
     if "PULSE_PHASE" in merged_cut_table.colnames:
         log.info("Making Phaseogram with niphaseogram.py after the count rate cut")
         plotfile = path.join(pipedir, "{}_cut_phaseogram.png".format(args.outroot))
-        cmd = ["niphaseogram.py", "--outfile={}".format(plotfile), outname_cut]
-        runcmd(cmd)
+        if not args.noplot:
+            cmd = ["niphaseogram.py", "--outfile={}".format(plotfile), outname_cut]
+            runcmd(cmd)
 
     # Extract simple PHA file and light curve
     log.info("Extracting Spectrum and Light Curve after the count rate cut")
