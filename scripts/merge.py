@@ -176,21 +176,22 @@ if args.clobber is not None:
 runcmd(cmd)
 
 # Make final merged clean plot
-log.info("Making Science Plots of merged event file")
-cmd = [
-    "nicerql.py",
-    "--save",
-    "--merge",
-    "--sci",
-    outname,
-    "--allspec",
-    "--alllc",
-    "--lcbinsize",
-    "{}".format(args.lcbinsize),
-    "--basename",
-    path.splitext(outname)[0],
-]
-runcmd(cmd)
+if not args.noplot:
+    log.info("Making Science Plots of merged event file")
+    cmd = [
+        "nicerql.py",
+        "--save",
+        "--merge",
+        "--sci",
+        outname,
+        "--allspec",
+        "--alllc",
+        "--lcbinsize",
+        "{}".format(args.lcbinsize),
+        "--basename",
+        path.splitext(outname)[0],
+    ]
+    runcmd(cmd)
 
 # load merged events file
 merged_table = Table.read(outname, hdu=1)
@@ -199,8 +200,9 @@ merged_table = Table.read(outname, hdu=1)
 if "PULSE_PHASE" in merged_table.colnames:
     log.info("Making Phaseogram with niphaseogram.py, since PULSE_PHASE columns exists")
     plotfile = path.join(pipedir, "{}_niphaseogram.png".format(args.outroot))
-    cmd = ["niphaseogram.py", "--outfile={}".format(plotfile), outname]
-    runcmd(cmd)
+    if not args.noplot:
+        cmd = ["niphaseogram.py", "--outfile={}".format(plotfile), outname]
+        runcmd(cmd)
 else:
     if args.par is not None:
         # calculate phases
@@ -216,10 +218,11 @@ else:
             args.par,
         ]
         runcmd(cmd)
-        log.info("Making Phaseogram with niphaseogram.py")
-        plotfile = path.join(pipedir, "{}_niphaseogram.png".format(args.outroot))
-        cmd = ["niphaseogram.py", "--outfile={}".format(plotfile), outname]
-        runcmd(cmd)
+        if not args.noplot:
+            log.info("Making Phaseogram with niphaseogram.py")
+            plotfile = path.join(pipedir, "{}_niphaseogram.png".format(args.outroot))
+            cmd = ["niphaseogram.py", "--outfile={}".format(plotfile), outname]
+            runcmd(cmd)
 
 
 # Extract simple PHA file and light curve
