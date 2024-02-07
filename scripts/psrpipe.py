@@ -518,9 +518,9 @@ for obsdir in all_obsids:
         list_extra_expr.append("FPM_OVERONLY_COUNT<1.52*COR_SAX**(-0.633)")
     if args.medianundershoot:
         # Exclude data when the MEDIAN undershoot is above this level
-        list_extra_expr.append(f"MEDIAN_UNDERONLY_COUNT.lt.{args.medianundershoot}")
+        list_extra_expr.append(f"(MEDIAN_UNDERONLY_COUNT.lt.{args.medianundershoot})")
 
-    extra_expr = '"' + " && ".join("%s" % expr for expr in list_extra_expr) + '"'
+    extra_expr = "(" + " && ".join("%s" % expr for expr in list_extra_expr) + ")"
 
     cor_string = "-"
     if args.cormin is not None:
