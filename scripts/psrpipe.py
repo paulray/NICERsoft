@@ -208,17 +208,31 @@ parser.add_argument(
     help="Logging level",
     dest="loglevel",
 )
+parser.add_argument(
+    "--savelog",
+    type=str,
+    help='Choose to save the logs into a file instead of command line.',
+)
 
 # parser.add_argument("--crabnorm", help="normalize the spectrum with the crab (only if --merge)", action='store_true')
 args = parser.parse_args()
 log.remove()
-log.add(
-    sys.stderr,
-    level=args.loglevel,
-    colorize=True,
-    format="<level>{level: <8}</level> ({name: <30}): <level>{message}</level>"
-    # filter=pint.logging.LogFilter(),
-)
+if not args.savelog:
+    log.add(
+        sys.stderr,
+        level=args.loglevel,
+        colorize=True,
+        format="<level>{level: <8}</level> ({name: <30}): <level>{message}</level>"
+        # filter=pint.logging.LogFilter(),
+    )
+else:
+    log.add(
+        args.savelog,
+        level=args.loglevel,
+        colorize=True,
+        format="<level>{level: <8}</level> ({name: <30}): <level>{message}</level>"
+        # filter=pint.logging.LogFilter(),
+    )
 
 
 os.environ["HEADASNOQUERY"] = " "
@@ -504,9 +518,9 @@ for obsdir in all_obsids:
         list_extra_expr.append("FPM_OVERONLY_COUNT<1.52*COR_SAX**(-0.633)")
     if args.medianundershoot:
         # Exclude data when the MEDIAN undershoot is above this level
-        list_extra_expr.append(f"(MEDIAN_UNDERONLY_COUNT.lt.{args.medianundershoot})")
+        list_extra_expr.append(f"MEDIAN_UNDERONLY_COUNT.lt.{args.medianundershoot}")
 
-    extra_expr = "(" + " && ".join("%s" % expr for expr in list_extra_expr) + ")"
+    extra_expr = '"' + " && ".join("%s" % expr for expr in list_extra_expr) + '"'
 
     cor_string = "-"
     if args.cormin is not None:
@@ -735,6 +749,9 @@ for obsdir in all_obsids:
             cmd.append("--plot")
             cmd.append("--plotfile")
             cmd.append(plotfile)
+        if args.loglevel != 'INFO':
+            cmd.append("--log-level")
+            cmd.append(args.loglevel)
         runcmd(cmd)
 
     # Extract simple PHA file and light curve
