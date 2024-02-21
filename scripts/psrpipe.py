@@ -666,15 +666,18 @@ for obsdir in all_obsids:
         for detid in bad_dets:
             detfilt_expr += ",-{0}".format(detid)
 
-    cmd = [
-        "nifpmsel",
-        "infile={}".format(intermediatename),
-        "outfile={}".format(filteredname),
-        "detlist={}".format(detfilt_expr),
-        "mkfile={}".format(mkfile),
-        "clobber=yes",
-        "history=yes",
-    ]
+    if detfilt_expr == "launch":
+        cmd = [ "cp", intermediatename, filteredname ]
+    else:
+        cmd = [
+            "nifpmsel",
+            "infile={}".format(intermediatename),
+            "outfile={}".format(filteredname),
+            "detlist={}".format(detfilt_expr),
+            "mkfile={}".format(mkfile),
+            "clobber=yes",
+            "history=yes",
+        ]
     runcmd(cmd)
 
     # Remove intermediate file
