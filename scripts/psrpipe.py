@@ -164,11 +164,6 @@ parser.add_argument(
     default=16.0,
 )
 parser.add_argument(
-    "--keith",
-    help="Standard filters used by Keith Gendreau for Space-Weather backgrounds (Masks detectors 14, 34, 54; cormin 1.5; custom cut on overshoot rate + COR_SAX)",
-    action="store_true",
-)
-parser.add_argument(
     "--overonlyexpr",
     help="Turn on the expression to filter on overshoot rate based on COR_SAX",
     action="store_true",
@@ -183,13 +178,6 @@ parser.add_argument(
     help="Don't make maps (for use if cartopy is not working)",
     action="store_true",
 )
-# Not implementing this for the moment (requires lots of check when multiple ObsID are provided at once)
-# parser.add_argument(
-#     "--mkfile",
-#     help="Specific input MKF files if different than that present in /auxil/",
-#     nargs="+",
-#     default=None
-# )
 parser.add_argument(
     "--copymkf",
     help="Copy ni*.mkf into the _pipe output directory, for convenience. Warning, mkf files are large!",
@@ -277,7 +265,9 @@ if len(args.indirs) == 1:
 else:
     all_obsids = args.indirs
 
+#
 # Start processing all ObsIDs
+#
 for obsdir in all_obsids:
     # Set up a basename and make a work directory
     if args.obsid is not None:
@@ -295,12 +285,6 @@ for obsdir in all_obsids:
 
     log.info("Making initial QL plots")
 
-    # Get event filenames (could be just one)
-    evfiles = glob(path.join(obsdir, "xti/event_cl/ni*mpu7_cl.evt"))
-    evfiles.sort()
-    log.info("Cleaned Event Files: {0}".format("\n" + "    \n".join(evfiles)))
-
-    # TODO: Consider implementing user-input MKF file(s).
     # Get filter file
     # Searching for *mkf file
     list_mkfiles = glob(path.join(obsdir, "auxil/ni*.mkf"))
@@ -342,10 +326,6 @@ for obsdir in all_obsids:
     if args.copymkf:
         shutil.copy(mkfile, pipedir)
 
-    if args.keith:
-        args.mask = [14, 34, 54]
-        args.cormin = 1.5
-
     if args.dark and args.day:
         log.warning("Both --dark and --day are requested")
         args.dark = False
@@ -380,9 +360,6 @@ for obsdir in all_obsids:
         cmd.append("--mask")
         for detid in args.mask:
             cmd.append("{0}".format(detid))
-    if args.keith:
-        cmd.append("--keith")
-
     if args.badcut > 0:
         cmd.append("--writebkf")
 
@@ -405,6 +382,50 @@ for obsdir in all_obsids:
         log.info("BKF File: {0}".format(bkffile))
     else:
         bkffile = None
+
+
+
+    # Get merged unfiltered event filename (should just be one)
+    evfiles = glob(path.join(obsdir, "xti/event_cl/ni*mpu7_cl.evt"))
+    evfiles.sort()
+    log.info("Cleaned Event Files: {0}".format("\n" + "    \n".join(evfiles)))
+
+    # Build input file for niextract-events
+    # I don't think there should ever be more than one. Removing this code.
+    # evlistname = path.join(pipedir, "evfiles.txt")
+    # fout = open(evlistname, "w")
+    # for en in evfiles:
+    #     print("{0}".format(en), file=fout)
+    # fout.close()
+    # Just take first one!
+    evfilename = evfiles[0]
+
+    intermediatename = path.join(pipedir, "intermediate.evt")
+    filteredname = path.join(pipedir, "cleanfilt.evt")
+
+    # First filter any bad detectors.
+    # Start with launch detectors
+    detfilt_expr = "launch"
+
+    # Filter any explicitly specified masked detectors
+    if args.mask is not None:
+        for detid in args.mask:
+            if detid >= 0:
+                detfilt_expr += ",-{0}".format(detid)
+
+    if detfilt_expr == "launch":
+        cmd = [ "cp", evfilename, intermediatename ]
+    else:
+        cmd = [
+            "nifpmsel",
+            "infile={}".format(evfilename),
+            "outfile={}".format(intermediatename),
+            "detlist={}".format(detfilt_expr),
+            "mkfile={}".format(mkfile),
+            "clobber=yes",
+            "history=yes",
+        ]
+    runcmd(cmd)
 
     # Create any additional GTIs beyond what nimaketime does...
     extragtis = "NONE"
@@ -475,13 +496,6 @@ for obsdir in all_obsids:
     if args.day:
         list_extra_expr.append("SUNSHINE.eq.1")
 
-    if args.keith:
-        list_extra_expr.append("FPM_OVERONLY_COUNT<1")
-        list_extra_expr.append("FPM_OVERONLY_COUNT.lt.(1.52*COR_SAX**(-0.633))")
-        # list_extra_expr.append('FPM_UNDERONLY_COUNT<200')
-        if has_KP:
-            list_extra_expr.append("(COR_SAX.gt.(1.914*KP**0.684+0.25)).and.KP.lt.5")
-
     if args.kpmax and has_KP:
         list_extra_expr.append("KP.lt.{0}".format(args.kpmax))
 
@@ -530,16 +544,14 @@ for obsdir in all_obsids:
     ]
     runcmd(cmd)
 
-    # Make a GTI file that is the AND of gtiname_merged and the event file GTI
-    if len(evfiles) > 1:
-        raise RuntimeError("Too many event files for mgtime")
+    # Make a GTI file that is the AND of gtiname_merged and the intermediate file GTI
     # ftmgtime will overwrite a file if the file exists and if clobber=YES, 
     # For now, however, delete the old file if it exists and don't use clobber=YES.
     if path.isfile(gtiname_merged_and_eventgti):
         os.remove(gtiname_merged_and_eventgti)
     cmd = [
         "ftmgtime",
-        f"{evfiles[0]}[GTI],{gtiname_merged}",
+        f"{intermediatename}[GTI],{gtiname_merged}",
         f"outgti={gtiname_merged_and_eventgti}",
         "merge=AND",
     ]
@@ -560,16 +572,6 @@ for obsdir in all_obsids:
     ]
     runcmd(cmd)
 
-    ###  Extract filtered events and apply merged GTI
-    filteredname = path.join(pipedir, "cleanfilt.evt")
-    intermediatename = path.join(pipedir, "intermediate.evt")
-
-    # Build input file for niextract-events
-    evlistname = path.join(pipedir, "evfiles.txt")
-    fout = open(evlistname, "w")
-    for en in evfiles:
-        print("{0}".format(en), file=fout)
-    fout.close()
 
     # Build selection expression for niextract-events
     # Select events with PI in the selected range, require SLOW trigger (FAST optional)
@@ -580,87 +582,21 @@ for obsdir in all_obsids:
 
     cmd = [
         "niextract-events",
-        "filename=@{0}[{1}]".format(evlistname, evfilt_expr),
-        "eventsout={0}".format(intermediatename),
+        "filename={0}[{1}]".format(intermediatename, evfilt_expr),
+        "eventsout={0}".format(filteredname),
         "timefile={0}".format(gtiname_clipped),
         "gti=GTI",
         "clobber=yes",
     ]
     runcmd(cmd)
 
-    # Here we can automatically mask detectors by parsing the intermediate file
-    bad_dets = None
-    if args.mask is not None and args.mask[0] < 0:
-        etable = Table.read(intermediatename, hdu=1)
-        # Apply TIMEZERO if needed
-        if "TIMEZERO" in etable.meta:
-            log.info(
-                "Applying TIMEZERO of {0} to etable".format(etable.meta["TIMEZERO"])
-            )
-            etable["TIME"] += etable.meta["TIMEZERO"]
-            etable.meta["TIMEZERO"] = 0.0
-        log.info("Auto-masking detectors")
-        bad_dets = find_hot_detectors(etable)
-        if bad_dets is not None:
-            log.info("Found hot detectors {0}!!".format(bad_dets))
-        # Make intermediate eng plot to show bad detectors
-        cmd = [
-            "nicerql.py",
-            "--save",
-            "--eng",
-            intermediatename,
-            "--lcbinsize",
-            "{}".format(args.lcbinsize),
-            "--filterbinsize",
-            "{}".format(args.filterbinsize),
-            "--basename",
-            path.join(pipedir, basename) + "_intermediate",
-        ]
-
-        if args.keith:
-            cmd.append("--keith")
-
-        runcmd(cmd)
-
-    # Now filter any bad detectors.
-    # Start with launch detectors, but with MPU1 excluded during timing issue
-    # This bti is no longer needed since niautoscreen takes care of it
-    # detfilt_expr = "launch,MPU1(bti:174061082-175382522)"
-    detfilt_expr = "launch"
-
-    # Filter any explicitly specified masked detectors
-    if args.mask is not None:
-        for detid in args.mask:
-            if detid >= 0:
-                detfilt_expr += ",-{0}".format(detid)
-    # Filter any automatically identified hot detectors
-    if bad_dets is not None:
-        fout = open(path.join(pipedir, "bad_dets.txt"), "w")
-        print("{0}".format(bad_dets), file=fout)
-        fout.close()
-        for detid in bad_dets:
-            detfilt_expr += ",-{0}".format(detid)
-
-    if detfilt_expr == "launch":
-        cmd = [ "cp", intermediatename, filteredname ]
-    else:
-        cmd = [
-            "nifpmsel",
-            "infile={}".format(intermediatename),
-            "outfile={}".format(filteredname),
-            "detlist={}".format(detfilt_expr),
-            "mkfile={}".format(mkfile),
-            "clobber=yes",
-            "history=yes",
-        ]
-    runcmd(cmd)
     # Remove intermediate file
     if args.tidy:
         os.remove(intermediatename)
 
-    # Check that there are events left after hot detector cut
+    # Check that there are events left
     if len(Table.read(filteredname, hdu=1)) == 0:
-        log.error("No events left after hot detector filtering!")
+        log.error("No events left !!!")
         continue
 
     # Make cleanfilt.mkf file from ObsID .mkf file and merged_GTI
@@ -702,8 +638,6 @@ for obsdir in all_obsids:
     if args.par is not None:
         cmd.append("--par")
         cmd.append("{0}".format(args.par))
-    if args.keith:
-        cmd.append("--keith")
     runcmd(cmd)
 
     # Add phases
