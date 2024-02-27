@@ -80,6 +80,7 @@ try:
 except:
     ax.set_title("{0}".format(hdr["DATE-OBS"]))
 ax.set_xlim((0.0, 2.0))
+ax.grid(True)
 if args.outfile is not None:
     plt.savefig(args.outfile)
 

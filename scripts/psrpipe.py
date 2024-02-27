@@ -241,7 +241,11 @@ def runcmd(cmd):
     # CMD should be a list of strings since it is not processed by a shell
     log.info("CMD: " + " ".join(cmd))
     # log.info(cmd)
-    check_call(cmd, env=os.environ)
+    try:
+        check_call(cmd, env=os.environ)
+    except subprocess.CalledProcessError:
+        log.error("Command failed! CMD: " + " ".join(cmd))
+        raise
 
 
 # Check if outdir contains 'None', 'NONE', or 'none' (causes bug in ni-extractevents)
