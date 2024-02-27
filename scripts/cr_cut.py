@@ -90,6 +90,9 @@ parser.add_argument(
     "--cut", help="Count rate cut in cts/sec (optional)", type=float, default=None
 )
 parser.add_argument(
+    "--invert", help="Invert cut to only data data ABOVE the specified cut", default=False,
+    action="store_true")
+parser.add_argument(
     "--filterbinsize",
     help="Bin size in sec (default = 16 sec)",
     type=float,
@@ -220,7 +223,10 @@ else:
 ################################################
 ## STEP 3 - Making Cut with lcfile
 lcfile_cut = path.splitext(lcfile)[0] + "_cut.lcurve"
-cmd = ["ftcopy", "{0}[1][RATE<{1}]".format(lcfile, CRcut), lcfile_cut, "clobber=yes"]
+if args.invert:
+    cmd = ["ftcopy", "{0}[1][RATE>={1}]".format(lcfile, CRcut), lcfile_cut, "clobber=yes"]
+else:
+    cmd = ["ftcopy", "{0}[1][RATE<{1}]".format(lcfile, CRcut), lcfile_cut, "clobber=yes"]
 ## Somehow, this line does not work work with os.system().  This is all a mystery to me!
 log.info("CMD: " + " ".join(cmd))
 check_call(cmd, env=os.environ)
