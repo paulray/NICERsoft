@@ -298,7 +298,7 @@ else:
 
 # Start processing all ObsIDs
 for obsdir in all_obsids:
-
+    
     # Set up a basename and make a work directory
     if args.obsid is not None:
         basename = args.obsid
@@ -744,6 +744,8 @@ for obsdir in all_obsids:
             args.ephem,
             "--orb",
             orbfile,
+            "--outfile",
+            filteredname,
             "--addphase",
             filteredname,
             args.par,
