@@ -14,11 +14,11 @@ import numpy as np
 import astropy.units as u
 import astropy.io.fits as pyfits
 import pint.residuals
-from pint.event_toas import load_NICER_TOAs
-from pint.event_toas import load_RXTE_TOAs
-from pint.event_toas import load_NuSTAR_TOAs
-from pint.event_toas import load_XMM_TOAs
-from pint.event_toas import load_Swift_TOAs
+from pint.event_toas import get_NICER_TOAs
+from pint.event_toas import get_RXTE_TOAs
+from pint.event_toas import get_NuSTAR_TOAs
+from pint.event_toas import get_XMM_TOAs
+from pint.event_toas import get_Swift_TOAs
 from pint.plot_utils import phaseogram_binned
 from pint.observatory.satellite_obs import get_satellite_observatory
 import pint.toa, pint.models
@@ -38,20 +38,6 @@ from pint.observatory.special_locations import T2SpacecraftObs
 from loguru import logger as log
 
 # pint.logging.setup(level=pint.logging.script_level)
-
-
-def local_load_NICER_TOAs(eventname):
-    """Local override to add MET field to each TOA object."""
-    # TODO -- add this to PINT method ?
-    tl = load_NICER_TOAs(eventname)
-    f = pyfits.open(eventname)
-    mets = f["events"].data.field("time")
-    f.close()
-    for t, met in zip(tl, mets):
-        t.met = met
-    # The returned tl has topocentric TT MJD photon times; TIMESYS=TT, TIMEREF=LOCAL in the .evt file
-    return tl
-
 
 def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
     """Return a pint TOA object for the provided times and phases.
@@ -309,6 +295,7 @@ modelin = pint.models.get_model(args.parname)
 log.info(str(modelin))
 
 # check for consistency between ephemeris and options
+##### Really should set BIPM here as well! ####
 if modelin.PLANET_SHAPIRO.quantity:
     planets = True
 else:
@@ -352,13 +339,12 @@ if (args.orbfile is not None) and barydata:
 
 if hdr["TELESCOP"] == "NICER":
     # Instantiate NICERObs once so it gets added to the observatory registry
-    # Bug! It should not do this if the events have already been barycentered!
     if barydata:
         obs = "Barycenter"
     else:
         if args.orbfile is not None:
             log.info("Setting up NICER observatory")
-            obs = get_satellite_observatory("NICER", args.orbfile)
+            obs = get_satellite_observatory("NICER", args.orbfile, include_bipm=args.use_bipm, include_gps=args.use_gps) #### DOES THIS NEED EPHEM or BIPM???
         else:
             log.error(
                 "NICER .orb file required for non-barycentered events!\n"
@@ -366,9 +352,12 @@ if hdr["TELESCOP"] == "NICER":
             )
             sys.exit(2)
 
-    # Read event file and return list of TOA objects
+    # Read event file into TOAs object
     try:
-        tl = local_load_NICER_TOAs(args.eventname)
+        ts = get_NICER_TOAs(args.eventname, ephem=args.ephem, planets=planets, include_bipm=args.use_bipm, include_gps=args.use_gps)
+        with pyfits.open(eventname) as f:
+            mets = f["events"].data.field("time")
+            ### SHOULD ADD TIMEZERO, I think
     except KeyError:
         log.error(
             "Failed to load NICER TOAs. Make sure orbit file is specified on command line!"
@@ -382,7 +371,7 @@ elif hdr["TELESCOP"] == "XTE":
         if args.orbfile is not None:
             # Determine what observatory type is.
             log.info("Setting up RXTE observatory")
-            obs = get_satellite_observatory("RXTE", args.orbfile)
+            obs = get_satellite_observatory("RXTE", args.orbfile, include_bipm=args.use_bipm, include_gps=args.use_gps)
         else:
             log.error(
                 "RXTE FPorbit file required for non-barycentered events!\n"
@@ -390,7 +379,10 @@ elif hdr["TELESCOP"] == "XTE":
             )
             sys.exit(2)
     # Read event file and return list of TOA objects
-    tl = load_RXTE_TOAs(args.eventname)
+    ts = get_RXTE_TOAs(args.eventname, ephem=args.ephem, planets=planets, include_bipm=args.use_bipm, include_gps=args.use_gps)
+    with pyfits.open(args.eventname) as f:
+        mets = f[1].data.field("time")
+
 elif hdr["TELESCOP"].startswith("XMM"):
     # Not loading orbit file here, since that is not yet supported.
     if barydata:
@@ -398,12 +390,9 @@ elif hdr["TELESCOP"].startswith("XMM"):
     else:
         log.error("Non-barycentered XMM data not yet supported")
         sys.exit(3)
-    tl = load_XMM_TOAs(args.eventname)
-    f = pyfits.open(args.eventname)
-    mets = f["events"].data.field("time")
-    f.close()
-    for t, met in zip(tl, mets):
-        t.met = met
+    ts = get_XMM_TOAs(args.eventname, ephem=args.ephem, planets=planets, include_bipm=args.use_bipm, include_gps=args.use_gps)
+    with pyfits.open(args.eventname) as f:
+        mets = f["events"].data.field("time")
 elif hdr["TELESCOP"].startswith("NuSTAR"):
     # Not loading orbit file here, since that is not yet supported.
     if barydata:
@@ -411,12 +400,9 @@ elif hdr["TELESCOP"].startswith("NuSTAR"):
     else:
         log.error("Non-barycentered NuSTAR data not yet supported")
         sys.exit(3)
-    tl = load_NuSTAR_TOAs(args.eventname)
-    f = pyfits.open(args.eventname)
-    mets = f["events"].data.field("time")
-    f.close()
-    for t, met in zip(tl, mets):
-        t.met = met
+    ts = get_NuSTAR_TOAs(args.eventname, ephem=args.ephem, planets=planets, include_bipm=args.use_bipm, include_gps=args.use_gps)
+    with pyfits.open(args.eventname) as f:
+        mets = f["events"].data.field("time")
 elif hdr["TELESCOP"].startswith("SWIFT"):
     # Not loading orbit file here, since that is not yet supported.
     if barydata:
@@ -424,12 +410,9 @@ elif hdr["TELESCOP"].startswith("SWIFT"):
     else:
         log.error("Non-barycentered SWIFT data not yet supported")
         sys.exit(3)
-    tl = load_Swift_TOAs(args.eventname)
-    f = pyfits.open(args.eventname)
-    mets = f["events"].data.field("time")
-    f.close()
-    for t, met in zip(tl, mets):
-        t.met = met
+    ts = get_Swift_TOAs(args.eventname, ephem=args.ephem, planets=planets, include_bipm=args.use_bipm, include_gps=args.use_gps)
+    with pyfits.open(args.eventname) as f:
+        mets = f["events"].data.field("time")
 else:
     log.error(
         "FITS file not recognized, TELESCOPE = {0}, INSTRUMENT = {1}".format(
@@ -441,17 +424,12 @@ else:
 if args.topo:  # for writing UTC topo toas
     T2SpacecraftObs(name="spacecraft")
 
-if len(tl) <= 0:
+if len(ts.table) <= 0:
     log.error("No TOAs found. Aborting.")
     sys.exit(1)
 
-# Now convert to TOAs object and compute TDBs and (SSB) posvels
-ts = pint.toa.get_TOAs_list(
-    tl, ephem=args.ephem, planets=planets, include_bipm=False, include_gps=False
-)
 ts.filename = args.eventname
 log.info(ts.print_summary())
-# print(ts.get_summary())
 mjds = (
     ts.get_mjds()
 )  # TT topocentric MJDs as floats; only used to find the index of the photon time closest to the middle of the MJD range
@@ -484,7 +462,6 @@ except:
 
 
 if args.grid > 0.0:
-    mets = np.asarray([t.met for t in tl])
     dT = args.grid
     mjdvals = mjds.to_value(u.d)
     ngrids = int((mjdvals.max() - mjdvals.min()) / dT)
@@ -528,7 +505,6 @@ else:  # tint is set and not doing a regular grid
     gti_t0 = f[args.gtiextname].data.field("start")
     gti_t1 = f[args.gtiextname].data.field("stop")
     gti_dt = gti_t1 - gti_t0
-    mets = np.asarray([t.met for t in tl])
 
     tint = float(args.tint)
 
