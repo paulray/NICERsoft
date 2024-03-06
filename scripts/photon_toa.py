@@ -355,7 +355,7 @@ if hdr["TELESCOP"] == "NICER":
     # Read event file into TOAs object
     try:
         ts = get_NICER_TOAs(args.eventname, ephem=args.ephem, planets=planets, include_bipm=args.use_bipm, include_gps=args.use_gps)
-        with pyfits.open(eventname) as f:
+        with pyfits.open(args.eventname) as f:
             mets = f["events"].data.field("time")
             ### SHOULD ADD TIMEZERO, I think
     except KeyError:
