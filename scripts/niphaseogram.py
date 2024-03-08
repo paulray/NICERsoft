@@ -70,8 +70,14 @@ parser.add_option(
     "-p",
     "--profonly",
     default=False,
-    action='store_true',
+    action="store_true",
     help="Make only pulse profile plot.",
+)
+parser.add_option(
+    "-s",
+    "--subtract_min",
+    action="store_true",
+    help="Subtract min from each row in the phaseogram.",
 )
 
 
@@ -161,6 +167,9 @@ for tstart, tstop in zip(mjdstarts, mjdstops):
         profile, edges = np.histogram(phases[idx], bins=profbins, weights=weights[idx])
     else:
         profile, edges = np.histogram(phases[idx], bins=profbins)
+
+    if options.subtract_min:
+        profile = profile - profile.min()
 
     if a is None:
         a = profile

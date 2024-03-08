@@ -100,9 +100,7 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
         # then make TMID into a BAT
         if tmid.scale not in ("tdb", "tcb"):
             log.debug(
-                "Making TOA, tmid {}, tmid.scale {}, obs {}".format(
-                    tmid, tmid.scale, obs.name
-                )
+                f"Making TOA, tmid {tmid}, tmid.scale {tmid.scale}, obs {obs.name}"
             )
             toas = pint.toa.get_TOAs_list(
                 [pint.toa.TOA(tmid, obs=obs.name)],
@@ -114,7 +112,7 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
             tmid = Time(modelin.get_barycentric_toas(toas), format="mjd", scale="tdb")[
                 0
             ]
-            log.debug("New tmid {}, tmid.scale {}".format(tmid, tmid.scale))
+            log.debug(f"New tmid {tmid}, tmid.scale {tmid.scale}")
 
         tplus = tmid + TimeDelta(1 * u.s, scale=tmid.scale)
         toamid = pint.toa.TOA(tmid, obs="Barycenter")
@@ -303,7 +301,7 @@ else:
 
 # Load Template objects
 try:
-    template = pickle.load(file(args.templatename))
+    template = pickle.load(open(args.templatename, "r"))
 except:
     primitives, norms = prim_io(args.templatename)
     template = LCTemplate(primitives, norms)
