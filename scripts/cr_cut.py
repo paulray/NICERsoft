@@ -14,6 +14,9 @@ from astropy.io import fits
 from nicer.values import *
 from nicer.plotutils import plot_light_curve
 
+log.remove() 
+log.add(sys.stderr, level="INFO")
+
 ############################################################################################
 ## Code based on method by S. Bogdanov
 ## Code still in development.
@@ -29,7 +32,7 @@ from nicer.plotutils import plot_light_curve
 
 def runcmd(cmd):
     # CMD should be a list of strings since it is not processed by a shell
-    log.info("CMD: " + " ".join(cmd))
+    log.debug("CMD: " + " ".join(cmd))
     os.system(" ".join(cmd))
     ## Some ftools calls don't work properly with check_call...not sure why!
     ## so I am using os.system instead of check_call
@@ -45,7 +48,7 @@ def getgti(evf):
         # Deal with possibility that TIMEZERO has multiple values. Just take first one.
         if hasattr(tz, "__len__"):
             tz = tz[0]
-        log.info("Applying TIMEZERO of {0} to gtitable".format(tz))
+        log.debug("Applying TIMEZERO of {0} to gtitable".format(tz))
         gtitable["START"] += tz
         gtitable["STOP"] += tz
         gtitable.meta["TIMEZERO"] = 0.0
@@ -134,12 +137,12 @@ log.add(
 eventfile = args.evfile
 etable = Table.read(eventfile, hdu=1)
 if "TIMEZERO" in etable.meta:
-    log.info("Applying TIMEZERO of {0} to etable".format(etable.meta["TIMEZERO"]))
+    log.debug("Applying TIMEZERO of {0} to etable".format(etable.meta["TIMEZERO"]))
     etable["TIME"] += etable.meta["TIMEZERO"]
     etable.meta["TIMEZERO"] = 0.0
 
 eventgti = getgti(eventfile)
-log.info(
+log.debug(
     "Changing name of TIME column of event file to MET (this is just for the nicer.plotutils.plot_light_curve call)"
 )
 etable.columns["TIME"].name = "MET"
@@ -228,13 +231,13 @@ if args.invert:
 else:
     cmd = ["ftcopy", "{0}[1][RATE<{1}]".format(lcfile, CRcut), lcfile_cut, "clobber=yes"]
 ## Somehow, this line does not work work with os.system().  This is all a mystery to me!
-log.info("CMD: " + " ".join(cmd))
+log.debug("CMD: " + " ".join(cmd))
 check_call(cmd, env=os.environ)
 
 
 ################################################
 ## STEP 4 - calculate start and end times of remaining bins
-log.info("Calculating the start and end times of the remaining bins")
+log.debug("Calculating the start and end times of the remaining bins")
 cmd = [
     "ftcalc",
     lcfile_cut,
@@ -257,7 +260,7 @@ runcmd(cmd)
 
 ################################################
 ## STEP 5 - dumping the TSTART and TEND into text file
-log.info(
+log.debug(
     "Writing the calculated TSTART and TEND columns into a text file, necessary for ftcreate (in next step)"
 )
 cmd = [
@@ -297,7 +300,7 @@ with open("gti_data_squeezed.txt", "w") as gtiout:
 
 ################################################
 ##  STEP 6 - Making the GTI file from the text file
-log.info("Making the GTI file gti.fits from the GTI data textfile")
+log.debug("Making the GTI file gti.fits from the GTI data textfile")
 cmd = [
     "ftcreate",
     "{}".format(gticolumns),
@@ -327,6 +330,14 @@ cmd = [
 ]
 runcmd(cmd)
 
+h1 = fits.getheader(eventfile,ext=1)
+exp1=h1['EXPOSURE']
+n1 = h1['NAXIS2']
+h2 = fits.getheader(outevtfile,ext=1)
+exp2=h2['EXPOSURE']
+n2 = h2['NAXIS2']
+
+log.info(f"Count rate cut removed {100*(exp1-exp2)/exp1:.2f}% of the good time ({exp2:.1f}/{exp1:.1f}) and {100*(n1-n2)/n1:.1f}% of the photons ({n2}/{n1})")
 if args.plotfilt:
     log.info("Showing the filtered light curve")
     filtetable = Table.read(outevtfile, hdu=1)
@@ -350,4 +361,4 @@ if args.plotfilt:
 
 
 ################################################
-log.info("DONE")
+log.debug("DONE")
