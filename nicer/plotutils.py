@@ -630,7 +630,9 @@ def pulse_profile(ax, etable, args):
         if modelin.PLANET_SHAPIRO.value:
             planets = True
     ts = pint.toa.get_TOAs_list(
-        tl, planets=planets, include_bipm=False, include_gps=False
+        tl,
+        planets=planets,
+        include_bipm=False,
     )
     # No longer needed, since Feb 28 reprocessing
     #    log.warning('Applying -1.0s time correction to event time TOAs for pulse phase plot')
