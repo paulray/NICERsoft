@@ -36,6 +36,8 @@ from pint.observatory.special_locations import T2SpacecraftObs
 
 # import pint.logging
 from loguru import logger as log
+log.remove()
+log.add(sys.stdout,level="INFO")
 
 # pint.logging.setup(level=pint.logging.script_level)
 
