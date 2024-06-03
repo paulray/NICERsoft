@@ -80,10 +80,10 @@ def light_curve(
         axes_resid.axis([0, 1, axes_resid.axis()[2], axes_resid.axis()[3]])
 
 
-def get_phases(ft1file, get_weights=False, weightcol="WEIGHT", tmax=999999999):
+def get_phases(ft1file, get_weights=False, weightcol="WEIGHT", tmin=0,tmax=999999999):
     f = pyfits.open(ft1file)
     phases = np.asarray(f["EVENTS"].data.field("PULSE_PHASE"), dtype=float)
-    mask = f["events"].data.field("TIME") < tmax
+    mask = (f["events"].data.field("TIME") < tmax) & (f["events"].data.field("TIME") > tmin)
     print(len(mask), mask.sum())
     phases = phases[mask]
     if get_weights:
@@ -294,6 +294,13 @@ if __name__ == "__main__":
         help="Minimum weight to include in fit.",
     )
     parser.add_option(
+        "-t",
+        "--tmin",
+        type="float",
+        default=0,
+        help="Minimum time to include in fit.",
+    )
+    parser.add_option(
         "-T",
         "--tmax",
         type="float",
@@ -314,7 +321,7 @@ if __name__ == "__main__":
         raise ValueError("Must provide an input FITS file!")
 
     phases, weights = get_phases(
-        args[0], get_weights=options.weights, weightcol=options.weightcol
+        args[0], get_weights=options.weights, weightcol=options.weightcol, tmin=options.tmin, tmax=options.tmax
     )
 
     if options.weights:
