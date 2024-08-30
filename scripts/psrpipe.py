@@ -10,7 +10,7 @@ import numpy as np
 import argparse
 from os import path
 from glob import glob
-from subprocess import check_call
+from subprocess import check_call, CalledProcessError
 import shutil
 from astropy.table import Table
 from astropy.io import fits
@@ -243,7 +243,7 @@ def runcmd(cmd):
     # log.info(cmd)
     try:
         check_call(cmd, env=os.environ)
-    except subprocess.CalledProcessError:
+    except CalledProcessError:
         log.error("Command failed! CMD: " + " ".join(cmd))
         raise
 
