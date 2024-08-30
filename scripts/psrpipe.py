@@ -199,7 +199,7 @@ log.add(
     sys.stderr,
     level=args.loglevel,
     colorize=True,
-    format="<level>{level: <8}</level> ({name: <30}): <level>{message}</level>"
+    format="<level>{level: <8}</level> ({name: <30}): <level>{message}</level>",
     # filter=pint.logging.LogFilter(),
 )
 
@@ -387,8 +387,6 @@ for obsdir in all_obsids:
     else:
         bkffile = None
 
-
-
     # Get merged unfiltered event filename (should just be one)
     evfiles = glob(path.join(obsdir, "xti/event_cl/ni*mpu7_cl.evt"))
     evfiles.sort()
@@ -418,7 +416,7 @@ for obsdir in all_obsids:
                 detfilt_expr += ",-{0}".format(detid)
 
     if detfilt_expr == "launch":
-        cmd = [ "cp", evfilename, intermediatename ]
+        cmd = ["cp", evfilename, intermediatename]
     else:
         cmd = [
             "nifpmsel",
@@ -549,7 +547,7 @@ for obsdir in all_obsids:
     runcmd(cmd)
 
     # Make a GTI file that is the AND of gtiname_merged and the intermediate file GTI
-    # ftmgtime will overwrite a file if the file exists and if clobber=YES, 
+    # ftmgtime will overwrite a file if the file exists and if clobber=YES,
     # For now, however, delete the old file if it exists and don't use clobber=YES.
     if path.isfile(gtiname_merged_and_eventgti):
         os.remove(gtiname_merged_and_eventgti)
@@ -575,7 +573,6 @@ for obsdir in all_obsids:
         "clobber=YES",
     ]
     runcmd(cmd)
-
 
     # Build selection expression for niextract-events
     # Select events with PI in the selected range, require SLOW trigger (FAST optional)
