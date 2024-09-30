@@ -5,11 +5,15 @@ import yaml
 
 ### Inputs ###
 
-#parser.add_option("-l", "--logfile") # fix this
+logfiles = glob.glob('*_scorpeon_final.log')
+if len(logfiles) > 1:
+    print('Error: There are multiple files ending in "_scorpeon_final.log". Please remove old versions of these logs before running RPP-scorpeon_yml.py.')
+    sys.exit(1)
 
-logfile = glob.glob('*_final.log')[0]
+logfile = glob.glob('*_scorpeon_final.log')[0]
 print(logfile)
 psrname = logfile.split('_')[0]
+
 
 ### Open and read log file ###
 
@@ -38,19 +42,13 @@ for i in range(showall_inds[-1],len(lines)):
 
 ### Find the model parameter lines ###
 
-#print(len(lines))
 parcomp_inds = np.array([], dtype=int)
 model_inds = np.array([], dtype=int)
 for i in range(currentmodel_inds[-1],len(lines)):
-    #print(i)
     if lines[i].startswith('# par  comp'):
         parcomp_inds = np.append(parcomp_inds, i)
-#print(parcomp_inds)
-#print(parcomp_inds[0], parcomp_inds[0]+1, parcomp_inds[1], parcomp_inds[1]-6)
-#print(lines[parcomp_inds[0]], lines[parcomp_inds[0]+1], lines[parcomp_inds[1]-6])
 
 model_inds = np.arange(parcomp_inds[0]+1,parcomp_inds[1]-6)
-#print(model_inds)
 model_lines = np.array([], dtype=str)
 for i in model_inds:
     model_lines = np.append(model_lines, lines[i].strip())
@@ -65,20 +63,17 @@ print(model_lines)
 '''
 
 
-
-# Read error from log
+### Read error from log ###
 
 for i in range(0,len(lines)):
     if lines[i].startswith('!XSPEC12>error'):
         error_start_ind = i
     elif lines[i].startswith('!XSPEC12>steppar 1'):
         error_end_ind = i
-#print(error_start_ind, error_end_ind)
 
 error_lines = np.array([], dtype=str)
 for i in range(error_start_ind, error_end_ind):
     if lines[i].startswith('#     '):
-        #print(lines[i])
         error_lines = np.append(error_lines, lines[i])
 print(error_lines)
     
@@ -101,7 +96,7 @@ for i in range(0,len(lines)):
 
 
 
-# Read fluxes
+### Read fluxes ###
 
 for i in range(0,len(lines)):
     if lines[i].startswith('!XSPEC12>flux 0.4 2.'):
@@ -228,6 +223,6 @@ elif bbcount == 4 and plcount == 2:
     }
 
 
-yaml_file = open('%s_DCspec.yml'%psrname,'w')
+yaml_file = open('%s_scorpeon.yml'%psrname,'w')
 yaml.dump(dict, yaml_file)
 yaml_file.close()

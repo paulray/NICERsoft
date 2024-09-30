@@ -13,22 +13,23 @@ from optparse import OptionParser
 
 parser = OptionParser()
 parser.add_option("-n", "--psrname", dest="psrname", type="string", help="Pulsar name")
-parser.add_option("-l", "--input_log", dest="input_log", type="string", help="Name of input log file")
-parser.add_option("-x", "--input_xcm", dest="input_xcm", type="string", help="Name of input .xcm file")
+#parser.add_option("-l", "--input_log", dest="input_log", type="string", help="Name of input log file")
+#parser.add_option("-x", "--input_xcm", dest="input_xcm", type="string", help="Name of input .xcm file")
 parser.add_option("-f", "--paramerr_factor", dest="paramerr_factor", type=float, help="Factor by which to multiply the uncertainty values of the model parameters, in order to run steppar from (param_value-param_unc*factor) to (param_value+param_unc*factor)", default=1.5)
 parser.add_option("-s", "--steppar_nsteps", dest="steppar_nsteps", type=int, help="Number of steps to use in steppar", default=12)
 
 (options, args) = parser.parse_args()
 psrname = options.psrname
-input_log = options.input_log
-input_xcm = options.input_xcm
+#input_log = options.input_log
+#input_xcm = options.input_xcm
 paramerr_factor = options.paramerr_factor
 steppar_nsteps = options.steppar_nsteps
 
+input_log = '%s_scorpeon_bestfit.log' % psrname
+input_xcm = '%s_scorpeon_bestfit.xcm' % psrname
 
 ### Open and read log file ###
 
-#logfile = '%s_fitting.log' % psrname
 log = open(input_log, 'r')
 lines = log.readlines()
 log.close()
@@ -72,9 +73,8 @@ print(model_lines)
 
 ### Write new .xcm file ###
 
-newxcm = open('%s_errors_fluxes.xcm'%psrname, 'w')
-#newxcm.write('log %s_errors_fluxes.log\n'%psrname)
-newxcm.write('log %s_final.log\n'%psrname)
+newxcm = open('%s_scorpeon_errorsfluxes.xcm'%psrname, 'w')
+newxcm.write('log %s_scorpeon_final.log\n'%psrname)
 newxcm.write('cpd /xwin\n')
 newxcm.write('statistic pgstat\n')
 newxcm.write('@%s\n' % input_xcm)
@@ -94,4 +94,4 @@ for m in model_lines:
 newxcm.write('show all\n')
 newxcm.write('flux 0.4 2.\n')
 newxcm.write('flux 2. 10.\n')
-newxcm.write('save all %s_final.xcm\n'%psrname)
+newxcm.write('save all %s_scorpeon_final.xcm\n'%psrname)
