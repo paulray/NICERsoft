@@ -17,6 +17,7 @@ from astropy import log
 from nicer.values import *
 from pint.fits_utils import read_fits_event_mjds
 from astropy.time import Time
+from pint.eventstats import hm
 
 desc = (
     "Read a FITS event file containing a PULSE_PHASE column and make a 2-d phaseogram"
@@ -190,6 +191,7 @@ try:
             (fullprof.sum() - options.nbins * fullprof.min()) / evhdr["EXPOSURE"]
         )
     )
+    log.info(f"H-test = {hm(phases)}")
 except:
     pass
 

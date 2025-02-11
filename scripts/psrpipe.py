@@ -73,8 +73,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--minfpm",
-    help="Set minimum of FPMs active for nimaketime filtering (default=38)",
-    default=38,
+    help="Set minimum of FPMs active for nimaketime filtering (default=7)",
+    default=7,
 )
 parser.add_argument(
     "--mingti",
@@ -109,9 +109,9 @@ parser.add_argument(
 )
 parser.add_argument(
     "--maxundershoot",
-    help="Select data where undershoot rate is below this limit (default: 200)",
+    help="Select data where undershoot rate is below this limit (default: 500)",
     type=float,
-    default=200,
+    default=500,
 )
 parser.add_argument(
     "--medianundershoot",
@@ -131,7 +131,13 @@ parser.add_argument(
 )
 parser.add_argument(
     "--day",
-    help="Apply SUNSHINE=1 filter to get only data in ISS-day",
+#    help="Apply SUNSHINE=1 filter to get only data in ISS-day",
+    help="Tell psrpipe to grab the _DAY.evt file that was produced by a nicerl2 run with threshfilter=DAY",
+    action="store_true",
+)
+parser.add_argument(
+    "--daynight",
+    help="Tell psrpipe to grab the both normal and _DAY.evt files to include all data post light-leak",
     action="store_true",
 )
 parser.add_argument("--par", help="Par file to use for phases")
@@ -203,7 +209,6 @@ log.add(
     # filter=pint.logging.LogFilter(),
 )
 
-
 os.environ["HEADASNOQUERY"] = " "
 os.environ["HEADASPROMPT"] = "/dev/null"
 
@@ -235,7 +240,6 @@ os.environ["PFILES"] = tempdir + "/pfiles;" + headas + "/syspfiles"
 
 all_evfiles = []
 all_orbfiles = []
-
 
 def runcmd(cmd):
     # CMD should be a list of strings since it is not processed by a shell
@@ -335,6 +339,10 @@ for obsdir in all_obsids:
         args.dark = False
         args.day = False
 
+    if args.day and args.daynight:
+        log.warning("Both --day and --daynight specified, using --daynight")
+        args.day = False
+        
     cmd = [
         "nicerql.py",
         "--save",
@@ -388,22 +396,44 @@ for obsdir in all_obsids:
         bkffile = None
 
     # Get merged unfiltered event filename (should just be one)
-    evfiles = glob(path.join(obsdir, "xti/event_cl/ni*mpu7_cl.evt"))
+    if args.day:
+        evfiles = glob(path.join(obsdir, "xti/event_cl/ni*mpu7_cl_DAY.evt"))
+    elif args.daynight:
+        evfiles = glob(path.join(obsdir, "xti/event_cl/ni*mpu7_cl*.evt"))
+    else:
+        evfiles = glob(path.join(obsdir, "xti/event_cl/ni*mpu7_cl.evt"))
     evfiles.sort()
     log.info("Cleaned Event Files: {0}".format("\n" + "    \n".join(evfiles)))
+    if len(evfiles) == 0:
+        log.error("No event files founds. Skipping...")
+        continue
 
-    # Build input file for niextract-events
-    # I don't think there should ever be more than one. Removing this code.
-    # evlistname = path.join(pipedir, "evfiles.txt")
-    # fout = open(evlistname, "w")
-    # for en in evfiles:
-    #     print("{0}".format(en), file=fout)
-    # fout.close()
-    # Just take first one!
-    evfilename = evfiles[0]
+    if len(evfiles) > 1:
+        # Build input file for niextract-events
+        evlistname = path.join(pipedir, "evfiles.txt")
+        fout = open(evlistname, "w")
+        for en in evfiles:
+            print("{0}".format(en), file=fout)
+        fout.close()
+        evfilename=path.join(pipedir, "evfile.evt")
+        cmd = [ "niextract-events", f"filename=@{evlistname}", f"eventsout={evfilename}", "clobber=yes"  ]
+        runcmd(cmd)
+    else:
+        # Just take first (only) one!
+        evfilename = evfiles[0]
 
-    intermediatename = path.join(pipedir, "intermediate.evt")
-    filteredname = path.join(pipedir, "cleanfilt.evt")
+    if args.day:
+        clsuffix = "_cleanfilt_DAY"
+        intermediatename = path.join(pipedir, "intermediate_DAY.evt")
+        filteredname = path.join(pipedir, "cleanfilt_DAY.evt")
+    elif args.daynight:
+        clsuffix = "_cleanfilt_DAYNIGHT"
+        intermediatename = path.join(pipedir, "intermediate_DAYNIGHT.evt")
+        filteredname = path.join(pipedir, "cleanfilt_DAYNIGHT.evt")
+    else:
+        clsuffix = "_cleanfilt"
+        intermediatename = path.join(pipedir, "intermediate.evt")
+        filteredname = path.join(pipedir, "cleanfilt.evt")
 
     # First filter any bad detectors.
     # Start with launch detectors
@@ -428,6 +458,9 @@ for obsdir in all_obsids:
             "history=yes",
         ]
     runcmd(cmd)
+
+    if args.daynight and args.tidy:
+        os.remove(evfilename)
 
     # Create any additional GTIs beyond what nimaketime does...
     extragtis = "NONE"
@@ -486,17 +519,27 @@ for obsdir in all_obsids:
             extragtis = extragtis + ",{0}".format(gtiname3)
 
     # Make final merged GTI using nimaketime
-    gtiname_merged = path.join(pipedir, "tot.gti")
-    gtiname_merged_and_eventgti = path.join(pipedir, "tot_and_eventgti.gti")
-    gtiname_clipped = path.join(pipedir, "tot_clipped.gti")
+    if args.day:
+        gtiname_merged = path.join(pipedir, "tot_DAY.gti")
+        gtiname_merged_and_eventgti = path.join(pipedir, "tot_and_eventgti_DAY.gti")
+        gtiname_clipped = path.join(pipedir, "tot_clipped_DAY.gti")
+    elif args.daynight:
+        gtiname_merged = path.join(pipedir, "tot_DAYNIGHT.gti")
+        gtiname_merged_and_eventgti = path.join(pipedir, "tot_and_eventgti_DAYNIGHT.gti")
+        gtiname_clipped = path.join(pipedir, "tot_clipped_DAYNIGHT.gti")
+    else:
+        gtiname_merged = path.join(pipedir, "tot.gti")
+        gtiname_merged_and_eventgti = path.join(pipedir, "tot_and_eventgti.gti")
+        gtiname_clipped = path.join(pipedir, "tot_clipped.gti")
 
     # Manage extra_expr for nimaketime (ST_VALID, DARK/DAY, and FPM_OVER_ONLY filters from --KEITH)
     list_extra_expr = ["ST_VALID.eq.1"]
 
     if args.dark:
         list_extra_expr.append("SUNSHINE.eq.0")
-    if args.day:
-        list_extra_expr.append("SUNSHINE.eq.1")
+# Changed definition of "--day" to use the _DAY event file, rather than filtering on SUNSHINE
+#    if args.day:
+#        list_extra_expr.append("SUNSHINE.eq.1")
 
     if args.kpmax and has_KP:
         list_extra_expr.append("KP.lt.{0}".format(args.kpmax))
@@ -524,7 +567,7 @@ for obsdir in all_obsids:
     ## Might want to change this.
     maxunder = args.maxundershoot
     if args.nounderfilt:
-        maxunder = 650.0
+        maxunder = 1000.0
     cmd = [
         "nimaketime",
         "infile={0}".format(mkfile),
@@ -544,6 +587,10 @@ for obsdir in all_obsids:
         "expr={0}".format(extra_expr),
         "outexprfile={0}".format(path.join(pipedir, "psrpipe_expr.txt")),
     ]
+    if args.day:
+        cmd.append("threshfilter=DAY")
+    elif args.daynight:
+        cmd.append("threshfilter=ALL")
     runcmd(cmd)
 
     # Make a GTI file that is the AND of gtiname_merged and the intermediate file GTI
@@ -601,7 +648,10 @@ for obsdir in all_obsids:
         continue
 
     # Make cleanfilt.mkf file from ObsID .mkf file and merged_GTI
-    cleanfilt_mkf = path.join(pipedir, "cleanfilt.mkf")
+    if args.day:
+        cleanfilt_mkf = path.join(pipedir, "cleanfilt_DAY.mkf")
+    else:
+        cleanfilt_mkf = path.join(pipedir, "cleanfilt.mkf")
     log.info("Applying the GTI filtering to the *mkf file")
     cmd = [
         "fltime",
@@ -632,7 +682,7 @@ for obsdir in all_obsids:
         cleanfilt_mkf,
         "--bkg",
         "--basename",
-        path.join(pipedir, basename) + "_cleanfilt",
+        path.join(pipedir, basename) + clsuffix,
     ]
     if not args.nomap:
         cmd.append("--map")

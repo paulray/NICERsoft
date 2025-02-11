@@ -34,6 +34,9 @@ parser.add_argument(
 parser.add_argument(
     "--dt", help="Time series bin size", type=float, default=1.0 / 128.0
 )
+parser.add_argument(
+    "--nbins", help="Number of time series bins to write", type=int, default=0
+)
 parser.add_argument("--ra", help="RA in HH:MM:SS.s", default="00:00:00")
 parser.add_argument("--dec", help="DEC in DD:MM:SS.s", default="00:00:00")
 
@@ -86,7 +89,10 @@ eventtimes = np.array(etable["TIME"], dtype=float) - epoch_met
 log.info("Event times: {0} to {1}".format(eventtimes.min(), eventtimes.max()))
 eventtimes.tofile("{0}.events".format(base))
 #
-nbins = choose_N((gtitable["STOP"][-1] - epoch_met) / args.dt)
+if args.nbins > 0:
+    nbins = args.nbins
+else:
+    nbins = choose_N((gtitable["STOP"][-1] - epoch_met) / args.dt)
 log.info(
     "Using {0} bins of width {1} seconds for total of {2} s".format(
         nbins, args.dt, nbins * args.dt

@@ -523,7 +523,7 @@ elif args.tint is None:
     if "OBS_ID" in hdr:
         # Add ObsID to the TOA flags
         toafinal.flags["obsid"] = hdr["OBS_ID"]
-        toafinal.flags["htest"] = "{0:.2f}".format(hm(phases))
+    toafinal.flags["htest"] = "{0:.2f}".format(hm(phases))
     toafinal = [toafinal]
     toafinal_err = [toafinal_err]
 else:  # tint is set and not doing a regular grid
