@@ -73,7 +73,7 @@ for i in range(0,len(lines)):
 
 error_lines = np.array([], dtype=str)
 for i in range(error_start_ind, error_end_ind):
-    if lines[i].startswith('#     '):
+    if lines[i].startswith('#     ') and lines[i].endswith(')\n'):
         error_lines = np.append(error_lines, lines[i])
 print(error_lines)
     
