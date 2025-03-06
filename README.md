@@ -5,6 +5,8 @@ here should be construed as formally recommended by the NICER instrument team.
 
 Please contribute tools you develop!
 
+(Also note the George Younes has developed some useful tools, see here: https://github.com/georgeyounes/NICERUTIL )
+
 ## Disclaimer
 
 All of this code is user contributed! Use at your own risk! No warranty is
