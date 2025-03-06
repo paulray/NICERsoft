@@ -149,7 +149,7 @@ for m in model_lines:
     model_names = np.append(model_names, m.split()[3].strip())
     param_names = np.append(param_names, m.split()[4].strip())
     param_vals = np.append(param_vals, m.split()[-3].strip())
-print(bbcount, plcount)
+
 # Get error values
 # Right now, using the "error" command in xspec for the errors
 # There are the same number of error_lines as model_lines
