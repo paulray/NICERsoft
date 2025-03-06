@@ -62,12 +62,15 @@ for i in model_inds:
     model_lines = np.append(model_lines, lines[i].strip())
 print(model_lines)
 '''
-# This is a sample of the model lines:
+This is a sample of the model lines:
 ['#   1    1   TBabs      nH         10^22    2.46033E-02  +/-  8.54016E-03'
  '#   2    2   bbody      kT         keV      4.46025E-02  +/-  3.03212E-03'
  '#   3    2   bbody      norm                9.38307E-05  +/-  4.05075E-05'
  '#   4    3   powerlaw   PhoIndex            2.37633      +/-  0.344943'
  '#   5    3   powerlaw   norm                8.30041E-05  +/-  1.25409E-05']
+
+However, if a parameter is frozen, then the line will appear as, e.g.:
+  #   1    1   TBabs      nH         10^22    2.46033E-02  frozen
 '''
 
 
@@ -83,11 +86,16 @@ newxcm.write('error 1. 1-%d\n' % len(model_lines))
 for m in model_lines:
     print(m)
     paramnum = m.strip('\n').split()[1]
-    paramval = float(m.split()[-3])
-    paramerr = float(m.split()[-1])
+    if m.split()[-1] == 'frozen':
+        paramval = float(m.split()[-2])
+        paramerr = 0.0
+    else:
+        paramval = float(m.split()[-3])
+        paramerr = float(m.split()[-1])
     paramlo = str(paramval-paramerr*paramerr_factor)
     paramhi = str(paramval+paramerr*paramerr_factor)
     newxcm.write('steppar %s %s %s %d\n' % (paramnum,paramlo, paramhi, steppar_nsteps))
+    print('param#  paramval  paramerr  lowval  highval')
     print(paramnum, paramval, paramerr, paramlo, paramhi)
 
 
@@ -95,3 +103,4 @@ newxcm.write('show all\n')
 newxcm.write('flux 0.4 2.\n')
 newxcm.write('flux 2. 10.\n')
 newxcm.write('save all %s_scorpeon_final.xcm\n'%psrname)
+newxcm.close()
