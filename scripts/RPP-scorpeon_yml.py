@@ -47,7 +47,7 @@ model_inds = np.array([], dtype=int)
 for i in range(currentmodel_inds[-1],len(lines)):
     if lines[i].startswith('# par  comp'):
         parcomp_inds = np.append(parcomp_inds, i)
-
+        
 model_inds = np.arange(parcomp_inds[0]+1,parcomp_inds[1]-6)
 model_lines = np.array([], dtype=str)
 for i in model_inds:
@@ -65,18 +65,35 @@ print(model_lines)
 
 ### Read error from log ###
 
+# First need to find the lines containing the error values.
+# error_start_ind_tmp is the earliest possible line containing an error value.
+# error_end_ind is the line where steppar is run, and therefore is the latest possible error line.
 for i in range(0,len(lines)):
     if lines[i].startswith('!XSPEC12>error'):
-        error_start_ind = i
+        error_start_ind_tmp = i
     elif lines[i].startswith('!XSPEC12>steppar 1'):
         error_end_ind = i
+
+# Now we need to make sure that error_start_ind is truly the correct starting place.
+# The reason is that if a better fit is found in the process of running 'error' in XSPEC,
+#  then it will do another fit and will re-run error. So there could be multiple lines
+#  containing an error value for the same parameter. We need the very last set of error lines
+#  for our final error values.
+# Thus we search for the final instance of an error line for parameter 1. Error lines begin with
+#    '#     1 '
+#  so when we find the last instance of a line starting in this way, then we know params 2, etc.
+#  will follow in the next error lines.
+for i in range(error_start_ind_tmp, error_end_ind):
+    if lines[i].startswith('#     1 '):  # This is how any error lines for param 1 begin
+        error_start_ind = i
 
 error_lines = np.array([], dtype=str)
 for i in range(error_start_ind, error_end_ind):
     if lines[i].startswith('#     ') and lines[i].endswith(')\n'):
         error_lines = np.append(error_lines, lines[i])
 print(error_lines)
-    
+
+
     
 """        
 TO DO
@@ -132,7 +149,7 @@ for m in model_lines:
     model_names = np.append(model_names, m.split()[3].strip())
     param_names = np.append(param_names, m.split()[4].strip())
     param_vals = np.append(param_vals, m.split()[-3].strip())
-
+print(bbcount, plcount)
 # Get error values
 # Right now, using the "error" command in xspec for the errors
 # There are the same number of error_lines as model_lines
