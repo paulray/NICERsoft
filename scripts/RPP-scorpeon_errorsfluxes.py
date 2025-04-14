@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os, sys
 import numpy as np
 from optparse import OptionParser

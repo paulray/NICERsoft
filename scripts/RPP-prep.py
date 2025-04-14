@@ -24,6 +24,12 @@ parser.add_argument(
     help="Full path to the NICER data dir (usually a subdir in /mnt/nicer/data).",
     type=str,
 )
+parser.add_argument(
+    "--nopipe",
+    help="Don't run psrpipe. Use this is all the _pipe dirs are already there",
+    default=False,
+    action="store_true",
+)
 # parser.add_argument(
 #    "--manual",
 #    help="Prepare for manual processing with Xspec (default: prepare for automated processing with pyxspec).",
@@ -37,15 +43,16 @@ ddir = args.datadir
 
 # -------------------------------------
 
-cmd = (
-    "psrpipe.py --nomap --merge --emin 0.22 --emax 15.01 --tidy --cormin 1.5 --kpmax 5 --mingti 100 --maxovershoot 1.5 --maxundershoot 600 --medianundershoot=100 --par "
-    + par
-    + " --ephem DE421 "
-    + ddir
-    + "/[0123456]*"
-)
-print(cmd)
-os.system(cmd)
+if not args.nopipe:
+    cmd = (
+        "psrpipe.py --nomap --merge --emin 0.22 --emax 15.01 --tidy --cormin 1.5 --kpmax 5 --mingti 100 --maxovershoot 1.5 --maxundershoot 600 --medianundershoot=100 --par "
+        + par
+        + " --ephem DE421 "
+        + ddir
+        + "/[0123456789]*"
+    )
+    print(cmd)
+    os.system(cmd)
 
 # -------------------------------------
 
