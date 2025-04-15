@@ -185,12 +185,12 @@ elif bbcount == 0 and plcount == 2:
             'nH': float(str(param_vals[0])),
             'nH_low': float(str(confint_low[0])),
             'nH_high': float(str(confint_high[0])),
-            'gamma_powerlaw': float(str(param_vals[3])),
-            'gamma_powerlaw_low': float(str(confint_low[3])),
-            'gamma_powerlaw_high': float(str(confint_high[3])),
-            'norm_powerlaw': float(str(param_vals[4])),
-            'norm_powerlaw_low': float(str(confint_low[4])),
-            'norm_powerlaw_high': float(str(confint_high[4])),
+            'gamma_powerlaw': float(str(param_vals[1])),
+            'gamma_powerlaw_low': float(str(confint_low[1])),
+            'gamma_powerlaw_high': float(str(confint_high[1])),
+            'norm_powerlaw': float(str(param_vals[2])),
+            'norm_powerlaw_low': float(str(confint_low[2])),
+            'norm_powerlaw_high': float(str(confint_high[2])),
             'flux_0.4-2': float(enflux_04_2),
             'flux_2_10': float(enflux_2_10)
     }
