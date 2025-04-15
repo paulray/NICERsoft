@@ -6,6 +6,7 @@ from astropy.io import fits
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+from subprocess import *
 
 # This script is to be run from dir where we want *pipe dirs to be written
 
@@ -25,17 +26,17 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument(
-    "--nopipe",
-    help="Don't run psrpipe. Use this is all the _pipe dirs are already there",
+    "--no_psrpipe",
+    help="Skip psrpipe.py, if *pipe dirs are already made.",
     default=False,
     action="store_true",
 )
-# parser.add_argument(
-#    "--manual",
-#    help="Prepare for manual processing with Xspec (default: prepare for automated processing with pyxspec).",
-#    default=False,
-#    action="store_true",
-# )
+parser.add_argument(
+    "--no_nioptcuts",
+    help="Skip nioptcuts.py (which can take hours if there is a lot of data); enter Emin and Emax manually.",
+    default=False,
+    action="store_true",
+)
 args = parser.parse_args()
 
 par = args.parfile
@@ -43,13 +44,13 @@ ddir = args.datadir
 
 # -------------------------------------
 
-if not args.nopipe:
+if not args.no_psrpipe:
     cmd = (
         "psrpipe.py --nomap --merge --emin 0.22 --emax 15.01 --tidy --cormin 1.5 --kpmax 5 --mingti 100 --maxovershoot 1.5 --maxundershoot 600 --medianundershoot=100 --par "
         + par
         + " --ephem DE421 "
         + ddir
-        + "/[0123456789]*"
+        + "/[0123456]*"
     )
     print(cmd)
     os.system(cmd)
@@ -72,7 +73,7 @@ cmd = "niextlc merged.evt merged_2-10keV.lc timebin=32 pirange=200:1000 lcthresh
 print(cmd)
 os.system(cmd)
 
-# -------------------------------------
+# Count rate cut -------------------------------------
 
 lcfile = "merged_2-10keV.lc"
 lctable = Table.read(lcfile, hdu=1)
@@ -135,5 +136,38 @@ cmd = (
     + logfile
     + " 2>&1"
 )
+print(cmd)
+os.system(cmd)
+
+# Prep for pulsed analysis -------------------------------------
+
+# Find optimal energy range
+if not args.no_nioptcuts:
+    cmd = 'nioptcuts.py --noplot merged_cut.evt 2>&1 | grep "Best range" '
+    print(cmd)
+    print('(This may take a long time - a few hours if there is lots of data.)')
+    pr = Popen(cmd,shell=True,stdout=PIPE,stderr=PIPE)
+    pr.wait()
+    output = pr.communicate()[0]
+    output = output.split()
+    emin_kev = output[-6].decode()
+    emax_kev = output[-2].decode()
+else:
+    emin_emax = input(
+    "Enter Emin Emax (in keV) separated with space (hit Enter for default= 0.2 10.0): "
+).strip() or '0.2 10.0'
+    emin_emax = emin_emax.split()
+    emin_kev = emin_emax[0]
+    emax_kev = emin_emax[1]
+    
+print('Emin,Emax (keV): ',emin_kev,emax_kev)
+
+# This makes the file merged_cut_profinfo.yml
+cmd = 'RPP-profile.py --optemin '+emin_kev+' --optemax '+emax_kev+' merged_cut.evt'
+print(cmd)
+os.system(cmd)
+
+# This makes the file load_pulsedspec.py for further automated processing (and load_pulsedspec.xcm that can be used for further manual processing)
+cmd = 'RPP-pulsedspec.py merged_cut.evt merged_cut_profinfo.yml merged_cutmpu7RPP.rmf merged_cutmpu7RPP.arf'
 print(cmd)
 os.system(cmd)

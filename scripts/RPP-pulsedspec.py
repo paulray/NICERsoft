@@ -77,7 +77,7 @@ os.system(f"fthedit 'off_pulse.pha[1]' keyword=EXPOSURE operation=add value={off
 
 os.system(f"ftgrouppha infile=on_pulse.pha outfile=on_pulse_grp1.pha grouptype=min groupscale=1.0")
 
-g= open("load_pulsedspec.xcm","w+")
+g = open("load_pulsedspec.xcm","w+")
 g.write("data 1:1 on_pulse_grp1.pha \n")
 g.write(f"resp {args.resp} \n")
 g.write(f"arf {args.arf} \n")
@@ -87,6 +87,17 @@ g.write("ignore bad \n")
 g.write("ignore **-0.2 10.0-** \n")
 g.write("query yes \n")
 g.write("abund wilm \n")
+g.close()
+
+g = open("load_pulsedspec.py","w+")
+g.write("AllData('1:1 on_pulse_grp1.pha')\n")
+g.write("spec1 = AllData(1)\n")
+g.write("spec1.ignore('bad')\n")
+g.write("spec1.response = '"+args.resp+"' \n")
+g.write("spec1.response.arf = '"+args.arf+"' \n")
+g.write("spec1.background = 'off_pulse.pha' \n")
+g.write("AllData.ignore('bad')\n")
+g.write("AllData.ignore('**-0.2 10.0-**')\n")
 g.close()
 
 
