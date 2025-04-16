@@ -40,6 +40,11 @@ parser.add_argument(
     default=None,
 )
 parser.add_argument(
+    "--srcname",
+    help="Source name (used in output .yml file).",
+    default=None,
+)
+parser.add_argument(
     "--fermi",
     help="Fermi LAT event file (FT1) name, with PULSE_PHASE and MODEL_WEIGHT columns",
     default=None,
@@ -218,13 +223,16 @@ optres = band_analysis(ph_opt, args.optemin, args.optemax, ax=axs[0])
 softres = band_analysis(ph_soft, SOFT_EMIN, SOFT_EMAX, ax=axs[1])
 hardres = band_analysis(ph_hard, HARD_EMIN, HARD_EMAX, ax=axs[2])
 
-with open(f"{basename}_profinfo.yml", "w") as outfile:
-    outdict[objname]["name"] = objname
-    outdict[objname]["exposure"] = exp
-    outdict[objname]["optres"] = optres
-    outdict[objname]["softres"] = softres
-    outdict[objname]["hardres"] = hardres
-    yaml.dump(outdict, outfile, default_flow_style=False)
+if args.srcname is None:
+    outfile = open(f"{basename}_profinfo.yml", "w")
+else:
+    outfile = open(args.srcname+"_profinfo.yml", "w")
+outdict[objname]["name"] = objname
+outdict[objname]["exposure"] = exp
+outdict[objname]["optres"] = optres
+outdict[objname]["softres"] = softres
+outdict[objname]["hardres"] = hardres
+yaml.dump(outdict, outfile, default_flow_style=False)
 
 
 axs[0].set_title(f"{objname} Exp={exp/1000.0:.3f} ks")

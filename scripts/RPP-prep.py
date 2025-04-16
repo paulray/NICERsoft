@@ -26,6 +26,11 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument(
+    "--srcname",
+    help="Source name (used in output .yml file).",
+    default=None,
+)
+parser.add_argument(
     "--no_psrpipe",
     help="Skip psrpipe.py, if *pipe dirs are already made.",
     default=False,
@@ -167,7 +172,10 @@ else:
 print('Emin,Emax (keV): ',emin_kev,emax_kev)
 
 # This makes the file merged_cut_profinfo.yml
-cmd = 'RPP-profile.py --optemin '+emin_kev+' --optemax '+emax_kev+' merged_cut.evt'
+if args.srcname is None:
+    cmd = 'RPP-profile.py --optemin '+emin_kev+' --optemax '+emax_kev+' merged_cut.evt'
+else:
+    cmd = 'RPP-profile.py --srcname '+args.srcname+' --optemin '+emin_kev+' --optemax '+emax_kev+' merged_cut.evt'
 print(cmd)
 os.system(cmd)
 
