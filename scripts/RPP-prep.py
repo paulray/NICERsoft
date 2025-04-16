@@ -171,7 +171,7 @@ else:
     
 print('Emin,Emax (keV): ',emin_kev,emax_kev)
 
-# This makes the file merged_cut_profinfo.yml
+# This makes the file merged_cut_profinfo.yml (or [srcname]_profinfo.yml)
 if args.srcname is None:
     cmd = 'RPP-profile.py --optemin '+emin_kev+' --optemax '+emax_kev+' merged_cut.evt'
 else:
@@ -180,6 +180,9 @@ print(cmd)
 os.system(cmd)
 
 # This makes the file load_pulsedspec.py for further automated processing (and load_pulsedspec.xcm that can be used for further manual processing)
-cmd = 'RPP-pulsedspec.py merged_cut.evt merged_cut_profinfo.yml merged_cutmpu7RPP.rmf merged_cutmpu7RPP.arf'
+if args.srcname is None:
+    cmd = 'RPP-pulsedspec.py merged_cut.evt merged_cut_profinfo.yml merged_cutmpu7RPP.rmf merged_cutmpu7RPP.arf'
+else:
+    cmd = 'RPP-pulsedspec.py merged_cut.evt '+args.srcname+'_profinfo.yml merged_cutmpu7RPP.rmf merged_cutmpu7RPP.arf'
 print(cmd)
 os.system(cmd)
