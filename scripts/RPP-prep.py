@@ -57,6 +57,10 @@ if not args.no_psrpipe:
 
 # -------------------------------------
 
+cmd = 'ls -1 *pipe/*.orb > orbfiles.txt'
+print(cmd)
+os.system(cmd)
+
 cmd = "ls -1 *pipe/cleanfilt.evt > files.txt"
 print(cmd)
 os.system(cmd)
