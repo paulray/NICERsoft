@@ -58,11 +58,11 @@ else:
     off_phase_range=(offrange[0]+(1-offrange[1]))
     on_phase_range=(offrange[1]-offrange[0])
     
-os.system(f"ftselect {args.evtfile} on_pulse.evt {on}")
-os.system(f"ftselect {args.evtfile} off_pulse.evt {off}")
+os.system(f"ftselect {args.evtfile} on_pulse.evt {on} clobber=yes")
+os.system(f"ftselect {args.evtfile} off_pulse.evt {off} clobber=yes")
 
-os.system(f"niextspect on_pulse.evt on_pulse.pha")
-os.system(f"niextspect off_pulse.evt off_pulse.pha")
+os.system(f"niextspect on_pulse.evt on_pulse.pha clobber=yes")
+os.system(f"niextspect off_pulse.evt off_pulse.pha clobber=yes")
 
 exp = hdul[1].header['EXPOSURE']
 on_exp = exp*on_phase_range
