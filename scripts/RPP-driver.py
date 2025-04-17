@@ -35,12 +35,12 @@ parser.add_argument(
 )
 parser.add_argument(
     "--powerlaw_index",
-    help="The starting value of the powelaw photon index.",
+    help="The starting value of the powerlaw photon index.",
     default="2.0",
 )
 parser.add_argument(
     "--powerlaw_norm",
-    help="The starting value of the powelaw normalization.",
+    help="The starting value of the powerlaw normalization.",
     default="0.01",
 )
 

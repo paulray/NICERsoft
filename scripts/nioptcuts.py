@@ -191,6 +191,9 @@ log.info(
     )
 )
 
+# Everything in log.info() is written to stderr. Write the emin,emax to stdout so that users can both see the progress and time remaining while the code is running, and capture the emin,emax values programmatically from the output:
+print("Best range:  emin {0} keV -- emax {1} keV".format(np.round(eminbest, 3), np.round(emaxbest, 3)))
+
 if not args.noplot:
     profbins = np.linspace(0.0, 1.0, args.nbins + 1, endpoint=True)
     bbins = np.concatenate((profbins, profbins[1:] + 1.0, profbins[1:] + 2.0))

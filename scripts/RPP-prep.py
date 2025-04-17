@@ -37,10 +37,22 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
-    "--no_nioptcuts",
-    help="Skip nioptcuts.py (which can take hours if there is a lot of data); enter Emin and Emax manually.",
-    default=False,
-    action="store_true",
+    "--cps_cut_percentile",
+    help="Data bins above this percentile in terms of counts/s will be discarded.",
+    type=float,
+    default=95
+)
+parser.add_argument(
+    "--emin",
+    help="Emin (keV) of the optimal energy range, if known (if Emin and Emax are not both specified, nioptcuts.py will be used to determine them).",
+    type=float,
+    default=None
+)
+parser.add_argument(
+    "--emax",
+    help="Emax (keV) of the optimal energy range, if known.",
+    type=float,
+    default=None
 )
 args = parser.parse_args()
 
@@ -55,7 +67,7 @@ if not args.no_psrpipe:
         + par
         + " --ephem DE421 "
         + ddir
-        + "/[0123456]*"
+        + "/[0123456789]*"
     )
     print(cmd)
     os.system(cmd)
@@ -93,6 +105,7 @@ p99 = np.percentile(rate, 99)
 av = np.mean(rate)
 med = np.median(rate)
 std = np.std(rate)
+cps_cut = np.percentile(rate,args.cps_cut_percentile)
 plt.plot(t, rate, ".")
 plt.axhline(y=av, color="black", label="Mean")
 plt.axhline(y=med, color="green", label="Median")
@@ -104,17 +117,33 @@ plt.axhline(y=p99, color="orange")
 plt.legend()
 plt.xlabel("Time interval (32 s)")
 plt.ylabel("Counts/s")
-plt.title("ENTER DESIRED CPS CUT AFTER CLOSING THIS PLOT")
-plt.show()
-cps_cut = input(
-    "Desired cps cut (hit Enter for default=cps of 99th percentile of time intervals): "
-).strip() or str(p99)
-print("Count rate (cps) cut is: " + str(cps_cut))
+#plt.title("ENTER DESIRED CPS CUT AFTER CLOSING THIS PLOT")
+plt.title('CPS av: %.2f  med: %.2f  95th%%: %.2f  99th%%: %.2f' % (av,med,p95,p99))
+plt.suptitle('Chosen CPS cut percentile: %.2f value: %.2f counts/s' % (args.cps_cut_percentile, cps_cut))
+#plt.show()
+plt.savefig(args.srcname+'_crcut.png')
+#cps_cut = input(
+#    "Desired cps cut (hit Enter for default=cps of 99th percentile of time intervals): "
+#).strip() or str(p99)
+#print("Count rate (cps) cut is: " + str(cps_cut))
+print('CPS av: %.2f  med: %.2f  95th%%: %.2f  99th%%: %.2f' % (av,med,p95,p99))
+print('Chosen CPS cut percentile: %.2f value: %.2f counts/s' % (args.cps_cut_percentile, cps_cut))
 
 cmd = (
     "cr_cut.py merged.evt --outname merged_cut.evt --cut "
     + cps_cut
     + " --filterbinsize=32.0 --lcfile merged_2-10keV.lc"
+)
+
+print(cmd)
+os.system(cmd)
+
+# -------------------------------------
+
+cmd = (
+    'niphaseogram.py --subtract_min --outfile '
+    + args.srcname
+    + '_phaseogram.png merged_cut.evt'
 )
 print(cmd)
 os.system(cmd)
@@ -151,23 +180,19 @@ os.system(cmd)
 # Prep for pulsed analysis -------------------------------------
 
 # Find optimal energy range
-if not args.no_nioptcuts:
-    cmd = 'nioptcuts.py --noplot merged_cut.evt 2>&1 | grep "Best range" '
+if args.emin is None or args.emax is None:
+    cmd = 'nioptcuts.py --noplot merged_cut.evt'
     print(cmd)
     print('(This may take a long time - a few hours if there is lots of data.)')
-    pr = Popen(cmd,shell=True,stdout=PIPE,stderr=PIPE)
+    pr = Popen(cmd,shell=True,stdout=PIPE,stderr=sys.stderr)
     pr.wait()
     output = pr.communicate()[0]
     output = output.split()
     emin_kev = output[-6].decode()
     emax_kev = output[-2].decode()
 else:
-    emin_emax = input(
-    "Enter Emin Emax (in keV) separated with space (hit Enter for default= 0.2 10.0): "
-).strip() or '0.2 10.0'
-    emin_emax = emin_emax.split()
-    emin_kev = emin_emax[0]
-    emax_kev = emin_emax[1]
+    emin_kev = args.emin
+    emax_kev = args.emax
     
 print('Emin,Emax (keV): ',emin_kev,emax_kev)
 
