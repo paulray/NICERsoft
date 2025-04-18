@@ -131,7 +131,7 @@ print('Chosen CPS cut percentile: %.2f value: %.2f counts/s' % (args.cps_cut_per
 
 cmd = (
     "cr_cut.py merged.evt --outname merged_cut.evt --cut "
-    + cps_cut
+    + str(cps_cut)
     + " --filterbinsize=32.0 --lcfile merged_2-10keV.lc"
 )
 

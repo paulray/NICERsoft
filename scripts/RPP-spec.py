@@ -40,7 +40,7 @@ parser.add_argument(
     default="merged_cutmpu7_loadRPP.py",
 )
 parser.add_argument(
-    "--outname", help="Basename for output files.", default="myRPP-spec"
+    "--outname", help="Basename for output files.", default="rpp-scorp"
 )
 parser.add_argument(
     "--srcname",
