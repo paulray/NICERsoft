@@ -77,11 +77,13 @@ m1.setPars(args.model_startvals)
 AllModels.show()
 AllData.show()
 
+timestamp = time.strftime("%Y%m%d-%H%M%S")
+
 # Do the fitting -------------------------------------------------------
 
 if args.timestamp:
-    logfile = args.outname + "-" + time.strftime("%Y%m%d-%H%M%S") + ".log"
-    xcmfile = args.outname + "-" + time.strftime("%Y%m%d-%H%M%S") + ".xcm"
+    logfile = args.outname + "-" + timestamp + ".log"
+    xcmfile = args.outname + "-" + timestamp + ".xcm"
 else:
     logfile = args.outname + ".log"
     xcmfile = args.outname + ".xcm"
@@ -157,7 +159,7 @@ Xset.save(xcmfile)  # this asks for user input if xcmfile exists
 # print(m1.startParIndex)
 
 if args.timestamp:
-    fd = open(args.outname + "-" + time.strftime("%Y%m%d-%H%M%S") + ".yml", "w")
+    fd = open(args.outname + "-" + timestamp + ".yml", "w")
 else:
     fd = open(args.outname + ".yml", "w")
 
@@ -312,6 +314,6 @@ ax2.set_ylabel("Data/Model")
 #plt.show()
 
 if args.timestamp:
-    plt.savefig(args.outname + "-" + time.strftime("%Y%m%d-%H%M%S") + ".png")
+    plt.savefig(args.outname + "-" + timestamp + ".png")
 else:
     plt.savefig(args.outname + ".png")
