@@ -173,26 +173,31 @@ for cname in m1.componentNames:
     for pname in c.parameterNames:
         p = getattr(c, pname)
         pval = p.values[0]
-        plo = p.values[0] - p.sigma
-        phi = p.values[0] + p.sigma
+        psigma = p.sigma
+        plo = max(p.values[0] - p.sigma, p.values[2])
+        phi = min(p.values[0] + p.sigma, p.values[5])
 
         if cname == "TBabs":
             fd.write("nH: %g\n" % pval)
+            fd.write("nH_sigma: %g\n" % psigma)
             fd.write("nH_high: %g\n" % phi)
             fd.write("nH_low: %g\n" % plo)
         elif "bbody" in cname:
             if bbody_count < 2:
                 fd.write("%s_thermal: %g\n" % (pname, pval))
+                fd.write("%s_thermal_sigma: %g\n" % (pname, psigma))
                 fd.write("%s_thermal_high: %g\n" % (pname, phi))
                 fd.write("%s_thermal_low: %g\n" % (pname, plo))
             else:
                 fd.write("%s_thermal%d: %g\n" % (pname, bbody_count, pval))
+                fd.write("%s_thermal%d_sigma: %g\n" % (pname, bbody_count, psigma))
                 fd.write("%s_thermal%d_high: %g\n" % (pname, bbody_count, phi))
                 fd.write("%s_thermal%d_low: %g\n" % (pname, bbody_count, plo))
         elif "powerlaw" in cname:
             if "PhoIndex" in pname:
                 pname = "gamma"
             fd.write("%s_powerlaw: %g\n" % (pname, pval))
+            fd.write("%s_powerlaw_sigma: %g\n" % (pname, psigma))
             fd.write("%s_powerlaw_high: %g\n" % (pname, phi))
             fd.write("%s_powerlaw_low: %g\n" % (pname, plo))
 
