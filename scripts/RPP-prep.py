@@ -122,10 +122,7 @@ plt.title('CPS av: %.2f  med: %.2f  95th%%: %.2f  99th%%: %.2f' % (av,med,p95,p9
 plt.suptitle('Chosen CPS cut percentile: %.2f value: %.2f counts/s' % (args.cps_cut_percentile, cps_cut))
 #plt.show()
 plt.savefig(args.srcname+'_crcut.png')
-#cps_cut = input(
-#    "Desired cps cut (hit Enter for default=cps of 99th percentile of time intervals): "
-#).strip() or str(p99)
-#print("Count rate (cps) cut is: " + str(cps_cut))
+
 print('CPS av: %.2f  med: %.2f  95th%%: %.2f  99th%%: %.2f' % (av,med,p95,p99))
 print('Chosen CPS cut percentile: %.2f value: %.2f counts/s' % (args.cps_cut_percentile, cps_cut))
 
@@ -198,9 +195,9 @@ print('Emin,Emax (keV): ',emin_kev,emax_kev)
 
 # This makes the file merged_cut_profinfo.yml (or [srcname]_profinfo.yml)
 if args.srcname is None:
-    cmd = 'RPP-profile.py --optemin '+emin_kev+' --optemax '+emax_kev+' merged_cut.evt'
+    cmd = 'RPP-profile.py --outfile prof.png --optemin '+emin_kev+' --optemax '+emax_kev+' merged_cut.evt'
 else:
-    cmd = 'RPP-profile.py --srcname '+args.srcname+' --optemin '+emin_kev+' --optemax '+emax_kev+' merged_cut.evt'
+    cmd = 'RPP-profile.py --srcname '+args.srcname+' --outfile '+args.srcname+'_prof.png'+' --optemin '+emin_kev+' --optemax '+emax_kev+' merged_cut.evt'
 print(cmd)
 os.system(cmd)
 

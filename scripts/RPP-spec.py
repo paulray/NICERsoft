@@ -299,6 +299,7 @@ ax2.axhline(1, color="blue", linewidth=0.5)
 ax2.set_xscale("log")
 ax2.set_yscale("linear")
 ax2.tick_params(axis="x", which="both", top=True, direction="in", labelbottom=True)
+ax2.set_ylim(0.75, 1.25)
 ax2.set_xlabel("Energy (keV)")
 ax2.set_ylabel("Data/Full Model")
 

@@ -126,7 +126,7 @@ def compute_blocks(ph):
     return bb_hist, bb_edges
 
 
-def band_analysis(ph_band, bandemin, bandemax, ax=None):
+def band_analysis(ph_band, bandemin, bandemax, ax=None, plotoffpulse=False):
     "Perform analysis for a specific energy band and return dict of results"
     print(
         f"Band  {bandemin} - {bandemax}: {len(ph_band)} photons, {len(ph_band)/exp:.3f} c/s"
@@ -210,16 +210,21 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None):
             color="g",
             lw=1,
         )
+        if plotoffpulse:
+            ax.axvline(float(bb_edges[minidx]),linestyle='--',color='k')
+            ax.axvline(float(bb_edges[minidx+1]),linestyle='--',color='k')
         ax.set_ylabel(f"{bandemin}-{bandemax} keV Rate (c/s)")
         ax.set_xlim((0.0, 2.0))
         ax.grid(True)
+        ax.set_title('H-test: %.2f' % float(h))
     return resdict
 
 
-fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(9, 16), sharex=True)
+#fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(9, 16), sharex=True)
+fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(6, 8), sharex=True)
 
 # Analyze all 3 bands
-optres = band_analysis(ph_opt, args.optemin, args.optemax, ax=axs[0])
+optres = band_analysis(ph_opt, args.optemin, args.optemax, ax=axs[0], plotoffpulse=True)
 softres = band_analysis(ph_soft, SOFT_EMIN, SOFT_EMAX, ax=axs[1])
 hardres = band_analysis(ph_hard, HARD_EMIN, HARD_EMAX, ax=axs[2])
 
@@ -235,7 +240,10 @@ outdict[objname]["hardres"] = hardres
 yaml.dump(outdict, outfile, default_flow_style=False)
 
 
-axs[0].set_title(f"{objname} Exp={exp/1000.0:.3f} ks")
+if args.srcname is not None:
+    fig.suptitle(f"{args.srcname} Exp={exp/1000.0:.3f} ks", y=0.95)
+else:
+    fig.suptitle(f"{objname} Exp={exp/1000.0:.3f} ks", y=0.95)
 axs[2].set_xlabel("Phase")
 
 if args.outfile is not None:
@@ -257,6 +265,5 @@ if args.fermi:
     latax.step(x, np.concatenate((nfermi, nfermi)), where="post")
     latax.set_xlim((0.0, 2.0))
     latax.set_title("LAT Profile")
-
 
 plt.show()

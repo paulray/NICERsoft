@@ -71,7 +71,7 @@ Xset.chatter = 10
 Xset.abund = "wilm"
 
 exec(open(args.loadfile).read())
-spec1.ignore("0.0-0.25")
+spec1.ignore("0.0-0.25, 8.0-**")
 m1 = Model(args.model_str, modName="m")
 m1.setPars(args.model_startvals)
 AllModels.show()
@@ -289,7 +289,7 @@ fig.suptitle("%s   Model: %s" % (args.srcname, args.model_str))
 
 ax1.errorbar(en, rates, yerr=rates_err, color="black", marker='.',linestyle="",label='Data(Src)',zorder=1)
 ax1.errorbar(en_nobkg, rates_nobkg, yerr=rates_err_nobkg, color="green", marker='.',linestyle="",label='Data(Src+Bkg)',zorder=1)
-ax1.step(en, bkg,label='Bkg')
+ax1.step(en, bkg,label='Bkg (Off pulse)')
 ax1.plot(en, folded, label="Model(Src)", color="red",zorder=2)
 #ax1.plot(en_norebin, m1.folded(1), label="Src", color="red",zorder=2)
 ax1.set_xscale("log")
@@ -313,6 +313,7 @@ ax2.axhline(1, color="blue", linewidth=0.5)
 ax2.set_xscale("log")
 ax2.set_yscale("linear")
 ax2.tick_params(axis="x", which="both", top=True, direction="in", labelbottom=True)
+ax2.set_ylim(0.75, 1.25)
 ax2.set_xlabel("Energy (keV)")
 ax2.set_ylabel("Data/Model")
 
