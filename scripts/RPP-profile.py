@@ -246,9 +246,6 @@ else:
     fig.suptitle(f"{objname} Exp={exp/1000.0:.3f} ks", y=0.95)
 axs[2].set_xlabel("Phase")
 
-if args.outfile is not None:
-    plt.savefig(args.outfile)
-
 if args.fermi:
     from pint.fits_utils import read_fits_event_mjds
 
@@ -266,4 +263,7 @@ if args.fermi:
     latax.set_xlim((0.0, 2.0))
     latax.set_title("LAT Profile")
 
-plt.show()
+if args.outfile is not None:
+    plt.savefig(args.outfile)
+else:
+    plt.show()
