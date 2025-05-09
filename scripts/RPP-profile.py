@@ -185,13 +185,24 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None, plotoffpulse=False):
     # Convert histogram to rates
     bb_widths = bb_edges[1:] - bb_edges[:-1]
     bb_rates = bb_hist / (exp * bb_widths)
+    # Fix rate calc for first and last bins, which are merged.
+    wraprate = (bb_hist[0] + bb_hist[-1])/(exp*(bb_widths[0] + bb_widths[-1]))
+    bb_rates[0] = wraprate
+    bb_rates[-1] = wraprate
 
     minidx = np.argmin(bb_rates)
     # print(f" Sum of bb_hist {bb_hist.sum()}, sum of bb_widths {bb_widths.sum()}")
     print(f"    BB Edges : {bb_edges}")
     print(f"    BB Rates : {bb_rates}")
-    resdict["BB_OFFPULSE"] = [float(bb_edges[minidx]), float(bb_edges[minidx + 1])]
-
+    # If minidx is 0 or the last block, then we need to merge them!
+    if (minidx == 0):
+        resdict["BB_OFFPULSE"] = [float(bb_edges[-2]), float(bb_edges[1])]
+    elif minidx == len(bb_rates)-1:
+        resdict["BB_OFFPULSE"] = [float(bb_edges[-2]), float(bb_edges[1])]
+    else:
+        resdict["BB_OFFPULSE"] = [float(bb_edges[minidx]), float(bb_edges[minidx + 1])]
+    print(f"BB_OFFPULSE: {resdict["BB_OFFPULSE"]}")
+        
     if ax:
         ax.step(
             np.concatenate((edges[:-1], 1.0 + edges)),
@@ -211,8 +222,8 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None, plotoffpulse=False):
             lw=1,
         )
         if plotoffpulse:
-            ax.axvline(float(bb_edges[minidx]), linestyle="--", color="k")
-            ax.axvline(float(bb_edges[minidx + 1]), linestyle="--", color="k")
+            ax.axvline(float(resdict["BB_OFFPULSE"][0]), linestyle="--", color="k")
+            ax.axvline(float(resdict["BB_OFFPULSE"][1]), linestyle="--", color="k")
         ax.set_ylabel(f"{bandemin}-{bandemax} keV Rate (c/s)")
         ax.set_xlim((0.0, 2.0))
         ax.grid(True)
