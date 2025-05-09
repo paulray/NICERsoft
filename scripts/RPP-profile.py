@@ -211,16 +211,16 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None, plotoffpulse=False):
             lw=1,
         )
         if plotoffpulse:
-            ax.axvline(float(bb_edges[minidx]),linestyle='--',color='k')
-            ax.axvline(float(bb_edges[minidx+1]),linestyle='--',color='k')
+            ax.axvline(float(bb_edges[minidx]), linestyle="--", color="k")
+            ax.axvline(float(bb_edges[minidx + 1]), linestyle="--", color="k")
         ax.set_ylabel(f"{bandemin}-{bandemax} keV Rate (c/s)")
         ax.set_xlim((0.0, 2.0))
         ax.grid(True)
-        ax.set_title('H-test: %.2f' % float(h))
+        ax.set_title(f"H-test: {float(h):.2f} ({h2sig(float(h)):.2f} sigma)")
     return resdict
 
 
-#fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(9, 16), sharex=True)
+# fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(9, 16), sharex=True)
 fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(6, 8), sharex=True)
 
 # Analyze all 3 bands
@@ -231,7 +231,7 @@ hardres = band_analysis(ph_hard, HARD_EMIN, HARD_EMAX, ax=axs[2])
 if args.srcname is None:
     outfile = open(f"{basename}_profinfo.yml", "w")
 else:
-    outfile = open(args.srcname+"_profinfo.yml", "w")
+    outfile = open(args.srcname + "_profinfo.yml", "w")
 outdict[objname]["name"] = objname
 outdict[objname]["exposure"] = exp
 outdict[objname]["optres"] = optres
