@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 from subprocess import *
+from glob import glob
 
 # This script is to be run from dir where we want *pipe dirs to be written
 
@@ -37,6 +38,12 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
+    "--rephase",
+    help="Skip psrpipe.py, rephase .evt files in existing *pipe dirs with the provided par file.",
+    default=False,
+    action="store_true",
+)
+parser.add_argument(
     "--cps_cut_percentile",
     help="Data bins above this percentile in terms of counts/s will be discarded.",
     type=float,
@@ -61,7 +68,7 @@ ddir = args.datadir
 
 # -------------------------------------
 
-if not args.no_psrpipe:
+if not args.no_psrpipe and not args.rephase:
     cmd = (
         "psrpipe.py --nomap --merge --emin 0.22 --emax 15.01 --tidy --cormin 1.5 --kpmax 5 --mingti 100 --maxovershoot 1.5 --maxundershoot 600 --medianundershoot=100 --par "
         + par
@@ -72,6 +79,17 @@ if not args.no_psrpipe:
     print(cmd)
     os.system(cmd)
 
+
+if args.rephase:
+    pipe_dirs = glob('*pipe')
+    for p in pipe_dirs:
+        eventfile = p+'/cleanfilt.evt'
+        orbfile = glob(p+'/*.orb')[0]
+
+        cmd = 'photonphase --orbfile '+orbfile+' --addphase '+eventfile+' '+args.parfile
+        print(cmd)
+        os.system(cmd)
+    
 # -------------------------------------
 
 cmd = 'ls -1 *pipe/*.orb > orbfiles.txt'
