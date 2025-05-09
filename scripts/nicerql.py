@@ -271,7 +271,15 @@ if np.logical_or(args.obsdir is not None, args.infiles is not None):
             basename = args.basename
 
         if args.mkf:
-            mktable = Table.read(args.mkf, hdu=1)
+            try:
+                mktable = Table.read(args.mkf, hdu=1)
+            except TypeError:
+                with pyfits.open(args.mkf) as hdulist:
+                    mktable = Table(hdulist[1].data)
+                    try:
+                        mktable.meta["TIMEZERO"] = hdulist[1].header["TIMEZERO"]
+                    except KeyError:
+                        pass
             if "TIMEZERO" in mktable.meta:
                 log.info(
                     "Applying TIMEZERO of {0} to mktable in nicerql".format(
