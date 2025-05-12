@@ -44,6 +44,12 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
+    "--par_range",
+    help="Use only data within the time range covered by the provided par file.",
+    default=False,
+    action="store_true",
+)
+parser.add_argument(
     "--cps_cut_percentile",
     help="Data bins above this percentile in terms of counts/s will be discarded.",
     type=float,
@@ -70,7 +76,7 @@ ddir = args.datadir
 
 if not args.no_psrpipe and not args.rephase:
     cmd = (
-        "psrpipe.py --nomap --merge --emin 0.22 --emax 15.01 --tidy --cormin 1.5 --kpmax 5 --mingti 100 --maxovershoot 1.5 --maxundershoot 600 --medianundershoot=100 --par "
+        "psrpipe.py --nomap --emin 0.22 --emax 15.01 --tidy --cormin 1.5 --kpmax 5 --mingti 100 --maxovershoot 1.5 --maxundershoot 600 --medianundershoot=100 --par "
         + par
         + " --ephem DE421 "
         + ddir
@@ -79,9 +85,9 @@ if not args.no_psrpipe and not args.rephase:
     print(cmd)
     os.system(cmd)
 
-
+# -------------------------------------
+    
 if args.rephase:
-    pipe_dirs = glob('[0-9]*_pipe')
     for p in pipe_dirs:
         eventfile = p+'/cleanfilt.evt'
         orbfile = glob(p+'/*.orb')[0]
@@ -92,11 +98,51 @@ if args.rephase:
     
 # -------------------------------------
 
-cmd = 'ls -1 [0-9]*_pipe/*.orb > orbfiles.txt'
-print(cmd)
-os.system(cmd)
+if not args.par_range:
+    cmd = "ls -1 [0-9]*_pipe/cleanfilt.evt > files.txt"
+    print(cmd)
+    os.system(cmd)
+else:
+    # Get the START/FINISH from the par file:
+    cmd = 'grep START '+args.parfile
+    pr = Popen(cmd,shell=True,stdout=PIPE)
+    pr.wait()
+    output = pr.communicate()[0]
+    par_start = float(output.split()[-1])
 
-cmd = "ls -1 [0-9]*_pipe/cleanfilt.evt > files.txt"
+    cmd = 'grep FINISH '+args.parfile
+    pr = Popen(cmd,shell=True,stdout=PIPE)
+    pr.wait()
+    output = pr.communicate()[0]
+    par_end = float(output.split()[-1])
+
+    print('Par file start: ',par_start,' end: ',par_end)
+
+    # Check which cleanfilt.evt files are within the par time range and include only them in the list to be merged.
+    evt_files = glob('[0-9]*_pipe/cleanfilt.evt')
+    evt_files.sort()
+    
+    fd = open('files.txt','w')
+    
+    for evt in evt_files:
+        hdulist = fits.open(evt,mode='denywrite')
+        mjdi = hdulist[0].header['MJDREFI']
+        mjdf = hdulist[0].header['MJDREFF']
+        
+        met_start = hdulist[0].header['TSTART']
+        evt_start = mjdi + mjdf + met_start/(24.*3600.)
+        hdulist.close()
+
+        if evt_start-par_start > -1 and par_end-evt_start > -1:
+            fd.write(evt+'\n')
+        else:
+            print(evt+' (MJD: '+str(evt_start)+') outside par range, will not use it.')
+            
+    fd.close()
+
+# -------------------------------------
+
+cmd = 'ls -1 [0-9]*_pipe/*.orb > orbfiles.txt'
 print(cmd)
 os.system(cmd)
 
