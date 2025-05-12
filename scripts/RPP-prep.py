@@ -81,7 +81,7 @@ if not args.no_psrpipe and not args.rephase:
 
 
 if args.rephase:
-    pipe_dirs = glob('*pipe')
+    pipe_dirs = glob('[0-9]*_pipe')
     for p in pipe_dirs:
         eventfile = p+'/cleanfilt.evt'
         orbfile = glob(p+'/*.orb')[0]
@@ -92,11 +92,11 @@ if args.rephase:
     
 # -------------------------------------
 
-cmd = 'ls -1 *pipe/*.orb > orbfiles.txt'
+cmd = 'ls -1 [0-9]*_pipe/*.orb > orbfiles.txt'
 print(cmd)
 os.system(cmd)
 
-cmd = "ls -1 *pipe/cleanfilt.evt > files.txt"
+cmd = "ls -1 [0-9]*_pipe/cleanfilt.evt > files.txt"
 print(cmd)
 os.system(cmd)
 
