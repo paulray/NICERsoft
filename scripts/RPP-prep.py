@@ -88,6 +88,8 @@ if not args.no_psrpipe and not args.rephase:
 # -------------------------------------
     
 if args.rephase:
+    pipe_dirs = glob('[0-9]*_pipe')
+    
     for p in pipe_dirs:
         eventfile = p+'/cleanfilt.evt'
         orbfile = glob(p+'/*.orb')[0]
