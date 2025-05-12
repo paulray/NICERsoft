@@ -201,7 +201,7 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None, plotoffpulse=False):
         resdict["BB_OFFPULSE"] = [float(bb_edges[-2]), float(bb_edges[1])]
     else:
         resdict["BB_OFFPULSE"] = [float(bb_edges[minidx]), float(bb_edges[minidx + 1])]
-    print(f"BB_OFFPULSE: {resdict["BB_OFFPULSE"]}")
+    print(f"BB_OFFPULSE: {resdict['BB_OFFPULSE']}")
         
     if ax:
         ax.step(
