@@ -5,7 +5,7 @@ Module to download NICER data from the heasarc copy hosted at AWS S3
 Can be run through the CLI via the command getniceraws. The usual getniceraws -h will provide a list of arguments
 Example usage:
 
-getniceraws -sn "psr b0540-69" -od ./psrb0540/nicer/ -s 2022-12-29 -e 2025-01-25
+get_nicer_aws.py -sn "psr b0540-69" -od ./psrb0540/nicer/ -s 2022-12-29 -e 2025-01-25
 
 where -sn (--srcname) and -od (--outdir) are required arguments, and represent the name of the source and the output
 directory where the observation ids will be downloaded. The -sn should match a known source name; it will be parsed by
