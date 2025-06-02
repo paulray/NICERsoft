@@ -84,7 +84,7 @@ Xset.abund = "wilm"
 
 exec(open(args.loadfile).read())
 spec1.ignore("0.0-0.25")
-m1 = Model(args.model_str, modName="m")
+m1 = Model(args.model_str, modName="m1")
 m1.setPars(args.model_startvals)
 AllModels.show()
 # AllData.show()
