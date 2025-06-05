@@ -156,7 +156,8 @@ cmd = "niextract-events @cleanfiles.txt merged.evt"
 print(cmd)
 os.system(cmd)
 
-cmd = "niextlc merged.evt merged_2-10keV.lc timebin=32 pirange=200:1000 lcthresh=0.9 clobber=yes"
+#cmd = "niextlc merged.evt merged_2-10keV.lc timebin=32 pirange=200:1000 lcthresh=0.9 clobber=yes"
+cmd = "nicerl3-lc pirange=200:1000 timebin=32.0 indir=.  mkfile=merged.evt lcfile=merged_2-10keV.lc bkgmodeltype=NONE detnormtype=arr52 clfile=merged.evt ufafile=none clobber=yes lcthresh=0.5"
 print(cmd)
 os.system(cmd)
 
