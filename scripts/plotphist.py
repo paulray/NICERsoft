@@ -76,9 +76,9 @@ else:
 
 try:
     tstart = (hdr["TSTART"] + hdr["TIMEZERO"]) / 86400 + hdr["MJDREFF"] + hdr["MJDREFI"]
-    ax.set_title("{0} : {1:.3f}".format(hdr["OBS_ID"], tstart))
+    ax.set_title(f"ObsID {hdr['OBS_ID']} : MJD {tstart:.3f}, Exp {float(hdr['EXPOSURE']):.2f}")
 except:
-    ax.set_title("{0}".format(hdr["DATE-OBS"]))
+    ax.set_title("Date {0}, Exp {1}".format(hdr["DATE-OBS"], hdr["EXPOSURE"]))
 ax.set_xlim((0.0, 2.0))
 ax.grid(True)
 if args.outfile is not None:
