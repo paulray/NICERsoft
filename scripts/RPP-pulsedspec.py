@@ -56,7 +56,7 @@ else:
     off = f'"PULSE_PHASE>{offrange[0]} || PULSE_PHASE<{offrange[1]}"'
     on = f'"PULSE_PHASE<{offrange[0]} && PULSE_PHASE>{offrange[1]}"'
     off_phase_range=(offrange[1]+(1-offrange[0]))
-    on_phase_range=(offrange[1]-offrange[0])
+    on_phase_range=(offrange[0]-offrange[1])
     
 os.system(f"ftselect {args.evtfile} on_pulse.evt {on} clobber=yes")
 os.system(f"ftselect {args.evtfile} off_pulse.evt {off} clobber=yes")
