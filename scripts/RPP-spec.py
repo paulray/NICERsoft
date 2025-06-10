@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import argparse
 import os, sys
 import time
+import numpy as np
 
 # Parsing of CL -------------------------------------------------------
 
@@ -268,6 +269,10 @@ ratio = Plot.y()
 ratio_err = Plot.yErr()
 # folded = Plot.model()
 
+en_dif = np.array(en)[1:]-np.array(en)[0:-1]
+en_dif = np.concatenate((en_dif,np.array([en_dif[-1]])))
+#print('np.size(en_dif): ',np.size(en_dif))
+
 fig, (ax1, ax2) = plt.subplots(
     2, 1, sharex=True, gridspec_kw={"hspace": 0, "height_ratios": [3, 1]}
 )
@@ -276,12 +281,12 @@ fig.suptitle("%s   Model: %s" % (args.srcname, args.model_str))
 ax1.errorbar(en, rates, yerr=rates_err, color="black", linestyle="")
 ax1.step(en, rates, label="Data", color="black")
 ax1.plot(en, folded, label="Full Model", color="orange")
-ax1.plot(en, m1.folded(1), label="Source", color="red")
-ax1.plot(en, sky.folded(1), label="Sky", color="blue")
-ax1.plot(en, nxb.folded(1), label="NXB", color="green")
+ax1.plot(en, np.divide(m1.folded(1),en_dif), label="Source", color="red")
+ax1.plot(en, np.divide(sky.folded(1),en_dif), label="Sky", color="blue")
+ax1.plot(en, np.divide(nxb.folded(1),en_dif), label="NXB", color="green")
 ax1.set_xscale("log")
 ax1.set_yscale("log")
-ax1.set_ylim(bottom=1.0e-9)
+ax1.set_ylim(bottom=1.0e-6)
 ax1.tick_params(
     axis="x", which="both", bottom=True, top=True, direction="in", labelbottom=False
 )
@@ -303,7 +308,9 @@ ax2.set_ylim(0.75, 1.25)
 ax2.set_xlabel("Energy (keV)")
 ax2.set_ylabel("Data/Full Model")
 
-# plt.show()
+plt.show()
+sys.exit()
+
 if args.timestamp:
     plt.savefig(args.outname + "-" + timestamp + ".png")
 else:
