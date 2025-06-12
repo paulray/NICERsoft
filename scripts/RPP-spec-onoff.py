@@ -259,6 +259,7 @@ Plot("ratio")
 en = Plot.x()
 ratio = Plot.y()
 ratio_err = Plot.yErr()
+ratio_err[ratio_err<0.0] = 0.0
 # folded = Plot.model()
 
 # Get data points without background subtraction
