@@ -258,7 +258,7 @@ Plot("ratio")
 # Plot.delCommand(1)
 en = Plot.x()
 ratio = Plot.y()
-ratio_err = Plot.yErr()
+ratio_err = np.array(Plot.yErr())
 ratio_err[ratio_err<0.0] = 0.0
 # folded = Plot.model()
 
