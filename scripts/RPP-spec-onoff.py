@@ -88,7 +88,8 @@ else:
     logfile = args.outname + ".log"
     xcmfile = args.outname + ".xcm"
 
-Fit.statMethod = "pgstat"
+#Fit.statMethod = "pgstat"
+Fit.statMethod = "wstat"
 Fit.nIterations = 100
 Fit.query = "yes"
 Fit.perform()
