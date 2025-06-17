@@ -89,7 +89,7 @@ else:
     xcmfile = args.outname + ".xcm"
 
 #Fit.statMethod = "pgstat"
-Fit.statMethod = "wstat"
+Fit.statMethod = "cstat"
 Fit.nIterations = 100
 Fit.query = "yes"
 Fit.perform()
