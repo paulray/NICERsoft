@@ -128,7 +128,7 @@ for m in [m1]:
 #Fit.error('stop 1,,1-3')
 #Fit.error('1. m:1-3')
 
-# When we get the data points withut background subtraction and reset the spec.background = '' before plotting, that resets the Fit.* variables, so let's save what we need to show on the plots:
+# When we get the data points without background subtraction and reset the spec.background = '' before plotting, that resets the Fit.* variables, so let's save what we need to show on the plots:
 test_statistic = Fit.testStatistic
 dof = Fit.dof
 
