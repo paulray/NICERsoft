@@ -243,7 +243,7 @@ ax2.set_ylim(0.75, 1.25)
 ax2.set_xlabel("Energy (keV)")
 ax2.set_ylabel("Data/Model")
 
-plt.show()
+#plt.show()
 
 if args.timestamp:
     plt.savefig(args.outname + "-" + timestamp + ".png")
