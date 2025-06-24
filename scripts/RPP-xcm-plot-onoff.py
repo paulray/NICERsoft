@@ -21,6 +21,11 @@ parser.add_argument(
     "xcmfile", help="Xspec .xcm file to load.", type=str
 )
 parser.add_argument(
+    "--loadfile",
+    help="Python load script made by RPP-pulsedspec.py.",
+    default="load_pulsedspec.py",
+)
+parser.add_argument(
     "--srcname",
     help="Source name, if you want it to appear on spectral plot.",
     default="",
@@ -48,6 +53,8 @@ else:
 
 Plot.splashPage = False
 Xset.openLog(logfile)
+
+exec(open(args.loadfile).read())
 Xset.restore(args.xcmfile)
 #AllData.show()
 #AllModels.show()

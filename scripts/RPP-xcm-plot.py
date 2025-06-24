@@ -16,9 +16,13 @@ parser = argparse.ArgumentParser(
     description="""Load SCORPEON .xcm file saved with Xspec; make plot and .yml file for RPP catalog.
     """,
 )
-
 parser.add_argument(
     "xcmfile", help="Xspec .xcm file to load.", type=str
+)
+parser.add_argument(
+    "--loadfile",
+    help="Python load script made by nicerl3-spect.",
+    default="merged_cutmpu7_loadRPP.py",
 )
 parser.add_argument(
     "--srcname",
@@ -48,6 +52,8 @@ else:
 
 Plot.splashPage = False
 Xset.openLog(logfile)
+
+exec(open(args.loadfile).read())
 Xset.restore(args.xcmfile)
 #AllModels.show()
 
