@@ -59,6 +59,7 @@ Xset.restore(args.xcmfile)
 #AllData.show()
 #AllModels.show()
 spec1 = AllData(1)
+spec1.ignore("0.0-0.25, 8.0-**")
 
 # Refit to get parameter uncertainties; the result will be basically the same as the starting fit from the .xcm file.
 Fit.statMethod = "cstat"
