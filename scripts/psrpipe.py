@@ -459,9 +459,6 @@ for obsdir in all_obsids:
         ]
     runcmd(cmd)
 
-    if args.daynight and args.tidy:
-        os.remove(evfilename)
-
     # Create any additional GTIs beyond what nimaketime does...
     extragtis = "NONE"
     if args.filtpolar:
