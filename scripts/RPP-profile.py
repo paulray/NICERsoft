@@ -35,6 +35,9 @@ parser.add_argument(
     "--optemax", type=float, default=2.0, help="Maximum energy to include."
 )
 parser.add_argument(
+    "--p0", type=float, default=0.005, help="p0 probability for Bayesian block analysis"
+)
+parser.add_argument(
     "--outfile",
     help="Output file for plot (type determined by extension)",
     default=None,
@@ -83,7 +86,7 @@ hard_idx = np.where(np.logical_and((en >= HARD_EMIN), (en <= HARD_EMAX)))
 ph_hard = ph[hard_idx]
 
 
-def compute_blocks(ph):
+def compute_blocks(ph,p0=0.005):
     "Compute Bayesian Block edges for a set of photon phases."
 
     # Replicate photons before and after so they go from [-1.0, 2.0)
@@ -91,7 +94,8 @@ def compute_blocks(ph):
 
     if len(ph) < 50000:
         # Compute unbinned Bayesian Block edges
-        edges = astropy.stats.bayesian_blocks(bbphases, fitness="events", p0=0.01)
+        print(f"Unbinned BB ({p0})")
+        edges = astropy.stats.bayesian_blocks(bbphases, fitness="events", p0=p0)
     else:
         # Compute binned to speed up process
         h, hedges = np.histogram(
@@ -99,12 +103,13 @@ def compute_blocks(ph):
             range=(-1.0, 2.0),
             bins=np.linspace(-1.0, 2.0, 301, endpoint=True),
         )
+        print(f"Binned BB ({p0})")
         edges = astropy.stats.bayesian_blocks(
             t=hedges[:-1],
             x=h,
             sigma=np.sqrt(h + 1),
             fitness="events",
-            p0=0.005,
+            p0=p0,
         )
     # Select out only the bin edges between 0 and 1
     idx = np.logical_and(edges >= 0.0, edges < 1.0)
@@ -180,7 +185,7 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None, plotoffpulse=False):
     resdict["Fvar"] = float(fracrms)
 
     # Compute the Bayesian Block histogram, handling wrapping at 1.0
-    bb_hist, bb_edges = compute_blocks(ph_band)
+    bb_hist, bb_edges = compute_blocks(ph_band,p0=args.p0)
 
     # Convert histogram to rates
     bb_widths = bb_edges[1:] - bb_edges[:-1]
