@@ -416,8 +416,14 @@ for obsdir in all_obsids:
             print("{0}".format(en), file=fout)
         fout.close()
         evfilename=path.join(pipedir, "evfile.evt")
-        cmd = [ "niextract-events", f"filename=@{evlistname}", f"eventsout={evfilename}", "clobber=yes"  ]
+
+        # Since we have multiple files, make sure to sort the events in the merged file
+        unname = path.join(pipedir,"unsorted.evt"
+        cmd = [ "niextract-events", f"filename=@{evlistname}", f"eventsout={unname}", "clobber=yes"  ]
         runcmd(cmd)
+        cmd = [ "ftsort", f"infile={unname}", f"outfile={evfilename}", "columns=TIME", "clobber=yes"]
+        runcmd(cmd)
+        os.remove(unname)
     else:
         # Just take first (only) one!
         evfilename = evfiles[0]
