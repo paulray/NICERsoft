@@ -87,7 +87,11 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
     # find time of event closest to center of observation and turn it into a TOA
     argmid = np.searchsorted(mjds, 0.5 * (mjds.min() + mjds.max()))
     if tmid is None:
-        tmid = ph_times[argmid]
+        try:
+            tmid = ph_times[argmid]
+        except IndexError:
+            log.error(f"Faild to compute tmid: Len(mjds) = {len(mjds)} len(ph_times) = {len(ph_times)},  min = {mjds.min()}, max = {mjds.max()}, argmid = {argmid}")
+            sys.exit(1)
     # So, tmid should be a time at the observatory if topo, otherwise
     # it should be a BAT (in TDB timescale with delays applied)
     # Here, convert tmid if not topo and data not barycentered
