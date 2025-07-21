@@ -40,7 +40,7 @@ log.remove()
 log.add(sys.stdout,level="INFO")
 
 # pint.logging.setup(level=pint.logging.script_level)
-
+is_sorted = lambda a: np.all(a[:-1] <= a[1:])
 
 def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
     """Return a pint TOA object for the provided times and phases.
@@ -85,12 +85,22 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
     log.info("Measured phase shift dphi={0}, dphierr={1}".format(dphi, dphierr))
 
     # find time of event closest to center of observation and turn it into a TOA
+    mjds_sorted = is_sorted(mjds)
+    if not mjds_sorted:
+        log.warning(f"MJDs array not sorted, will sort them now.")
+        ii = np.argsort(mjds)
+        mjds = mjds[ii]
+        phases = phases[ii]
+        ph_times = ph_times[ii]
+        
     argmid = np.searchsorted(mjds, 0.5 * (mjds.min() + mjds.max()))
     if tmid is None:
         try:
             tmid = ph_times[argmid]
         except IndexError:
             log.error(f"Faild to compute tmid: Len(mjds) = {len(mjds)} len(ph_times) = {len(ph_times)},  min = {mjds.min()}, max = {mjds.max()}, argmid = {argmid}")
+
+            log.error(f"is_sorted(mjds) = {is_sorted(mjds)}")
             sys.exit(1)
     # So, tmid should be a time at the observatory if topo, otherwise
     # it should be a BAT (in TDB timescale with delays applied)
