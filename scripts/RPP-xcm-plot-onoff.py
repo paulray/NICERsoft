@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 from xspec import *
 
 # from loguru import logger as log
@@ -10,30 +11,14 @@ import numpy as np
 
 # Parsing of CL -------------------------------------------------------
 
-
-# Define a custom argument type for a list of floats
-def list_of_floats(a):
-    return list(map(float, a.split(",")))
-
-
-# Define a custom argument type for a list of strings
-def list_of_strings(a):
-    return a.split(",")
-
-
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    description="""Do RPP catalog spectral analysis.
+    description="""Load On/Off .xcm file saved with Xspec; make plot and .yml file for RPP catalog.
     """,
 )
 
 parser.add_argument(
-    "model_str", help="String describing the model, e.g. 'tbabs* (bb + pow)'", type=str
-)
-parser.add_argument(
-    "model_startvals",
-    help="Comma-separated list of starting parameter values; no spaces.",
-    type=list_of_floats,
+    "xcmfile", help="Xspec .xcm file to load.", type=str
 )
 parser.add_argument(
     "--loadfile",
@@ -41,18 +26,9 @@ parser.add_argument(
     default="load_pulsedspec.py",
 )
 parser.add_argument(
-    "--outname", help="Basename for output files.", default="rpp-onoff"
-)
-parser.add_argument(
     "--srcname",
     help="Source name, if you want it to appear on spectral plot.",
     default="",
-)
-parser.add_argument(
-    "--warn",
-    help="Warn if an existing .xcm file will be overwritten (requires interactive user input). Default: overwrite without warning (non-interactive).",
-    default=False,
-    action="store_true",
 )
 parser.add_argument(
     "--timestamp",
@@ -60,104 +36,65 @@ parser.add_argument(
     default=False,
     action="store_true",
 )
+parser.add_argument(
+    "--outname", help="Basename for output files.", default="rpp-onoff"
+)
 
 args = parser.parse_args()
 
 # Load models -------------------------------------------------------
 
-Plot.splashPage = False
-Xset.chatter = 10
-# Xset.logChatter = 0
-Xset.abund = "wilm"
-
-exec(open(args.loadfile).read())
-spec1.ignore("0.0-0.25, 8.0-**")
-m1 = Model(args.model_str, modName="m")
-m1.setPars(args.model_startvals)
-AllModels.show()
-AllData.show()
-
 timestamp = time.strftime("%Y%m%d-%H%M%S")
-
-# Do the fitting -------------------------------------------------------
 
 if args.timestamp:
     logfile = args.outname + "-" + timestamp + ".log"
-    xcmfile = args.outname + "-" + timestamp + ".xcm"
 else:
     logfile = args.outname + ".log"
-    xcmfile = args.outname + ".xcm"
 
-#Fit.statMethod = "pgstat"
+Plot.splashPage = False
+Xset.openLog(logfile)
+
+exec(open(args.loadfile).read())
+Xset.restore(args.xcmfile)
+#AllData.show()
+#AllModels.show()
+spec1 = AllData(1)
+spec1.ignore("0.0-0.25, 8.0-**")
+
+# Refit to get parameter uncertainties; the result will be basically the same as the starting fit from the .xcm file.
 Fit.statMethod = "cstat"
-Fit.nIterations = 100
-Fit.query = "yes"
+Fit.nIterations = 1000
+Fit.query = "no"
 Fit.perform()
 Fit.show()
-
-# Check if parameters are pegged at zero and freeze them. For sky components that can only vary within a certain range and can't be zero, freeze them at the current value. Each time the fit is redone.
-frozen_list = []
-frozen_list.append(
-    "\n\nFROZEN automatically b/c of sigma = -1 or sigma > 10*value after initial fit:\n"
-)
-# frozen_list.append('\n\nFROZEN automatically b/c of sigma = -1 after initial fit:\n')
-for m in [m1]:
-    for ii in range(m.startParIndex, m.nParameters + 1):
-        if m(ii).sigma == -1 or m(ii).sigma > 10 * np.abs(m(ii).values[0]):
-            # if m(ii).sigma == -1:
-            # If bot,top values allow zero, freeze it at zero
-            if m(ii).values[3] <= 0 and m(ii).values[5] >= 0:
-                m(ii).values = "0.0,0"
-            else:  # freeze it at current value
-                m(ii).frozen = True
-
-            tmp = " ".join(list(map(str, m(ii).values)))
-            tmp = "\n%s(%d) frozen with (val,delta,min,bot,top,max): %s" % (
-                m.name,
-                ii,
-                tmp,
-            )
-            frozen_list.append(tmp)
-
-            Fit.perform()
-
-# See if a better fit can be found.
-# This goes into an infinite loop in some cases. This happens even when chi2/dof > 2, which according to the docs is the default treshold above which it should not run. 
-#Fit.error('1. '+m1.name+':1-'+str(m1.nParameters))
-#Fit.error('stopat 20,,1. '+m1.name+':1-'+str(m1.nParameters))
-#Fit.error('stop 1,,1-3')
-#Fit.error('1. m:1-3')
+Xset.closeLog()
 
 # When we get the data points without background subtraction and reset the spec.background = '' before plotting, that resets the Fit.* variables, so let's save what we need to show on the plots:
 test_statistic = Fit.testStatistic
 dof = Fit.dof
 
-#print('1 Fit.statistic: ',Fit.statistic,'Fit.testStatistic: ',Fit.testStatistic)
-Xset.openLog(logfile)
-AllData.show()
-AllModels.show()
-Fit.show()
+# Can't assume the name the user has given the model in the .xcm file; it may not have a name at all. Find it by the component names:
+m1 = None
+
+for mn in AllModels.sources:
+    mname = AllModels.sources[mn]
+    m = AllModels(1,mname)
+    print('\nModel #:',mn,' Model name:',m.name)
+    print('Component names:',m.componentNames)
+    #print('Number of parameters:',m.nParameters)
+
+    for cname in m.componentNames:
+        if 'powerlaw' in cname or 'bbody' in cname:
+            m1 = m
+
+# Calculate fluxes -------------------------------------------------------
+
 AllModels.calcFlux("0.4 2.0")
 flux_loint = AllData(1).flux[0]  # first element is the erg/cm^2/s energy flux
 AllModels.calcFlux("2.0 10.0")
 flux_hiint = AllData(1).flux[0]  # first element is the erg/cm^2/s energy flux
-Xset.closeLog()
-
-fd = open(logfile, "a+")
-for f in frozen_list:
-    fd.write(f)
-fd.close()
-
-if os.path.exists(xcmfile) and not args.warn:
-    os.remove(xcmfile)
-Xset.save(xcmfile)  # this asks for user input if xcmfile exists
 
 # Save YAML file----------------------------------------------------
-
-# print(m1.expression)
-# print(m1.componentNames)
-# print(m1.nParameters)
-# print(m1.startParIndex)
 
 if args.timestamp:
     fd = open(args.outname + "-" + timestamp + ".yml", "w")
@@ -211,18 +148,6 @@ fd.close()
 minSig = 3
 maxBins = 10
 errType = 'sqrt'
-
-# Don't generate XSPEC plots, just use this to get the plot data out
-#Plot.device = "/null"
-#Plot.device = "/xs" # For debugging
-#Plot.xAxis = "keV"
-#Plot.add = True
-#Plot.xLog = True
-#Plot.yLog = True
-#Plot.addCommand("res y 0.01 20")
-#Plot("ldata")
-#Plot.show()
-#en_norebin = Plot.x() #for use with plotting m1.folded(1), which apparently doesn't get rebinned by Plot.setRebin
 
 Plot.device = "/null"
 #Plot.device = "/xs" # For debugging
@@ -287,7 +212,7 @@ rates_err_nobkg = Plot.yErr()
 fig, (ax1, ax2) = plt.subplots(
     2, 1, sharex=True, gridspec_kw={"hspace": 0, "height_ratios": [3, 1]}
 )
-fig.suptitle("%s   Model: %s" % (args.srcname, args.model_str))
+fig.suptitle("%s   Model: %s" % (args.srcname, m1.expression))
 
 ax1.errorbar(en, rates, yerr=rates_err, color="black", marker='.',linestyle="",label='Data(Src)',zorder=1)
 ax1.errorbar(en_nobkg, rates_nobkg, yerr=rates_err_nobkg, color="green", marker='.',linestyle="",label='Data(Src+Bkg)',zorder=1)

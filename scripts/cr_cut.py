@@ -65,7 +65,7 @@ except:
         "You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!",
         file=sys.stderr,
     )
-    exit()
+    sys.exit(3)
 
 ################################################
 # Checking the presence of gti header and columns in data/
@@ -78,7 +78,7 @@ if not os.path.isfile(gtiheader) or not os.path.isfile(gticolumns):
             os.path.abspath(datadir)
         )
     )
-    exit()
+    sys.exit(2)
 
 ################################################
 desc = """
@@ -142,6 +142,9 @@ if "TIMEZERO" in etable.meta:
     etable.meta["TIMEZERO"] = 0.0
 
 eventgti = getgti(eventfile)
+if float(eventgti.meta["EXPOSURE"]) == 0:
+    log.error("No good time in event file, exiting!")
+    sys.exit(1)
 log.debug(
     "Changing name of TIME column of event file to MET (this is just for the nicer.plotutils.plot_light_curve call)"
 )
@@ -185,7 +188,7 @@ else:
         filterbinsize = args.filterbinsize
     except FileNotFoundError:
         log.error('Cannot find or open {}'.format(lcfile))
-        exit()
+        sys.exit(4)
     if filterbinsize != args.filterbinsize:
         log.warning('Using {} sec time binning from {}'.format(filterbinsize, lcfile))
 

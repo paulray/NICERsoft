@@ -459,8 +459,9 @@ for obsdir in all_obsids:
         ]
     runcmd(cmd)
 
-    if args.daynight and args.tidy:
-        os.remove(evfilename)
+    # If tidy and multiple event files were merged into 1, then delete that unneeded merged file
+    if args.tidy and len(evfiles) > 1:
+        os.remove(path.join(pipedir, "evfile.evt"))
 
     # Create any additional GTIs beyond what nimaketime does...
     extragtis = "NONE"
