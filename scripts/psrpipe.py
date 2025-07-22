@@ -418,7 +418,7 @@ for obsdir in all_obsids:
         evfilename=path.join(pipedir, "evfile.evt")
 
         # Since we have multiple files, make sure to sort the events in the merged file
-        unname = path.join(pipedir,"unsorted.evt"
+        unname = path.join(pipedir,"unsorted.evt")
         cmd = [ "niextract-events", f"filename=@{evlistname}", f"eventsout={unname}", "clobber=yes"  ]
         runcmd(cmd)
         cmd = [ "ftsort", f"infile={unname}", f"outfile={evfilename}", "columns=TIME", "clobber=yes"]
