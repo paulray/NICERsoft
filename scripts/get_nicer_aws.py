@@ -42,7 +42,11 @@ def query_nicer_observations(srcname=None, ra=None, dec=None, radius_deg=0.2):
 def filter_by_date(obs_table, start_date, end_date):
     """Filter Astropy table between two ISO date strings."""
     t_start = Time(start_date).mjd
-    t_end = Time(end_date).mjd
+    try:
+        t_end = Time(end_date).mjd
+    except:
+        print(f"Date conversion failed [{end_date}]")
+        t_end = Time.now().mjd
     return obs_table[(obs_table['time'] >= t_start) & (obs_table['time'] <= t_end)]
 
 
@@ -108,8 +112,8 @@ def main():
                         help="Search radius in degrees (default: 0.05)")
     parser.add_argument("-s", "--start", type=str, default="2017-01-01",
                         help="Start date (YYYY-MM-DD; default: 2017-01-01)")
-    parser.add_argument("-e", "--end", type=str, default="2032-12-31",
-                        help="End date (YYYY-MM-DD; default: 2032-12-31)")
+    parser.add_argument("-e", "--end", type=str, default="2030-12-31T00:00:00",
+                        help="End date (YYYY-MM-DD; default: 2030-12-31)")
     args = parser.parse_args()
 
     # Query NICER observations
