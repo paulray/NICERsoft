@@ -428,6 +428,12 @@ for obsdir in all_obsids:
         # Just take first (only) one!
         evfilename = evfiles[0]
 
+    # Check to be sure there are events in the file
+    nevents = int(fits.getval(evfilename,"NAXIS2",ext=1))
+    if nevents==0:
+        log.warning("No events in event file")
+        continue
+    
     if args.day:
         clsuffix = "_cleanfilt_DAY"
         intermediatename = path.join(pipedir, "intermediate_DAY.evt")
