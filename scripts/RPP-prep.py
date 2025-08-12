@@ -262,9 +262,9 @@ print('Emin,Emax (keV): ',emin_kev,emax_kev)
 
 # This makes the file merged_cut_profinfo.yml (or [srcname]_profinfo.yml)
 if args.srcname is None:
-    cmd = 'RPP-profile.py --outfile prof.png --optemin '+str(emin_kev)+' --optemax '+str(emax_kev)+' merged_cut.evt'
+    cmd = 'RPP-profile.py --outbase prof --optemin '+str(emin_kev)+' --optemax '+str(emax_kev)+' merged_cut.evt'
 else:
-    cmd = 'RPP-profile.py --srcname '+args.srcname+' --outfile '+args.srcname+'_prof.png'+' --optemin '+str(emin_kev)+' --optemax '+str(emax_kev)+' merged_cut.evt'
+    cmd = 'RPP-profile.py --srcname '+args.srcname+' --outbase '+args.srcname+'_prof'+' --optemin '+str(emin_kev)+' --optemax '+str(emax_kev)+' merged_cut.evt'
 print(cmd)
 os.system(cmd)
 

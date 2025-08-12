@@ -38,7 +38,7 @@ parser.add_argument(
     "--p0", type=float, default=0.005, help="p0 probability for Bayesian block analysis"
 )
 parser.add_argument(
-    "--outfile",
+    "--outbase",
     help="Output file for plot (type determined by extension)",
     default=None,
 )
@@ -50,6 +50,11 @@ parser.add_argument(
 parser.add_argument(
     "--fermi",
     help="Fermi LAT event file (FT1) name, with PULSE_PHASE and MODEL_WEIGHT columns",
+    default=None,
+)
+parser.add_argument(
+    "--lat3pc",
+    help="Fermi LAT 3PC data file for this pulsar, e.g. J0218+4232_3PC_data.fits",
     default=None,
 )
 args = parser.parse_args()
@@ -262,6 +267,9 @@ else:
     fig.suptitle(f"{objname} Exp={exp/1000.0:.3f} ks", y=0.95)
 axs[2].set_xlabel("Phase")
 
+if args.outbase is not None:
+    fig.savefig(f"{args.outbase}.png")
+
 if args.fermi:
     from pint.fits_utils import read_fits_event_mjds
 
@@ -278,8 +286,68 @@ if args.fermi:
     latax.step(x, np.concatenate((nfermi, nfermi)), where="post")
     latax.set_xlim((0.0, 2.0))
     latax.set_title("LAT Profile")
+    if args.outbase is not None:
+        latfig.savefig(f"{args.outbase}_LAT.png")
 
-if args.outfile is not None:
-    plt.savefig(args.outfile)
-else:
+if args.lat3pc:
+    print(f"3PC {args.lat3pc}")
+    multifig, multiax = plt.subplots(1, 1)
+    prof, edges = np.histogram(
+        ph_opt,
+        range=(0.0, 1.0),
+        bins=np.linspace(0.0, 1.0, args.nbins + 1, endpoint=True),
+    )
+    prof = np.array(prof, dtype=float)
+    rates = prof / (exp / args.nbins)
+
+    hasFit = False
+    hasRadio = False
+    with pyfits.open(args.lat3pc) as f:
+        dataphmin = f["GAMMA_LC"].data["Ph_Min"]
+        dataphmax = f["GAMMA_LC"].data["Ph_Max"]
+        dataCounts = f["GAMMA_LC"].data["GT100_WtCnt"]
+        dataCountsUnc = f["GAMMA_LC"].data["Unc_GT100_WtCnt"]
+
+        if "BEST_FIT_LC" in f:
+            fitphmin = f["BEST_FIT_LC"].data["Ph_Min"]
+            fitphmax = f["BEST_FIT_LC"].data["Ph_Max"]
+            fit = f["BEST_FIT_LC"].data["Intensity"]
+            hasFit = True
+
+        if "RADIO_PROFILE" in f:
+            radiophmin = f["RADIO_PROFILE"].data["Ph_Min"]
+            radiophmax = f["RADIO_PROFILE"].data["Ph_Max"]
+            radio = f["RADIO_PROFILE"].data["Norm_Intensity"]
+            hasRadio = True
+
+            middle = (dataphmin + dataphmax) / 2.0
+            multiax.plot(middle, dataCounts, "k-", label="LAT Data")
+
+            if hasRadio:
+                middle = (radiophmin + radiophmax) / 2.0
+                multiax.plot(middle, radio, "r-", label="Radio")
+
+            if hasFit:
+                middle = (fitphmin + fitphmax) / 2.0
+                multiax.plot(middle, fit, "b-", label="LAT Profile Fit")
+
+            multiax.set_xlabel("Phase")
+            multiax.set_ylabel("Weighted counts")
+            multiax.set_title(f"Multiband Profile for {args.srcname}")
+            multiax.grid(True)
+            multiax.legend()
+            multiax.set_xlim((0.0, 2.0))
+
+            # Now plot NICER
+            scale = dataCounts.max()/rates.max()
+            multiax.step(
+                np.concatenate((edges[:-1], 1.0 + edges)),
+                scale*np.concatenate((rates, rates, np.array(rates[-1:]))),
+                where="post",
+                label="NICER"
+            )
+            if args.outbase is not None:
+                plt.savefig(f"{args.outbase}_multi.png")
+
+if args.outbase is None:
     plt.show()
