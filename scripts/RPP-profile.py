@@ -331,13 +331,6 @@ if args.lat3pc:
                 middle = (fitphmin + fitphmax) / 2.0
                 multiax.plot(middle, fit, "b-", label="LAT Profile Fit")
 
-            multiax.set_xlabel("Phase")
-            multiax.set_ylabel("Weighted counts")
-            multiax.set_title(f"Multiband Profile for {args.srcname}")
-            multiax.grid(True)
-            multiax.legend()
-            multiax.set_xlim((0.0, 2.0))
-
             # Now plot NICER
             scale = dataCounts.max()/rates.max()
             multiax.step(
@@ -346,6 +339,13 @@ if args.lat3pc:
                 where="post",
                 label="NICER"
             )
+
+            multiax.set_xlabel("Phase")
+            multiax.set_ylabel("Weighted counts")
+            multiax.set_title(f"Multiband Profile for {args.srcname}")
+            multiax.grid(True)
+            multiax.legend()
+            multiax.set_xlim((0.0, 2.0))
             if args.outbase is not None:
                 plt.savefig(f"{args.outbase}_multi.png")
 
