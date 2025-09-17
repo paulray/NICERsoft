@@ -320,31 +320,41 @@ if args.lat3pc:
             radio = f["RADIO_PROFILE"].data["Norm_Intensity"]
             hasRadio = True
 
+            # PLOT FERMI LAT
             middle = (dataphmin + dataphmax) / 2.0
-            multiax.plot(middle, dataCounts, "k-", label="LAT Data")
+            dmin = dataCounts.min()
+            dmax = dataCounts.max()
+            scdata = (dataCounts-dmin)/(dmax-dmin)
+            multiax.step(middle, scdata + 2.0, "k-", where="post", label="Fermi/LAT")
 
+            # PLOT RADIO
             if hasRadio:
                 middle = (radiophmin + radiophmax) / 2.0
-                multiax.plot(middle, radio, "r-", label="Radio")
+                rmin = radio.min()
+                rmax = radio.max()
+                multiax.plot(middle, (radio-rmin)/(rmax-rmin), "r-", label="Radio",alpha=0.7)
 
-            if hasFit:
-                middle = (fitphmin + fitphmax) / 2.0
-                multiax.plot(middle, fit, "b-", label="LAT Profile Fit")
+            # if hasFit:
+            #     middle = (fitphmin + fitphmax) / 2.0
+            #     multiax.plot(middle, fit, "b-", label="LATile Fit")
 
             # Now plot NICER
-            scale = dataCounts.max()/rates.max()
+            rmin = rates.min()
+            rmax = rates.max()
+            scrates = (rates-rmin)/(rmax-rmin)
             multiax.step(
                 np.concatenate((edges[:-1], 1.0 + edges)),
-                scale*np.concatenate((rates, rates, np.array(rates[-1:]))),
+                np.concatenate((scrates, scrates, np.array(scrates[-1:])))+1.0,
                 where="post",
                 label="NICER"
             )
 
             multiax.set_xlabel("Phase")
-            multiax.set_ylabel("Weighted counts")
+            multiax.set_ylabel("Relative Intensity")
             multiax.set_title(f"Multiband Profile for {args.srcname}")
             multiax.grid(True)
             multiax.legend()
+            multiax.set_ylim(0.0,3.05)
             multiax.set_xlim((0.0, 2.0))
             if args.outbase is not None:
                 plt.savefig(f"{args.outbase}_multi.png")
