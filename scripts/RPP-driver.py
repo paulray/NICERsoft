@@ -44,6 +44,32 @@ parser.add_argument(
     default="0.01",
 )
 
+parser.add_argument(
+    "--add-gauss", dest="add_gauss", action="append", default=[],
+    help=(
+        "Add one Gaussian (repeatable). Format: LineE_keV,Sigma_keV,Norm. "
+        "If at least one --add-gauss is provided, Gaussians will be enabled. "
+        "Omitting the other Gaussian flags uses fit_rpp.py defaults."
+    )
+)
+
+parser.add_argument(
+    "--gauss-e-window", type=float, default=None,
+    help=(
+        "±ΔE (keV) window around initial LineE for each Gaussian. "
+        "If omitted, RPP-spec.py uses its default: 0.05 keV."
+    )
+)
+
+parser.add_argument(
+    "--gauss-sigma-bounds", type=str, default=None,
+    help=(
+        "Sigma bounds for all Gaussians as 'smin,smax' in keV. "
+        "If omitted, RPP-spec.py uses its default: 0.001,0.1 keV."
+    )
+)
+
+
 args = parser.parse_args()
 
 # --------------------------------------------
@@ -66,31 +92,40 @@ models = [
 ]
 models_short = ['bb','pow','2bb','bbpow','2bbpow']
 
-for m,ms in zip(models,models_short):
-    components = re.sub(r'[^a-zA-Z]+',' ',m)
-    components = components.split()
+for m, ms in zip(models, models_short):
+    components = re.sub(r'[^a-zA-Z]+', ' ', m).split()
 
-    ii_bb = [i for i, x in enumerate(components) if x == "bbody"]
-    ii_pow = [i for i, x in enumerate(components) if x == "powerlaw"]
-    ii_tbabs = [i for i, x in enumerate(components) if x == "tbabs"]
+    ii_bb   = [i for i, x in enumerate(components) if x == "bbody"]
+    ii_pow  = [i for i, x in enumerate(components) if x == "powerlaw"]
+    ii_tbabs= [i for i, x in enumerate(components) if x == "tbabs"]
 
-    for ii in range(0,len(ii_tbabs)):
+    for ii in range(len(ii_tbabs)):
         components[ii_tbabs[ii]] = nh_startval
-    for ii in range(0,len(ii_bb)):
+    for ii in range(len(ii_bb)):
         components[ii_bb[ii]] = bbody_startvals_list[ii]
-    for ii in range(0,len(ii_pow)):
+    for ii in range(len(ii_pow)):
         components[ii_pow[ii]] = plaw_startvals
 
-    startvals = ','.join(components)
+    startvals = ",".join(components)
 
     cmd = (
-    'RPP-spec.py "'+m+'" '+startvals+' --timestamp --loadfile '
-    + loadfile
-    + " --srcname "
-    + src
-    + " --outname "+src+'-scorp-'+ms
+        "RPP-spec.py" + ' "' + m + '" ' + startvals +
+        " --timestamp" +
+        " --loadfile " + loadfile +
+        " --srcname " + src +
+        " --outname " + src + "-scorp-" + ms
     )
-    
+
+    # Adds Gaussian components: only under user request
+    for g in args.add_gauss:
+        cmd += " --add-gauss " + g
+
+    # These two are optional: if the user passes them, they override the default values.
+    if args.gauss_e_window is not None:
+        cmd += " --gauss-e-window " + str(args.gauss_e_window)
+    if args.gauss_sigma_bounds is not None:
+        cmd += " --gauss-sigma-bounds " + args.gauss_sigma_bounds
+
     print(cmd)
     os.system(cmd)
 
