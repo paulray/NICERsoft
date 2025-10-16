@@ -64,6 +64,10 @@ hdulist = pyfits.open(args.evtfile)
 dat = hdulist[1].data
 hdr = hdulist[1].header
 basename = os.path.splitext(args.evtfile)[0]
+mjdstart = (dat["TIME"].min() + float(hdr["TIMEZERO"]))/86400.0 + float(hdr["MJDREFI"]) + float(hdr["MJDREFF"])
+mjdstop = (dat["TIME"].max() + float(hdr["TIMEZERO"]))/86400.0 + float(hdr["MJDREFI"]) + float(hdr["MJDREFF"])
+
+print(f"mjdstart = {mjdstart}")
 
 exp = float(hdr["EXPOSURE"])
 objname = hdr["OBJECT"]
@@ -258,6 +262,8 @@ outdict[objname]["exposure"] = exp
 outdict[objname]["optres"] = optres
 outdict[objname]["softres"] = softres
 outdict[objname]["hardres"] = hardres
+outdict[objname]["mjdstart"] =  float(mjdstart)
+outdict[objname]["mjdstop"] =  float(mjdstop)
 yaml.dump(outdict, outfile, default_flow_style=False)
 
 
