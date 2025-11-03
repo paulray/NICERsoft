@@ -6,6 +6,9 @@ import argparse
 import os, sys
 import time
 import numpy as np
+import re
+import traceback
+import copy
 
 # -------------------- Helpers & parsing --------------------
 
@@ -311,6 +314,8 @@ Xset.save(xcmfile)
 # -------------------- Save YAML --------------------
 # Use component attribute names so that repeated components are handled correctly.
 
+bestfit_params = []
+
 with open(ymlfile, "w") as fd:
     bbody_count = 0
     gauss_count = 0
@@ -332,6 +337,8 @@ with open(ymlfile, "w") as fd:
             plo = max(p.values[0] - p.sigma, p.values[2])
             phi = min(p.values[0] + p.sigma, p.values[5])
 
+            bestfit_params.append(pval)
+            
             if base == "tbabs":
                 fd.write("nH: %g\n" % pval)
                 fd.write("nH_sigma: %g\n" % psigma)
@@ -457,3 +464,153 @@ ax2.set_ylabel("Data/Full Model")
 ax2.tick_params(axis="x", which="both", top=True, direction="in", labelbottom=True)
 
 plt.savefig(pngfile)
+
+
+# cflux calculations -------------------------------------------------------
+
+# Args: the model string WITH cflux; the best-fit model parameters from the previously done fit of the model WITHOUT cflux; cflux starting parameters
+def cflux(cflux_model_str,model_pars,cflux_start_pars,loadfile=args.loadfile,models=AllModels):
+    print('\n')
+    print('**************************************************')
+    print('****************CFLUX CALCULATION*****************')
+    print('**************************************************')
+
+    # Figure out where in the starting model parameters array we need to insert the cflux starting params
+    comps = re.split('[^a-zA-Z]', cflux_model_str)
+    count_pars = 0 
+    for comp in comps:
+        if 'tbabs' in comp.lower():
+            count_pars += 1
+        elif 'body' in comp.lower() or 'pow' in comp.lower():
+            count_pars += 2
+        elif 'gauss' in comp.lower():
+            count_pars += 3
+        elif 'cflux' in comp.lower():
+            start_pars = model_pars[0:count_pars] + cflux_start_pars + model_pars[count_pars:]
+            break
+
+    print('Model str: ',cflux_model_str)
+    print('Model start params: ',start_pars)
+    print('**************************************************')
+    
+    # Initialize model - this assumes the loadfile has been read in the caller AFTER the plotting block. The background file is removed in the plotting block to get the src-only curve, so have to read it again before fitting the cflux models.
+
+    # Can't do AllModels.clear() here b/c we need the sky and nxb models
+    try:
+        models -= "m2" #this throws an error on the 1st cflux() invocation b/c m2 doesn't yet exist; that is ok.
+    except:
+        #traceback.print_exc()
+        pass
+    
+    m2 = Model(cflux_model_str, modName="m2")
+    m2.setPars(start_pars)
+
+    # Freeze Emin,Emax, and all non-cflux params (or just norms).
+    # Save the flux param index - we'll use it later to get the best-fit values.
+    ii_flux = -1
+    for ii in range(m2.startParIndex,m2.nParameters+1):
+        #if 'lg10flux' not in (m2(ii).name).lower():
+        if any(elem in (m2(ii).name).lower() for elem in ['emin','emax','norm']):
+            m2(ii).frozen = True
+        if 'lg10flux' in (m2(ii).name).lower():
+            ii_flux = ii
+            #print('ii_flux: ',ii_flux)
+
+    AllModels.show()
+    
+    # Do the fit
+    Fit.statMethod = "pgstat"
+    Fit.nIterations = 200
+    Fit.query = "no"
+    try:
+        Fit.perform()
+    except Exception as e:
+        print('Fit failed.')
+        #print(e)
+        traceback.print_exc()
+        return [-1,-1]
+        
+    Fit.show()
+    return [m2(ii_flux).values[0], m2(ii_flux).sigma]
+    
+
+print("********************* CFLUX STARTING *****************************")
+
+# Remove the non-cflux model, we have saved its best-fit params and don't need it any more
+AllModels -= "m1"
+# It is not necessary to re-load the initial file defining the data here b/c unlike the OnOff case, there is no background file removal in the plotting block. All data files are still in place.
+
+# Freeze all params in the sky and nxb models. Most cases run fine if these aren't fully frozen, but I had one case go into an infinite loop.
+for ii in range(nxb.startParIndex,nxb.nParameters+1):
+    nxb(ii).frozen = True
+for ii in range(sky.startParIndex,sky.nParameters+1):
+    sky(ii).frozen = True
+
+cflux_start_params_loint = [0.4, 2.0, np.log10(flux_loint)]
+cflux_start_params_hiint = [2.0, 10.0, np.log10(flux_hiint)]
+fd = open(ymlfile,'a')
+
+# Absorbed for the full model
+cflux_model_str = 'cflux*'+full_expr
+log10flux_abs, log10flux_abs_sigma = cflux(cflux_model_str,bestfit_params,cflux_start_params_loint)
+fd.write("log10flux_abs_0.4-2: %g\n" % log10flux_abs)
+fd.write("log10flux_abs_0.4-2_sigma: %g\n" % log10flux_abs_sigma)
+log10flux_abs, log10flux_abs_sigma = cflux(cflux_model_str,bestfit_params,cflux_start_params_hiint)
+fd.write("log10flux_abs_2-10: %g\n" % log10flux_abs)
+fd.write("log10flux_abs_2-10_sigma: %g\n" % log10flux_abs_sigma)
+
+# Unabsorbed for the full model
+cflux_model_str_unabs = 'tbabs*cflux'+(full_expr).split('tbabs')[-1]
+log10flux_unabs, log10flux_unabs_sigma = cflux(cflux_model_str_unabs,bestfit_params,cflux_start_params_loint)
+fd.write("log10flux_unabs_0.4-2: %g\n" % log10flux_unabs)
+fd.write("log10flux_unabs_0.4-2_sigma: %g\n" % log10flux_unabs_sigma)
+log10flux_unabs, log10flux_unabs_sigma = cflux(cflux_model_str_unabs,bestfit_params,cflux_start_params_hiint)
+fd.write("log10flux_unabs_2-10: %g\n" % log10flux_unabs)
+fd.write("log10flux_unabs_2-10_sigma: %g\n" % log10flux_unabs_sigma)
+
+# Unabsorbed for components separately if there is more than one within braces
+bbody_count = 0
+gauss_count = 0
+
+if '(' in full_expr:
+    tmp1 = (full_expr).split('(')
+    tmp2 = tmp1[-1].split(')')[0]
+    comps = tmp2.split('+')
+
+    for ii in range(0,len(comps)):
+        newcomps = copy.deepcopy(comps)
+        newcomps[ii] = 'cflux*'+comps[ii]
+        newcomps = '+'.join(newcomps)
+
+        cflux_comp_unabs = tmp1[0]+'('+newcomps+')'
+
+        log10flux_loint, log10flux_loint_sigma = cflux(cflux_comp_unabs,bestfit_params,cflux_start_params_loint)
+        log10flux_hiint, log10flux_hiint_sigma = cflux(cflux_comp_unabs,bestfit_params,cflux_start_params_hiint)
+
+        if 'bbody' in comps[ii]:
+            bbody_count += 1
+            if bbody_count < 2:
+                fd.write("log10flux_bbody_0.4-2: %g\n" % log10flux_loint)
+                fd.write("log10flux_bbody_0.4-2_sigma: %g\n" % log10flux_loint_sigma)
+                fd.write("log10flux_bbody_2-10: %g\n" % log10flux_hiint)
+                fd.write("log10flux_bbody_2-10_sigma: %g\n" % log10flux_hiint_sigma)
+            else:
+                fd.write("log10flux_bbody%d_0.4-2: %g\n" % (bbody_count,log10flux_loint))
+                fd.write("log10flux_bbody%d_0.4-2_sigma: %g\n" % (bbody_count,log10flux_loint_sigma))
+                fd.write("log10flux_bbody%d_2-10: %g\n" % (bbody_count,log10flux_hiint))
+                fd.write("log10flux_bbody%d_2-10_sigma: %g\n" % (bbody_count,log10flux_hiint_sigma))
+        elif 'pow' in comps[ii]:
+            fd.write("log10flux_pow_0.4-2: %g\n" % log10flux_loint)
+            fd.write("log10flux_pow_0.4-2_sigma: %g\n" % log10flux_loint_sigma)
+            fd.write("log10flux_pow_2-10: %g\n" % log10flux_hiint)
+            fd.write("log10flux_pow_2-10_sigma: %g\n" % log10flux_hiint_sigma)
+        elif 'gauss' in comps[ii]:
+            gauss_count += 1
+            fd.write("log10flux_gauss%d_0.4-2: %g\n" % (gauss_count,log10flux_loint))
+            fd.write("log10flux_gauss%d_0.4-2_sigma: %g\n" % (gauss_count,log10flux_loint_sigma))
+            fd.write("log10flux_gauss%d_2-10: %g\n" % (gauss_count,log10flux_hiint))
+            fd.write("log10flux_gauss%d_2-10_sigma: %g\n" % (gauss_count,log10flux_hiint_sigma))
+        
+
+fd.close()
+
