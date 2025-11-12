@@ -298,6 +298,8 @@ if args.fermi:
 if args.lat3pc:
     print(f"3PC {args.lat3pc}")
     multifig, multiax = plt.subplots(1, 1)
+
+    # --- NICER profile (always available): compute, but don't plot yet
     prof, edges = np.histogram(
         ph_opt,
         range=(0.0, 1.0),
@@ -305,65 +307,71 @@ if args.lat3pc:
     )
     prof = np.array(prof, dtype=float)
     rates = prof / (exp / args.nbins)
+    rmin = rates.min()
+    rmax = rates.max()
+    scrates = (rates - rmin) / (rmax - rmin + 1e-12)
 
-    hasFit = False
-    hasRadio = False
+    # Flags and data holders
+    has_lat = False
+    has_radio = False
+    lat_x = lat_y = None
+    radio_x = radio_y = None
+
+    # --- Try to read LAT and RADIO from the 3PC file
     with pyfits.open(args.lat3pc) as f:
-        dataphmin = f["GAMMA_LC"].data["Ph_Min"]
-        dataphmax = f["GAMMA_LC"].data["Ph_Max"]
-        dataCounts = f["GAMMA_LC"].data["GT100_WtCnt"]
-        dataCountsUnc = f["GAMMA_LC"].data["Unc_GT100_WtCnt"]
-
-        if "BEST_FIT_LC" in f:
-            fitphmin = f["BEST_FIT_LC"].data["Ph_Min"]
-            fitphmax = f["BEST_FIT_LC"].data["Ph_Max"]
-            fit = f["BEST_FIT_LC"].data["Intensity"]
-            hasFit = True
+        if "GAMMA_LC" in f:
+            has_lat = True
+            dataphmin = f["GAMMA_LC"].data["Ph_Min"]
+            dataphmax = f["GAMMA_LC"].data["Ph_Max"]
+            dataCounts = f["GAMMA_LC"].data["GT100_WtCnt"]
+            mid = (dataphmin + dataphmax) / 2.0
+            dmin = np.nanmin(dataCounts)
+            dmax = np.nanmax(dataCounts)
+            scdata = (dataCounts - dmin) / (dmax - dmin + 1e-12)
+            lat_x, lat_y = mid, scdata
 
         if "RADIO_PROFILE" in f:
+            has_radio = True
             radiophmin = f["RADIO_PROFILE"].data["Ph_Min"]
             radiophmax = f["RADIO_PROFILE"].data["Ph_Max"]
             radio = f["RADIO_PROFILE"].data["Norm_Intensity"]
-            hasRadio = True
+            midr = (radiophmin + radiophmax) / 2.0
+            rmin_r = np.nanmin(radio)
+            rmax_r = np.nanmax(radio)
+            sradio = (radio - rmin_r) / (rmax_r - rmin_r + 1e-12)
+            radio_x, radio_y = midr, sradio
 
-            # PLOT FERMI LAT
-            middle = (dataphmin + dataphmax) / 2.0
-            dmin = dataCounts.min()
-            dmax = dataCounts.max()
-            scdata = (dataCounts-dmin)/(dmax-dmin)
-            multiax.step(middle, scdata + 2.0, "k-", where="post", label="Fermi/LAT")
+    # --- Dynamic stacking: assign vertical levels only to available series
+    level = 0.0
+    if has_radio:
+        multiax.plot(radio_x, radio_y, "r-", label="Radio", alpha=0.7)
+        level += 1.0
 
-            # PLOT RADIO
-            if hasRadio:
-                middle = (radiophmin + radiophmax) / 2.0
-                rmin = radio.min()
-                rmax = radio.max()
-                multiax.plot(middle, (radio-rmin)/(rmax-rmin), "r-", label="Radio",alpha=0.7)
+    # NICER goes next
+    multiax.step(
+        np.concatenate((edges[:-1], 1.0 + edges)),
+        np.concatenate((scrates, scrates, np.array(scrates[-1:]))) + (level if level else 0.0),
+        where="post",
+        label="NICER"
+    )
+    level += 1.0
 
-            # if hasFit:
-            #     middle = (fitphmin + fitphmax) / 2.0
-            #     multiax.plot(middle, fit, "b-", label="LATile Fit")
+    # LAT on top if present
+    if has_lat:
+        multiax.step(lat_x, lat_y + level, "k-", where="post", label="Fermi/LAT")
+        level += 1.0
 
-            # Now plot NICER
-            rmin = rates.min()
-            rmax = rates.max()
-            scrates = (rates-rmin)/(rmax-rmin)
-            multiax.step(
-                np.concatenate((edges[:-1], 1.0 + edges)),
-                np.concatenate((scrates, scrates, np.array(scrates[-1:])))+1.0,
-                where="post",
-                label="NICER"
-            )
+    # Layout
+    multiax.set_xlabel("Phase")
+    multiax.set_ylabel("Relative Intensity")
+    multiax.set_title(f"Multiband Profile for {args.srcname}")
+    multiax.grid(True)
+    multiax.legend()
+    multiax.set_xlim((0.0, 2.0))
+    multiax.set_ylim(0.0, level + 0.05)   # just enough headroom for the highest tier
 
-            multiax.set_xlabel("Phase")
-            multiax.set_ylabel("Relative Intensity")
-            multiax.set_title(f"Multiband Profile for {args.srcname}")
-            multiax.grid(True)
-            multiax.legend()
-            multiax.set_ylim(0.0,3.05)
-            multiax.set_xlim((0.0, 2.0))
-            if args.outbase is not None:
-                plt.savefig(f"{args.outbase}_multi.png")
+    if args.outbase is not None:
+        plt.savefig(f"{args.outbase}_multi.png")
 
 if args.outbase is None:
     plt.show()
