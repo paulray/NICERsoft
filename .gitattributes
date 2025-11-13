@@ -1,0 +1,14 @@
+*          text=auto eol=lf
+*.py       text eol=lf
+*.sh       text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.json     text eol=lf
+*.ipynb    text eol=lf
+*.fits     binary
+*.png      binary
+*.jpg      binary
+*.pdf      binary
+*.gz       binary
+*.bz2      binary
+*.xz       binary
