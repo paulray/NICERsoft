@@ -109,6 +109,11 @@ parser.add_argument("--warn", action="store_true", default=False,
 parser.add_argument("--timestamp", action="store_true", default=False,
                     help="Append date/time to output filenames.")
 
+parser.add_argument("--nxb-set", action="append", default=[],
+                    help="Set NXB parameter values (XSPEC syntax). Multiple assignments may be separated by ';'.")
+parser.add_argument("--sky-set", action="append", default=[],
+                    help="Set SKY parameter values (XSPEC syntax). Multiple assignments may be separated by ';'.")
+
 args = parser.parse_args()
 
 # -------------------- XSPEC globals --------------------
@@ -197,6 +202,7 @@ AllModels.show()
 sky = AllModels(1, modName="sky")
 nxb = AllModels(1, modName="nxb")
 
+
 timestamp = time.strftime("%Y%m%d-%H%M%S")
 
 # -------------------- Fit --------------------
@@ -213,6 +219,49 @@ else:
     pngfile = f"{args.outname}.png"
 
 frozen_list = []
+
+# --- Background presets (values + keep them thawed) -----------------------
+import re as _re
+
+def _expand_assignments(list_or_none):
+    """Split each provided string on ';' and strip."""
+    out = []
+    for s in (list_or_none or []):
+        parts = [p.strip() for p in s.split(";") if p.strip()]
+        out.extend(parts)
+    return out
+
+def _apply_assignments(assign_list, ctx_name, modified_params, frozen_log):
+    """
+    Each assignment is like:
+      'nxb(4)=8.7'  or  'nxb(4)=8.7,0.05,0,0,1e20,1e24'  or  'sky(6)=0'
+    LHS is evaluated with eval() (e.g. nxb(4)); RHS is passed to Parameter.values.
+    The parameter is made thawed (frozen=False).
+    """
+    for expr in _expand_assignments(assign_list):
+        try:
+            lhs, rhs = _re.split(r"\s*=\s*|\s*:\s*", expr, maxsplit=1)
+            lhs = lhs.strip()
+            rhs = rhs.strip()
+            p = eval(lhs)              # e.g. nxb(4) or sky(6)
+            p.values = rhs             # can be 'val' or 'val,delta,min,bot,top,max'
+            p.frozen = False           # ensure this is free
+            modified_params.append(p)  # remember for post-FREEZE re-thaw
+            tmp = " ".join(map(str, p.values))
+            frozen_log.append(f"\n[PRESET {ctx_name}] {lhs} set -> (val,delta,min,bot,top,max): {tmp}  [thawed]")
+        except Exception as e:
+            frozen_log.append(f"\n[WARN PRESET {ctx_name}] Could not apply '{expr}': {e}")
+
+# collect modified background params to re-thaw them later if needed
+_modified_bg_params = []
+_apply_assignments(args.nxb_set, "NXB", _modified_bg_params, frozen_list)
+_apply_assignments(args.sky_set, "SKY", _modified_bg_params, frozen_list)
+# -------------------------------------------------------------------------
+
+
+
+
+
 
 # Pre-fit THAW
 frozen_list.append("\n\nTHAWED on command line by user pre-fit:\n")
@@ -233,6 +282,17 @@ for pname in (args.freeze if isinstance(args.freeze, list) else [args.freeze]):
     p.frozen = True
     tmp = " ".join(list(map(str, p.values)))
     frozen_list.append(f"\n{pname} frozen with (val,delta,min,bot,top,max): {tmp}")
+
+
+# Ensure background presets stay thawed even if user froze them in --freeze
+for p in _modified_bg_params:
+    try:
+        p.frozen = False
+    except Exception:
+        pass
+
+
+
 
 Fit.statMethod = "pgstat"
 Fit.nIterations = 200
@@ -613,4 +673,3 @@ if '(' in full_expr:
         
 
 fd.close()
-
