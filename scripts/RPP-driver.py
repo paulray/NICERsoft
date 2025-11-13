@@ -69,6 +69,24 @@ parser.add_argument(
     )
 )
 
+parser.add_argument(
+    "--nxb-set", action="append", default=[],
+    help=("Set NXB parameter values (XSPEC syntax). Repeatable. "
+          "Each option may contain multiple assignments separated by ';'. "
+          "Examples: \"nxb(4)=8.7\"  or  \"nxb(4)=8.7; nxb(6)=0\"  or  "
+          "\"nxb(4)=8.7,0.05,0,0,1e20,1e24\".")
+)
+parser.add_argument(
+    "--sky-set", action="append", default=[],
+    help=("Set SKY parameter values (XSPEC syntax). Repeatable. "
+          "Each option may contain multiple assignments separated by ';'. "
+          "Examples: \"sky(6)=0\"  or  \"sky(8)=1e-3; sky(6)=0\"  or  "
+          "\"sky(8)=1e-3,0,0,0,1e20,1e24\"."
+    )
+)
+
+
+
 
 args = parser.parse_args()
 
@@ -113,7 +131,8 @@ for m, ms in zip(models, models_short):
         " --timestamp" +
         " --loadfile " + loadfile +
         " --srcname " + src +
-        " --outname " + src + "-scorp-" + ms
+        " --outname " + src + "-scorp-" + ms +
+        " --thaw 'nxb(1),nxb(7),nxb(10),nxb(11),nxb(12)' "
     )
 
     # Adds Gaussian components: only under user request
@@ -126,6 +145,12 @@ for m, ms in zip(models, models_short):
     if args.gauss_sigma_bounds is not None:
         cmd += " --gauss-sigma-bounds " + args.gauss_sigma_bounds
 
+
+    # forward background presets
+    for s in args.nxb_set:
+        cmd += " --nxb-set '" + s + "'"
+    for s in args.sky_set:
+        cmd += " --sky-set '" + s + "'"
+
     print(cmd)
     os.system(cmd)
-
