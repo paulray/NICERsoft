@@ -132,7 +132,6 @@ for m, ms in zip(models, models_short):
         " --loadfile " + loadfile +
         " --srcname " + src +
         " --outname " + src + "-scorp-" + ms +
-        " --thaw 'nxb(1),nxb(7),nxb(10),nxb(11),nxb(12)' "
     )
 
     # Adds Gaussian components: only under user request
