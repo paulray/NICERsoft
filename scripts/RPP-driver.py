@@ -131,7 +131,7 @@ for m, ms in zip(models, models_short):
         " --timestamp" +
         " --loadfile " + loadfile +
         " --srcname " + src +
-        " --outname " + src + "-scorp-" + ms +
+        " --outname " + src + "-scorp-" + ms
     )
 
     # Adds Gaussian components: only under user request
