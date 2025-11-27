@@ -67,6 +67,14 @@ parser.add_argument(
     type=float,
     default=None
 )
+# NEW: expose Bayesian Blocks p0 as a CLI option (passed through to RPP-profile.py)
+parser.add_argument(
+    "--p0",
+    help="Bayesian Blocks false-positive rate (passed to RPP-profile.py). Typical values: 0.005–0.3.",
+    type=float,
+    default=0.005
+)
+
 args = parser.parse_args()
 
 par = args.parfile
@@ -92,7 +100,8 @@ if args.rephase:
     
     for p in pipe_dirs:
         eventfile = p+'/cleanfilt.evt'
-        orbfile = glob(p+'/*.orb')[0]
+        # Accept both plain .orb and gzipped .orb.gz (use wildcard .orb*)
+        orbfile = glob(p+'/*.orb*')[0]
 
         cmd = 'photonphase --orbfile '+orbfile+' --addphase '+eventfile+' '+args.parfile
         print(cmd)
@@ -144,7 +153,8 @@ else:
 
 # -------------------------------------
 
-cmd = 'ls -1 [0-9]*_pipe/*.orb > orbfiles.txt'
+# Collect both .orb and .orb.gz into the list (wildcard .orb*)
+cmd = 'ls -1 [0-9]*_pipe/*.orb* > orbfiles.txt'
 print(cmd)
 os.system(cmd)
 
@@ -260,11 +270,12 @@ else:
     
 print('Emin,Emax (keV): ',emin_kev,emax_kev)
 
-# This makes the file merged_cut_profinfo.yml (or [srcname]_profinfo.yml)
+# Build the RPP-profile command and inject user-selected p0
+# NOTE: --p0 controls the Bayesian Blocks false-positive rate in off-pulse detection.
 if args.srcname is None:
-    cmd = 'RPP-profile.py --outbase prof --optemin '+str(emin_kev)+' --optemax '+str(emax_kev)+' merged_cut.evt'
+    cmd = 'RPP-profile.py --outbase prof --optemin '+str(emin_kev)+' --optemax '+str(emax_kev)+' --p0 '+str(args.p0)+' merged_cut.evt'
 else:
-    cmd = 'RPP-profile.py --srcname '+args.srcname+' --outbase '+args.srcname+'_prof'+' --optemin '+str(emin_kev)+' --optemax '+str(emax_kev)+' merged_cut.evt'
+    cmd = 'RPP-profile.py --srcname '+args.srcname+' --outbase '+args.srcname+'_prof'+' --optemin '+str(emin_kev)+' --optemax '+str(emax_kev)+' --p0 '+str(args.p0)+' merged_cut.evt'
 print(cmd)
 os.system(cmd)
 
