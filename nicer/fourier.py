@@ -10,8 +10,8 @@ import sys
 import scipy.stats
 
 
-def compute_fourier(phases, nh=10, pow_phase=False):
-    """Compute Fourier amplitudes from an array of pulse phases
+def compute_fourier(phases, nh=10, pow_phase=False, with_phase_errors=False):
+    """Compute Fourier powers from an array of pulse phases
     phases should be [0,1.0)
     nh is the number of harmonics (1 = fundamental only)
     Returns: cos and sin component arrays, unless pow_phase is True
@@ -27,11 +27,26 @@ def compute_fourier(phases, nh=10, pow_phase=False):
 
     if not pow_phase:
         return n, c, s
-    # CHECK!  There could be errors here!
     # These should be Leahy normalized powers
     fourier_pow = (n / 2) * (c**2 + s**2)
+    # These phases are in radians
     fourier_phases = np.arctan2(s, c)
-    return n, fourier_pow, fourier_phases
+
+    if not with_phase_errors:
+        return n, fourier_pow, fourier_phases
+
+    # Here we compute the Fourier amplitudes (not powers, and not Leahy normalized)
+    # This allows us to compute the uncertainties, but note:
+    # * When SNR<3, the phase is poorly constrained and Gaussian approx breaks down
+    # * Also at low SNR, the amplitude is biased high
+    # Here the amplitude is normalized such that for a pure sinusoid, A_1 = 1 means 100% modulation,
+    # i.e. represents the peak-to-peak variation
+    fourier_amp = np.sqrt(c**2 + s**2)
+    sigma_component = np.sqrt(2.0 / n)
+    amplitude_errs = np.full(nh, sigma_component)
+    # Note that SNR = fourier_amp / amplitude_errs
+    phase_errs = sigma_component / fourier_amp  # in radians
+    return n, fourier_pow, fourier_phases, phase_errs
 
 
 def evaluate_fourier(n, c, s, nbins, k=None):
