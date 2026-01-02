@@ -75,7 +75,11 @@ if etable.meta["TIMESYS"] != "TDB" and not args.force:
     sys.exit(1)
 gtitable = Table.read(args.evfile, hdu="GTI")
 
-epoch_met = gtitable["START"][0]
+try:
+    epoch_met = gtitable["START"][0]
+except KeyError:
+    epoch_met = gtitable['Start'][0]
+    
 # WARNING: This loses precision! Should be done with astropy times
 # Should make utility routine to convert FITS TIME column to astropy times properly
 epoch_mjd = (
@@ -92,7 +96,10 @@ eventtimes.tofile("{0}.events".format(base))
 if args.nbins > 0:
     nbins = args.nbins
 else:
-    nbins = choose_N((gtitable["STOP"][-1] - epoch_met) / args.dt)
+    try:
+        nbins = choose_N((gtitable["STOP"][-1] - epoch_met) / args.dt)
+    except KeyError:
+        nbins = choose_N((gtitable["Stop"][-1] - epoch_met) / args.dt)
 log.info(
     "Using {0} bins of width {1} seconds for total of {2} s".format(
         nbins, args.dt, nbins * args.dt

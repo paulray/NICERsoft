@@ -82,12 +82,17 @@ def light_curve(
 
 def get_phases(ft1file, get_weights=False, weightcol="WEIGHT", tmin=0,tmax=999999999):
     f = pyfits.open(ft1file)
-    phases = np.asarray(f["EVENTS"].data.field("PULSE_PHASE"), dtype=float)
-    mask = (f["events"].data.field("TIME") < tmax) & (f["events"].data.field("TIME") > tmin)
+    try:
+        phases = np.asarray(f["EVENTS"].data.field("PULSE_PHASE"), dtype=float)
+        evhdu = "EVENTS"
+    except KeyError:
+        phases = np.asarray(f["XTE_SE"].data.field("PULSE_PHASE"), dtype=float)
+        evhdu = "XTE_SE"
+    mask = (f[evhdu].data.field("TIME") < tmax) & (f[evhdu].data.field("TIME") > tmin)
     print(len(mask), mask.sum())
     phases = phases[mask]
     if get_weights:
-        weights = np.asarray(f["EVENTS"].data.field(weightcol), dtype=float)
+        weights = np.asarray(f[evhdu].data.field(weightcol), dtype=float)
         weights = weights[mask]
     else:
         weights = None
