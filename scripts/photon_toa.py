@@ -36,11 +36,13 @@ from pint.observatory.special_locations import T2SpacecraftObs
 
 # import pint.logging
 from loguru import logger as log
+
 log.remove()
-log.add(sys.stdout,level="INFO")
+log.add(sys.stdout, level="INFO")
 
 # pint.logging.setup(level=pint.logging.script_level)
 is_sorted = lambda a: np.all(a[:-1] <= a[1:])
+
 
 def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
     """Return a pint TOA object for the provided times and phases.
@@ -75,13 +77,36 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
     # Given some subset of the event times, phases, and weights, compute
     # the TOA based on a reference event near the middle of the span.
     # Build the TOA as a PINT TOA() object
-    lcf = lcfitters.LCFitter(deepcopy(template), phases)
-    # fitbg does not work!  Disabling.
-    #    if args.fitbg:
-    #        for i in range(2):
-    #            lcf.fit_position(unbinned=False)
-    #            lcf.fit_background(unbinned=False)
-    dphi, dphierr = lcf.fit_position(unbinned=args.unbinned, track=args.track)
+
+    if args.templatename.startswith("harm"):
+        # Put code here to measure phase of harmonic harmnum
+        n, fourier_amps, fourier_phases, phase_errs = compute_fourier(
+            phases, nh=harmnum, pow_phase=True, with_phase_errors=True
+        )
+        # These come in radians, so need to be divided by 2pi, I think
+        dphi = fourier_phases[harmnum - 1] / (2.0 * np.pi)
+        dphierr = phase_errs[harmnum - 1] / (2.0 * np.pi)
+        # Correct for the harmonic. 1 turn for harm=1 is 2 turns for harm=2
+        # So harm=2 can only represent +/- 1/2 of a full pulsar period
+        dphi /= harmnum
+        dphierr /= harmnum
+        # This is an approximate number of photons involved in the selected harmonic
+        # For sharply peaked profiles, it can be >1.0, but in most cases it should give a reasonable rough estimate
+        frac_amps = np.sqrt(fourier_amps * 2.0 / len(phases))
+        log.info(f"Nphot = {len(phases)}, Amps = {frac_amps}")
+        nsrc = frac_amps[harmnum - 1] * len(phases)
+        nbkg = len(phases) - nsrc
+    else:
+        lcf = lcfitters.LCFitter(deepcopy(template), phases)
+        # fitbg does not work!  Disabling.
+        #    if args.fitbg:
+        #        for i in range(2):
+        #            lcf.fit_position(unbinned=False)
+        #            lcf.fit_background(unbinned=False)
+        dphi, dphierr = lcf.fit_position(unbinned=args.unbinned, track=args.track)
+        nsrc = lcf.template.norm() * len(lcf.phases)
+        nbkg = (1 - lcf.template.norm()) * len(lcf.phases)
+
     log.info("Measured phase shift dphi={0}, dphierr={1}".format(dphi, dphierr))
 
     # find time of event closest to center of observation and turn it into a TOA
@@ -92,13 +117,15 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
         mjds = mjds[ii]
         phases = phases[ii]
         ph_times = ph_times[ii]
-        
+
     argmid = np.searchsorted(mjds, 0.5 * (mjds.min() + mjds.max()))
     if tmid is None:
         try:
             tmid = ph_times[argmid]
         except IndexError:
-            log.error(f"Faild to compute tmid: Len(mjds) = {len(mjds)} len(ph_times) = {len(ph_times)},  min = {mjds.min()}, max = {mjds.max()}, argmid = {argmid}")
+            log.error(
+                f"Faild to compute tmid: Len(mjds) = {len(mjds)} len(ph_times) = {len(ph_times)},  min = {mjds.min()}, max = {mjds.max()}, argmid = {argmid}"
+            )
 
             log.error(f"is_sorted(mjds) = {is_sorted(mjds)}")
             sys.exit(1)
@@ -157,9 +184,6 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
     )
 
     # Use PINT's TOA writer to save the TOA
-    nsrc = lcf.template.norm() * len(lcf.phases)
-    nbkg = (1 - lcf.template.norm()) * len(lcf.phases)
-
     if args.topo:  # tfinal is a topocentric TT MJD
         telposvel = obs.posvel_gcrs(tfinal)
         x = telposvel.pos[0].to(u.km)
@@ -204,19 +228,28 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
         log.debug(
             "Modelin final phase {}".format(modelin.phase(toasfinal, abs_phase=True))
         )
-    log.info(
-        "Src rate = {0} c/s, Bkg rate = {1} c/s".format(
-            nsrc / exposure, nbkg / exposure
+    if exposure > 0:
+        log.info(
+            "Src rate = {0} c/s, Bkg rate = {1} c/s".format(
+                nsrc / exposure, nbkg / exposure
+            )
         )
-    )
     return toafinal, dphierr / f.value * 1.0e6
 
 
-desc = """Generate TOAs from photon event data."""
+desc = """Generate TOAs from photon event data.
+
+Normally uses a multi-gaussian template as the reference,
+but can also compute TOAs from the phase of a Fourier analysis of the photon phases.
+You can select this mode by using 'harmN' for the template, where N is the harmonic number whose
+phase you want to measure (harm1 is the fundamental)."""
 
 parser = argparse.ArgumentParser(description=desc)
 parser.add_argument("eventname", help="FITS file to read events from")
-parser.add_argument("templatename", help="Name of file to read template from")
+parser.add_argument(
+    "templatename",
+    help="Name of file to read template from, or 'harmN' for the Nth harmonic (e.g. harm1=fundamental)",
+)
 parser.add_argument("parname", help="Timing model file name")
 parser.add_argument("--orbfile", help="Name of orbit file", default=None)
 parser.add_argument(
@@ -314,12 +347,25 @@ else:
     planets = False
 
 # Load Template objects
-try:
-    template = pickle.load(open(args.templatename, "r"))
-except:
-    primitives, norms = prim_io(args.templatename)
-    template = LCTemplate(primitives, norms)
-# print(template)
+if args.templatename.startswith("harm"):
+    template = "harm"
+    harmnum = int(args.templatename.replace("harm", ""))
+    log.info(f"Computing phases from harmonic {harmnum} instead of a template")
+    try:
+        from nicer.fourier import compute_fourier
+    except:
+        print(
+            "ERROR: import nicer.fourier FAILED! Harmonic phase calculation requires NICERSoft (https://github.com/paulray/NICERSoft)."
+        )
+else:
+    harmnum = 0
+    try:
+        template = pickle.load(open(args.templatename, "r"))
+    except:
+        primitives, norms = prim_io(args.templatename)
+        template = LCTemplate(primitives, norms)
+    # print(template)
+
 
 # Load photons as PINT toas, and weights, if specified
 # Here I might loop over the files specified
@@ -631,6 +677,12 @@ if args.append:
     output = output.replace("\n\n", "\n")
 
 if args.outfile is not None:
-    print(output, file=open(args.outfile, "a" if args.append else "w"))
+    if harmnum > 0:
+        print(
+            output,
+            file=open(args.outfile + f"-h{harmnum}", "a" if args.append else "w"),
+        )
+    else:
+        print(output, file=open(args.outfile, "a" if args.append else "w"))
 else:
     print(output)
