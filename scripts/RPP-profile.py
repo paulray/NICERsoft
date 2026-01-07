@@ -361,14 +361,23 @@ if args.lat3pc:
         multiax.step(lat_x, lat_y + level, "k-", where="post", label="Fermi/LAT")
         level += 1.0
 
+
+    # Off-pulse region
+    multiax.plot([float(optres["BB_OFFPULSE"][0]),float(optres["BB_OFFPULSE"][0])],[1,2], linestyle="--", color="k",label='Off-pulse')
+    if float(optres["BB_OFFPULSE"][1]) > float(optres["BB_OFFPULSE"][0]):
+        multiax.plot([float(optres["BB_OFFPULSE"][1]),float(optres["BB_OFFPULSE"][1])],[1,2], linestyle="--", color="k")
+    else:
+        # It wraps over phase=1; move it so that it doesn't look weird/discontinuous when 2 rotations are shown:
+        multiax.plot([float(optres["BB_OFFPULSE"][1])+1,float(optres["BB_OFFPULSE"][1])+1],[1,2], linestyle="--", color="k")
+        
     # Layout
     multiax.set_xlabel("Phase")
     multiax.set_ylabel("Relative Intensity")
     multiax.set_title(f"Multiband Profile for {args.srcname}")
     multiax.grid(True)
-    multiax.legend()
+    multiax.legend(loc='upper center',ncol=4)
     multiax.set_xlim((0.0, 2.0))
-    multiax.set_ylim(0.0, level + 0.05)   # just enough headroom for the highest tier
+    multiax.set_ylim(0.0, level + 0.35) # enough room on top for legend
 
     if args.outbase is not None:
         plt.savefig(f"{args.outbase}_multi.png")
