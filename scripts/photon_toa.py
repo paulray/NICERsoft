@@ -93,6 +93,8 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
         # This is an approximate number of photons involved in the selected harmonic
         # For sharply peaked profiles, it can be >1.0, but in most cases it should give a reasonable rough estimate
         frac_amps = np.sqrt(fourier_amps * 2.0 / len(phases))
+        frac_amp_sigma = np.sqrt(2 / len(phases))
+        snr = frac_amps[harmnum - 1] / frac_amp_sigma
         log.info(f"Nphot = {len(phases)}, Amps = {frac_amps}")
         nsrc = frac_amps[harmnum - 1] * len(phases)
         nbkg = len(phases) - nsrc
@@ -106,6 +108,7 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
         dphi, dphierr = lcf.fit_position(unbinned=args.unbinned, track=args.track)
         nsrc = lcf.template.norm() * len(lcf.phases)
         nbkg = (1 - lcf.template.norm()) * len(lcf.phases)
+        snr = nsrc / np.sqrt(nbkg)
 
     log.info("Measured phase shift dphi={0}, dphierr={1}".format(dphi, dphierr))
 
@@ -198,6 +201,7 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
             obs="spacecraft",
             nsrc="%.2f" % nsrc,
             nbkg="%.2f" % nbkg,
+            snr="%.2f" % snr,
             exposure="%.2f" % exposure,
             dphi="%.5f" % dphi,
             mjdTT="%.8f" % tfinal.tt.mjd,
@@ -216,6 +220,7 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
             obs="Barycenter",
             nsrc="%.2f" % nsrc,
             nbkg="%.2f" % nbkg,
+            snr="%.2f" % snr,
             exposure="%.2f" % exposure,
             dphi="%.5f" % dphi,
         )
@@ -230,8 +235,8 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
         )
     if exposure > 0:
         log.info(
-            "Src rate = {0} c/s, Bkg rate = {1} c/s".format(
-                nsrc / exposure, nbkg / exposure
+            "Src rate = {0} c/s, Bkg rate = {1} c/s, SNR = {2}".format(
+                nsrc / exposure, nbkg / exposure, snr
             )
         )
     return toafinal, dphierr / f.value * 1.0e6
