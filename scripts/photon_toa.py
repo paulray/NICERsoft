@@ -108,7 +108,7 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
         dphi, dphierr = lcf.fit_position(unbinned=args.unbinned, track=args.track)
         nsrc = lcf.template.norm() * len(lcf.phases)
         nbkg = (1 - lcf.template.norm()) * len(lcf.phases)
-        snr = nsrc / np.sqrt(nbkg)
+        snr = nsrc / np.sqrt(nbkg + nsrc)
 
     log.info("Measured phase shift dphi={0}, dphierr={1}".format(dphi, dphierr))
 
