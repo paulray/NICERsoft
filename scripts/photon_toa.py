@@ -258,6 +258,16 @@ parser.add_argument(
 parser.add_argument("parname", help="Timing model file name")
 parser.add_argument("--orbfile", help="Name of orbit file", default=None)
 parser.add_argument(
+    "--phasecol",
+    help="Name of a column in the event FITS file holding pre-computed pulse "
+    "phases (values in [0,1)). If given, these phases are used directly "
+    "instead of computing them from the timing model with modelin.phase(), "
+    "which can be slow for large numbers of photons. The timing model "
+    "(parname) is still loaded and used for everything else (e.g. "
+    "barycentering and the local spin frequency used to form each TOA).",
+    default=None,
+)
+parser.add_argument(
     "--ephem", help="Planetary ephemeris to use (default=DE421)", default="DE421"
 )
 parser.add_argument(
@@ -527,8 +537,22 @@ mjds = (
     ts.get_mjds()
 )  # TT topocentric MJDs as floats; only used to find the index of the photon time closest to the middle of the MJD range
 
-# Compute model phase for each TOA;
-phss = modelin.phase(ts, abs_phase=True).frac.value  # discard units
+# Compute model phase for each TOA, or read pre-computed phases from a
+# FITS column if --phasecol was given (avoids a possibly slow per-photon
+# PINT phase evaluation; the timing model is still used for everything else).
+if args.phasecol is not None:
+    with pyfits.open(args.eventname) as f:
+        col_phases = np.asarray(f[1].data.field(args.phasecol), dtype=float)
+    if len(col_phases) != len(mets):
+        log.error(
+            "Length of --phasecol column '{0}' ({1}) does not match number "
+            "of events ({2})".format(args.phasecol, len(col_phases), len(mets))
+        )
+        sys.exit(1)
+    log.info(f"Using pre-computed phases from column '{args.phasecol}'")
+    phss = np.mod(col_phases, 1.0)
+else:
+    phss = modelin.phase(ts, abs_phase=True).frac.value  # discard units
 
 # Note that you can compute barycentric TOAs from topocentric data, so
 # just because topo is False does NOT mean that data are barycentered!
