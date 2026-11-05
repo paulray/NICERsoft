@@ -14,30 +14,30 @@ import argparse
 def PulsarVis(sourcename,times):
     
     if sourcename in {'PSRJ0030+0451','PSRJ0437-4715'}:
-    	SunAvoidance = 55.0*u.deg
+        SunAvoidance = 55.0*u.deg
     else:
         SunAvoidance = 45.0*u.deg
-    print("Sun Avoidance: {0:.3f}".format(SunAvoidance))	
+    print("Sun Avoidance: {0:.3f}".format(SunAvoidance))        
     MoonAvoidance = 15.0*u.deg
     # Each pulsar's feasible observation range based on ISS hardware data
     if sourcename in 'PSRB1821-24': #Analysis ticket 890 
         HardwareUpperAvoidance = 120*u.deg #360*u.deg 
-	HardwareLowerAvoidance = 88*u.deg #0*u.deg
+        HardwareLowerAvoidance = 88*u.deg #0*u.deg
     elif sourcename in 'PSRB1937+21':
         HardwareUpperAvoidance = 142.0*u.deg #360*u.deg 
-	HardwareLowerAvoidance = 91.0*u.deg #0*u.deg
+        HardwareLowerAvoidance = 91.0*u.deg #0*u.deg
     elif sourcename in 'PSRJ0218+4232':
         HardwareUpperAvoidance = 156.0*u.deg #360*u.deg 
-	HardwareLowerAvoidance = 88.0*u.deg #0*u.deg
+        HardwareLowerAvoidance = 88.0*u.deg #0*u.deg
     elif sourcename in 'PSRJ0030+0451':
         HardwareUpperAvoidance = 148.0*u.deg #360*u.deg 
-	HardwareLowerAvoidance = 95.0*u.deg #0*u.deg
+        HardwareLowerAvoidance = 95.0*u.deg #0*u.deg
     elif sourcename in 'PSRJ0437-4715':
-	HardwareUpperAvoidance = 95.0*u.deg #360*u.deg 
-	HardwareLowerAvoidance = 35.0*u.deg #0*u.deg 
-    else:	     
-    	HardwareUpperAvoidance = 360.0*u.deg #360*u.deg 
-    	HardwareLowerAvoidance = 0.0*u.deg #0*u.deg  
+        HardwareUpperAvoidance = 95.0*u.deg #360*u.deg 
+        HardwareLowerAvoidance = 35.0*u.deg #0*u.deg 
+    else:            
+        HardwareUpperAvoidance = 360.0*u.deg #360*u.deg 
+        HardwareLowerAvoidance = 0.0*u.deg #0*u.deg  
     
     print("ISS Upper:",HardwareUpperAvoidance,"Lower:",HardwareLowerAvoidance,"\n".format(HardwareLowerAvoidance,HardwareUpperAvoidance))
 
@@ -103,10 +103,10 @@ def PulsarVis(sourcename,times):
     #print("PortPoleRA (now) = {0:.3f}".format(PortPoleRA(now)))
 
     if sourcename[0:2] != 'PSR':
-    	SourcePos = get_icrs_coordinates(sourcename)
+        SourcePos = get_icrs_coordinates(sourcename)
     else:
-    	splitstr  = sourcename.split(',')
-    	SourcePos = ICRS(ra=Angle(double(splitstr[0])),dec=Angle(double(splitstr[1])))
+        splitstr  = sourcename.split(',')
+        SourcePos = ICRS(ra=Angle(double(splitstr[0])),dec=Angle(double(splitstr[1])))
     #print("\nSource: {0} at {1}, {2}".format(sourcename,SourcePos.ra, SourcePos.dec))
     #print("Separation from Starboard Pole = {0:.3f}".format(SourcePos.separation(StarboardPoleCoord(now))))
     #print("Separation from Port Pole = {0:.3f}".format(SourcePos.separation(PortPoleCoord(now))))
