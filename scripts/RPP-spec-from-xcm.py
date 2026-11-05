@@ -14,7 +14,7 @@ def get_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="""Do RPP catalog spectral analysis from a full src+bkg model saved from 
-    xspec as an *.xcm file.
+    xspec as an .xcm file.
 
     First use Xspec to fit your src+bck model and use 'save all mymodel.xcm'.
     then run RPP-spec-from-xcm.py mymodel.xcm.""",

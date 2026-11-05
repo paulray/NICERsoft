@@ -16,7 +16,7 @@ def get_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="""Make files needed for RPP catalog spectral analysis.
-    NOTE: This script is to be called from within the dir where we want *_pipe output dirs to be written.
+    NOTE: This script is to be called from within the dir where we want the <obsid>_pipe output dirs to be written.
     """,
     )
 
@@ -35,13 +35,13 @@ def get_parser():
     )
     parser.add_argument(
         "--no_psrpipe",
-        help="Skip psrpipe.py, if *pipe dirs are already made.",
+        help="Skip psrpipe.py, if <obsid>_pipe dirs are already made.",
         default=False,
         action="store_true",
     )
     parser.add_argument(
         "--rephase",
-        help="Skip psrpipe.py, rephase .evt files in existing *pipe dirs with the provided par file.",
+        help="Skip psrpipe.py, rephase .evt files in existing <obsid>_pipe dirs with the provided par file.",
         default=False,
         action="store_true",
     )

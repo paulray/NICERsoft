@@ -25,20 +25,24 @@ Pipeline process NICER data.
 Output will be written in current working directory in directories that end in '_pipe'.
 
 Several diagnostic plots are produced, and the following data processing steps are run:
+
 * Select good times according to customizable criteria, including:
+
   * (ANG_DIST.lt.0.015).and.(ELV>20.0)
   * (MODE.eq.1).and.(SUBMODE_AZ.eq.2).and.(SUBMODE_EL.eq.2)
   * If --dark is specified then also filter on SUNSHINE.eq.0
-Optionally, you can filter on overshoot rate or rate of bad ratio events
+
+  Optionally, you can filter on overshoot rate or rate of bad ratio events
 
 * Select events according to:
+
   * EVENT_FLAGS=bx1x000 (SLOW-only or SLOW+FAST events)
-  * PI in the specified range (default is 0.25-12.0 keV)
+  * PI in the specified range (default is 0.25-15.0 keV)
   * Remove events from any DET_ID specified by the --mask parameter
 
- The final output is 'cleanfilt.evt' and extracted PHA and lightcurve FITS
- files produced by extrator. The event file will have a PULSE_PHASE column
- computed using PINT if the --par file is specified on the command line.
+The final output is 'cleanfilt.evt' and extracted PHA and lightcurve FITS
+files produced by extractor. The event file will have a PULSE_PHASE column
+computed using PINT if the --par file is specified on the command line.
 """
 
 
