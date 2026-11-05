@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+"""Compute the sigma_z timing-stability statistic.
+
+Can also be run as a script: ``python sigmaz.py parfile timfile``.
+"""
+
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,33 +17,37 @@ import traceback
 
 
 def sigmaz(t, y, err, nseg, diagplot=False):
-    """Compute sigma_z from lists of measurement times and values.
+    """Compute sigma_z from a set of measurement times and values.
 
-    Input:
-    ------
-    t: array of floats
-      The measurement times (days).
-    y: array of floats
-      The measurement values (seconds).
-    err: array of floats (1D)
-      Error bars of the measurements (seconds).
-    nseg : array of ints
-      In each iteration, the total time span of the measurements will be split into Nseg segments. This array contains all the values of Nseg we want to use.
-    diagplot: bool
-      Make a diagnostic plot of the polynomial fit to the full set of measurements.
+    The data span is split into ``nseg`` segments; a cubic is fit to the data
+    in each segment, and sigma_z is computed from the weighted mean square of
+    the cubic coefficients. Segments with too few points, or whose data cover
+    less than ``1/sqrt(2)`` of the segment, are skipped.
 
-    Output:
+    Parameters
+    ----------
+    t : array_like
+        Measurement times (days).
+    y : array_like
+        Measurement values (seconds).
+    err : array_like
+        Uncertainties of the measurements (seconds).
+    nseg : array_like of int
+        Numbers of segments to split the data span into; one sigma_z value is
+        computed for each.
+    diagplot : bool, optional
+        If True, plot the polynomial fit to the full set of measurements.
+
+    Returns
     -------
-    sz_corr : array of floats
-      Values of bias-corrected sigma-z for different segment length tau.
-    szerr_lower : array of floats
-      Lower error bars for the sigma-z values.
-    szerr_upper : array of floats
-      Upper error bars for the sigma-z values.
-    tz : array of floats
-      The values of the segment lengths, tau (days), for which sigma-z was calculated.
-    nsegments : array of ints
-      How many segments of each recorded length passed all criteria for being used when calculating tau and sigma-z statistics.
+    sz_corr : numpy.ndarray
+        Bias-corrected sigma_z for each segment length.
+    szerr_lower, szerr_upper : numpy.ndarray
+        Lower and upper uncertainties of ``sz_corr``.
+    tz : list of float
+        Segment lengths tau (days).
+    nsegments : numpy.ndarray
+        Number of segments of each length that were used.
     """
 
     # The length of the output arrays depends on how many segments meet our criteria of more than 6 points, and longer than T/sqrt(2)
@@ -196,31 +205,26 @@ def sigmaz(t, y, err, nseg, diagplot=False):
 
 
 def psr_sigmaz(parfile, timfile, nseg, diagplot=False):
-    """Compute sigma-z from a pulsar par and tim file.
+    """Compute sigma_z from the timing residuals of a pulsar.
 
-    Input:
-    ------
-    timfile : string
-      The file containing TOAs, in Tempo/Tempo2 format.
-    parfile : string
-      The file containing the timing model.
-    nseg : array of ints
-      In each iteration, the total time span of the TOAs will be split into Nseg segments. This array contains all the values of Nseg we want to use.
-    diagplot: bool
-      Make a diagnostic plot of the polynomial fit to the full set of TOAs.
+    The residuals are computed with PINT (using the DE430 ephemeris) and passed
+    to :func:`sigmaz`.
 
-    Output:
+    Parameters
+    ----------
+    parfile : str
+        Timing model (``.par``) file.
+    timfile : str
+        TOA (``.tim``) file, in Tempo or Tempo2 format.
+    nseg : array_like of int
+        Numbers of segments to split the data span into.
+    diagplot : bool, optional
+        If True, plot the polynomial fit to the full set of TOAs.
+
+    Returns
     -------
-    sz_corr : array of floats
-      Values of bias-corrected sigma-z for different segment length tau.
-    szerr_lower : array of floats
-      Lower error bars for the sigma-z values.
-    szerr_upper : array of floats
-      Upper error bars for the sigma-z values.
-    tz : array of floats
-      The values of the segment lengths, tau (days), for which sigma-z was calculated.
-    nsegments : array of ints
-      How many segments of each recorded length passed all criteria for being used when calculating tau and sigma-z statistics.
+    tuple
+        The same values as :func:`sigmaz`.
     """
 
     # Read in the TOAs and timing model and compute the residuals

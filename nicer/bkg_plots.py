@@ -1,3 +1,5 @@
+"""The background quick-look page made by :file:`nicerql.py`."""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.gridspec as gridspec
@@ -8,6 +10,32 @@ from nicer.fitsutils import *
 
 # def bkg_plots(etable, data, gtitable, args, mktable, shoottable):
 def bkg_plots(etable, gtitable, args, mktable, ovbintable):
+    """Make the background quick-look figure.
+
+    Plotted against elapsed good time: the rate of events rejected by the
+    slow/fast ratio cut, the overshoot rate (with SAA passages marked), the
+    undershoot rate (with times in sunshine marked), the Sun, Earth and Moon
+    angles, the pointing offset, the cutoff rigidity, and the light curve.
+
+    Parameters
+    ----------
+    etable : astropy.table.Table
+        Event table.
+    gtitable : astropy.table.Table
+        GTI table with ``START``, ``STOP``, ``DURATION`` and ``CUMTIME``
+        columns.
+    args : argparse.Namespace
+        Options from :file:`nicerql.py`.
+    mktable : astropy.table.Table
+        Filter (``.mkf``) table.
+    ovbintable : astropy.table.Table or None
+        Binned overshoot rate (see
+        :meth:`nicer.NicerFileSet.NicerFileSet.getbinnedovershoots`).
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+    """
 
     # if args.eventshootrate:
     #     overshootrate = shoottable['EVENT_OVERSHOOTS']

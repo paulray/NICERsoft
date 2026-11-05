@@ -1,3 +1,5 @@
+"""ISS position from the GPS SPS housekeeping data."""
+
 import numpy as np
 import astropy.units as u
 from astropy.time import Time
@@ -16,13 +18,15 @@ from nicer.values import *
 
 
 class SPS:
-    """SPS
-    Class to represent GPS SPS orbit data for the ISS
+    """Interpolate the ISS latitude and longitude from GPS SPS housekeeping data.
 
-    Initialize with an SPS housekeeping file (*_apid0260.hk)
+    Rows where both latitude and longitude are zero are ignored. Outside the
+    time range of the file, the first or last position is returned.
 
-    Provides interpolated lat, long for any MET time during the ephemeris valid
-    interval.
+    Parameters
+    ----------
+    spsname : str
+        SPS housekeeping file (``*_apid0260.hk``).
     """
 
     def __init__(self, spsname):
@@ -66,6 +70,18 @@ class SPS:
         )
 
     def latlon(self, met):
+        """Return the interpolated latitude and longitude.
+
+        Parameters
+        ----------
+        met : float or array_like
+            Time(s), in MET seconds.
+
+        Returns
+        -------
+        lat : astropy.coordinates.Latitude
+        lon : astropy.coordinates.Longitude
+        """
         x = self.ecef_x(met)
         y = self.ecef_y(met)
         z = self.ecef_z(met)

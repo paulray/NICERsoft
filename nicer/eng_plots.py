@@ -1,3 +1,5 @@
+"""The "engineering" quick-look pages made by :file:`nicerql.py`."""
+
 import matplotlib.pyplot as plot
 import numpy as np
 from loguru import logger as log
@@ -9,6 +11,31 @@ from nicer.values import *
 
 # def eng_plots(etable, args, reset_rates, filttable, gtitable):
 def eng_plots(etable, args, mktable, filttable, gtitable):
+    """Make the engineering quick-look figure.
+
+    The figure has the event counts per detector (as a bar chart and as a
+    focal-plane image), the deadtime histogram, the undershoot reset rate
+    per detector, and the spectrum and light curve of the detector with the
+    most events.
+
+    Parameters
+    ----------
+    etable : astropy.table.Table
+        Event table, used for the exposure and figure title.
+    args : argparse.Namespace
+        Options from :file:`nicerql.py`.
+    mktable : astropy.table.Table or None
+        Filter (``.mkf``) table, used for the reset rates.
+    filttable : astropy.table.Table
+        Filtered event table to plot.
+    gtitable : astropy.table.Table
+        GTI table with ``START``, ``STOP``, ``DURATION`` and ``CUMTIME``
+        columns.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+    """
     # GRID SET UP
     figure1 = plot.figure(figsize=(11, 8.5), facecolor="white")
     sci_grid = gridspec.GridSpec(5, 6)
@@ -82,6 +109,24 @@ def eng_plots(etable, args, mktable, filttable, gtitable):
 
 
 def plot_all_spectra(etable, args, filttable, gtitable):
+    """Make a figure with the energy spectrum of each detector.
+
+    Parameters
+    ----------
+    etable : astropy.table.Table
+        Event table, used for the figure title.
+    args : argparse.Namespace
+        Options from :file:`nicerql.py`.
+    filttable : astropy.table.Table
+        Filtered event table to plot.
+    gtitable : astropy.table.Table
+        GTI table with ``START``, ``STOP``, ``DURATION`` and ``CUMTIME``
+        columns.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+    """
     # GRID SET UP
     fig_all_spec = plot.figure(figsize=(11, 8.5), facecolor="white")
     ncols = 8
@@ -118,6 +163,24 @@ def plot_all_spectra(etable, args, filttable, gtitable):
 
 
 def plot_all_lc(etable, args, filttable, gtitable):
+    """Make a figure with the light curve of each detector.
+
+    Parameters
+    ----------
+    etable : astropy.table.Table
+        Event table, used for the figure title.
+    args : argparse.Namespace
+        Options from :file:`nicerql.py`.
+    filttable : astropy.table.Table
+        Filtered event table to plot.
+    gtitable : astropy.table.Table
+        GTI table with ``START``, ``STOP``, ``DURATION`` and ``CUMTIME``
+        columns.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+    """
     # GRID SET UP
     fig_all_lc = plot.figure(figsize=(11, 8.5), facecolor="white")
     ncols = 8

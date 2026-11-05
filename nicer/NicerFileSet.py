@@ -1,3 +1,5 @@
+"""Locate and load the files that make up one NICER observation."""
+
 import numpy as np
 import argparse
 from loguru import logger as log
@@ -15,6 +17,55 @@ import sys, os
 
 
 class NicerFileSet:
+    """The event, GTI, filter and housekeeping data for one NICER ObsID.
+
+    On creation, the standard files are found in the observation directory,
+    the filter file and GTIs are read (with ``TIMEZERO`` applied), and an event
+    table is built from the merged unfiltered (``ufa``) event files. The
+    event table has its ``TIME`` column renamed to ``MET`` and is sorted by
+    time. GTIs shorter than 16 s are discarded unless ``args.keith`` is set.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Options, normally from :file:`nicerql.py`. The attributes used are
+        ``obsdir`` (ObsID directory), ``sps`` (SPS housekeeping file, or None to
+        look for one), ``useftools`` (merge and filter the events with FTOOLS),
+        ``applygti`` (GTI file to apply, or None), ``gtirows`` (rows of the GTI
+        table to keep, or None), ``keith`` (keep short GTIs), ``object``
+        (override the ``OBJECT`` keyword, or None), ``basename`` (output base
+        name, or None to use the ObsID) and ``filterbinsize`` (bin size in
+        seconds for the binned overshoot rate). The orbit file found is stored
+        in ``args.orb``.
+
+    Attributes
+    ----------
+    evfiles, ufafiles, uffiles : list of str
+        Cleaned (``*mpu7_cl.evt``), merged unfiltered (``*mpu7_ufa.evt``) and
+        per-MPU unfiltered (``*mpu?_uf.evt``) event files.
+    hkfiles : list of str
+        MPU housekeeping files.
+    mkfile : str
+        Filter (``.mkf``) file name.
+    mktable : astropy.table.Table
+        Contents of the filter file.
+    llinterp : nicer.latloninterp.LatLonInterp
+        Interpolator for the spacecraft latitude and longitude.
+    gtitable : astropy.table.Table
+        Good time intervals, with a ``DURATION`` column.
+    etable : astropy.table.Table
+        The events.
+    basename : str
+        Base name for output files.
+    ovbintable : astropy.table.Table or None
+        Binned overshoot rate (see :meth:`getbinnedovershoots`).
+
+    Raises
+    ------
+    Exception
+        If no cleaned event files are found or no events remain.
+    """
+
     def __init__(self, args):
         log.info("Initializing the data object")
         self.args = args
@@ -145,6 +196,15 @@ class NicerFileSet:
         # self.reset_rates = None
 
     def createetable(self):
+        """Read and stack the events from the merged unfiltered event files.
+
+        ``TIMEZERO`` is added to the event times.
+
+        Returns
+        -------
+        astropy.table.Table
+            The event table (also stored as ``self.etable``).
+        """
         log.info("Reading files")
         tlist = []
         for fn in self.ufafiles:
@@ -170,6 +230,11 @@ class NicerFileSet:
         return self.etable
 
     def sortmet(self):
+        """Rename the ``TIME`` column to ``MET``, sort the events by time and set the exposure.
+
+        ``EXPOSURE`` in the table metadata is set to the total GTI duration, and
+        ``OBJECT`` is replaced if ``args.object`` was given.
+        """
         # Change TIME column name to MET to reflect what it really is
         self.etable.columns["TIME"].name = "MET"
         # Update exposure to be sum of GTI durations
@@ -201,6 +266,14 @@ class NicerFileSet:
             self.etable.meta["OBJECT"] = self.args.object
 
     def getbinnedovershoots(self):
+        """Make a binned overshoot-rate table from the filter file.
+
+        This is only done when the base name ends in ``_prefilt``: ``fcurve`` bins
+        ``FPM_OVERONLY_COUNT`` from the filter file in ``args.filterbinsize``
+        second bins, writing :file:`{basename}_ovbin.fits`, and the result is read
+        into ``self.ovbintable``. Otherwise ``self.ovbintable`` is set to None.
+        Requires HEASoft.
+        """
         if self.basename.split("_")[-1] == "prefilt":
             ## STEP 1 -- Make lightcurve of FPM_OVERONLY_COUNT from mktable, using fcurve
             self.ovbinfile = "{}_ovbin.fits".format(self.basename)
@@ -341,6 +414,17 @@ class NicerFileSet:
     #         self.eventundershoots = None
 
     def writebkffile(self):
+        """Write a ``.bkf`` FITS file of rates that are useful for background filtering.
+
+        The file has the overshoot and undershoot rates, bad-ratio event rate,
+        count rates in several energy bands (above 13 keV, below 0.25 keV,
+        0.25-2 keV and 2-8 keV) and spacecraft latitude and longitude, all
+        binned on the housekeeping time grid.
+
+        This needs the ``hkmet``, ``hkovershoots``, ``hkundershoots``,
+        ``eventovershoots`` and ``eventbothshoots`` attributes, which are not set
+        when the object is created.
+        """
         # Write useful rates  to file for filtering
 
         # Define bins for hkmet histogram
@@ -428,6 +512,11 @@ class NicerFileSet:
         return
 
     def getgti(self):
+        """Read the GTIs from the first merged unfiltered event file into ``self.gtitable``.
+
+        ``TIMEZERO`` is applied, a ``DURATION`` column is added, and GTIs shorter
+        than 16 s are removed unless ``args.keith`` is set.
+        """
         # Read the GTIs from the first event FITS file
         self.gtitable = Table.read(self.ufafiles[0], hdu="GTI")
         if "TIMEZERO" in self.gtitable.meta:
@@ -451,6 +540,12 @@ class NicerFileSet:
         print(self.gtitable)
 
     def makebasename(self):
+        """Set ``self.basename`` for output files.
+
+        The ObsID from the event file name is used unless ``args.basename`` was
+        given. An ``OBS_ID`` keyword of all zeros is replaced by the ObsID from the
+        file name.
+        """
         bn = path.basename(self.evfiles[0]).split("_")[0]
         log.info("OBS_ID {0}".format(self.etable.meta["OBS_ID"]))
         if self.etable.meta["OBS_ID"].startswith("000000"):
