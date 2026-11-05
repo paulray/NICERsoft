@@ -148,6 +148,11 @@ parser.add_argument(
     default="pipe",
 )
 parser.add_argument(
+    "--polycos",
+    help="Use polycos when computing photon phases (massive speedup for large numbers of events)",
+    action="store_true",
+)
+parser.add_argument(
     "--merge",
     help="Merge all ObsIDs provided into single event list, lightcurve and spectrum (outputdir called 'merged')",
     action="store_true",
@@ -722,6 +727,8 @@ for obsdir in all_obsids:
             filteredname,
             args.par,
         ]
+        if args.polycos:
+            cmd += ["--polycos"]
         runcmd(cmd)
 
     # Extract simple PHA file and light curve
