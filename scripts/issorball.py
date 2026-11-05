@@ -134,19 +134,24 @@ def PulsarVis(sourcename,times):
     # Apply all vis constraints
     indxall = idxsun | idxmoon | idxang #true when constraint is violated
     # Generate and populate signal output
-    vis = np.ones(len(doy2XXX))
+    vis = np.ones(len(times))
     vis[indxall] = float('NaN')
 
     #Return result
     return vis
 
-if __name__ == '__main__':
-#Do the same thing as issorb.py, but for a list of targets
+
+# Do the same thing as issorb.py, but for a list of targets
+def get_parser():
     parser = argparse.ArgumentParser(description="Forecast pulsar visibility for a list of targets")
     parser.add_argument("-source", dest='sourcefile', help="File with Source names. Will default to SEXTANT targets")
     parser.add_argument("-doy_in", dest='doy_in', help="Start doy epoch",default=1)
     parser.add_argument("-year_in",dest='year_in', help="Start year epoch",default=2018)
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv=None):
+    args = get_parser().parse_args(argv)
 
     if args.sourcefile is not None:
         sourcelist = [line.rstrip('\n') for line in open(args.sourcefile)]
@@ -181,3 +186,7 @@ if __name__ == '__main__':
     plt.show()
 
     print("...done")
+
+
+if __name__ == "__main__":
+    main()

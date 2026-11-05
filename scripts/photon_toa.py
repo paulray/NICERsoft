@@ -44,7 +44,21 @@ log.add(sys.stdout, level="INFO")
 is_sorted = lambda a: np.all(a[:-1] <= a[1:])
 
 
-def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
+def estimate_toa(
+    mjds,
+    phases,
+    ph_times,
+    topo,
+    obs,
+    modelin,
+    tmid=None,
+    *,
+    args,
+    template,
+    harmnum,
+    planets,
+    exposure,
+):
     """Return a pint TOA object for the provided times and phases.
 
     Longer description here.
@@ -72,7 +86,19 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
         which can be the Barycenter.
     tmid : Time (default=None)
         Fiducial time for TOA. If None, then use photon time closest to midpoint.
-        Should be at observatory if topo, else should be a BAT"""
+        Should be at observatory if topo, else should be a BAT
+    args : argparse.Namespace
+        The parsed command-line options of this script.
+    template : pint.templates.lctemplate.LCTemplate or str
+        The pulse profile template, or "harm" if the TOA is to be computed
+        from the phase of a Fourier harmonic.
+    harmnum : int
+        The harmonic number to use when ``template == "harm"``.
+    planets : bool
+        Whether to include planetary Shapiro delays.
+    exposure : float
+        Exposure (s) of the event file, used to compute source and
+        background rates for the TOA flags."""
 
     # Given some subset of the event times, phases, and weights, compute
     # the TOA based on a reference event near the middle of the span.
@@ -80,6 +106,8 @@ def estimate_toa(mjds, phases, ph_times, topo, obs, modelin, tmid=None):
 
     if args.templatename.startswith("harm"):
         # Put code here to measure phase of harmonic harmnum
+        from nicer.fourier import compute_fourier
+
         n, fourier_amps, fourier_phases, phase_errs = compute_fourier(
             phases, nh=harmnum, pow_phase=True, with_phase_errors=True
         )
@@ -249,185 +277,264 @@ but can also compute TOAs from the phase of a Fourier analysis of the photon pha
 You can select this mode by using 'harmN' for the template, where N is the harmonic number whose
 phase you want to measure (harm1 is the fundamental)."""
 
-parser = argparse.ArgumentParser(description=desc)
-parser.add_argument("eventname", help="FITS file to read events from")
-parser.add_argument(
-    "templatename",
-    help="Name of file to read template from, or 'harmN' for the Nth harmonic (e.g. harm1=fundamental)",
-)
-parser.add_argument("parname", help="Timing model file name")
-parser.add_argument("--orbfile", help="Name of orbit file", default=None)
-parser.add_argument(
-    "--phasecol",
-    help="Name of a column in the event FITS file holding pre-computed pulse "
-    "phases (values in [0,1)). If given, these phases are used directly "
-    "instead of computing them from the timing model with modelin.phase(), "
-    "which can be slow for large numbers of photons. The timing model "
-    "(parname) is still loaded and used for everything else (e.g. "
-    "barycentering and the local spin frequency used to form each TOA).",
-    default=None,
-)
-parser.add_argument(
-    "--ephem", help="Planetary ephemeris to use (default=DE421)", default="DE421"
-)
-parser.add_argument(
-    "--plot", help="Show phaseogram plot.", action="store_true", default=False
-)
-parser.add_argument(
-    "--plotfile", help="Output figure file name (default=None)", default=None
-)
-# parser.add_argument("--fitbg",help="Fit an overall background level (e.g. for changing particle background level (default=False).",action='store_true',default=False)
-parser.add_argument(
-    "--unbinned",
-    help="Fit position with unbinned likelihood.  Don't use for large data sets. (default=False)",
-    action="store_true",
-    default=False,
-)
-# parser.add_argument("--fix",help="Adjust times to fix 1.0 second offset in NICER data (default=False)", action='store_true',default=False)
-parser.add_argument(
-    "--tint",
-    help="Integrate for tint seconds for each TOA, or until the total integration exceeds maxint.  The algorithm is based on GTI, so the integration will slightly exceed tint (default None; see maxint.)",
-    default=None,
-)
-parser.add_argument(
-    "--maxint",
-    help="Maximum time interval to accumulate exposure for a single TOA (default=2*86400s)",
-    type=float,
-    default=2 * 86400.0,
-)
-parser.add_argument(
-    "--minexp",
-    help="Minimum exposure (s) for which to include a TOA (default=0.0).",
-    default=0.0,
-    type=float,
-)
-parser.add_argument(
-    "--track",
-    help="Assume model is close to good and only search near 0 phase (to avoid getting TOAs off by 0.5 in double peaked pulsars)",
-    action="store_true",
-    default=False,
-)
-parser.add_argument(
-    "--dice",
-    help="Dice up long GTIs into chunks of length <= tint",
-    action="store_true",
-    default=False,
-)
-parser.add_argument(
-    "--grid",
-    help="Compute TOAs on a regular grid of <arg> days",
-    type=float,
-    default=0.0,
-)
-parser.add_argument(
-    "--use_bipm", help="Use BIPM clock corrections", action="store_true", default=False
-)
-parser.add_argument(
-    "--use_gps",
-    help="Use GPS to UTC clock corrections",
-    action="store_true",
-    default=False,
-)
-parser.add_argument(
-    "--topo",
-    help="Make topocentric TOAs; include the spacecraft ECI position on the TOA line",
-    action="store_true",
-    default=False,
-)
-parser.add_argument(
-    "--outfile", help="Name of file to save TOAs to (default is STDOUT)", default=None
-)
-parser.add_argument(
-    "--gtiextname", help="Name GTI extenstion to use (default is GTI)", default="GTI"
-)
-parser.add_argument(
-    "--append",
-    help="Append TOAs to output file instead of overwriting",
-    default=False,
-    action="store_true",
-)
 
-## Parse arguments
-args = parser.parse_args()
-
-# Load PINT model objects
-modelin = pint.models.get_model(args.parname)
-log.info(str(modelin))
-
-# check for consistency between ephemeris and options
-##### Really should set BIPM here as well! ####
-if modelin.PLANET_SHAPIRO.quantity:
-    planets = True
-else:
-    planets = False
-
-# Load Template objects
-if args.templatename.startswith("harm"):
-    template = "harm"
-    harmnum = int(args.templatename.replace("harm", ""))
-    log.info(f"Computing phases from harmonic {harmnum} instead of a template")
-    try:
-        from nicer.fourier import compute_fourier
-    except:
-        print(
-            "ERROR: import nicer.fourier FAILED! Harmonic phase calculation requires NICERSoft (https://github.com/paulray/NICERSoft)."
-        )
-else:
-    harmnum = 0
-    try:
-        template = pickle.load(open(args.templatename, "r"))
-    except:
-        primitives, norms = prim_io(args.templatename)
-        template = LCTemplate(primitives, norms)
-    # print(template)
-
-
-# Load photons as PINT toas, and weights, if specified
-# Here I might loop over the files specified
-# Read event file header to figure out what instrument is is from
-hdr = pyfits.getheader(args.eventname, ext=1)
-log.info(
-    "Event file TELESCOPE = {0}, INSTRUMENT = {1}".format(
-        hdr["TELESCOP"], hdr["INSTRUME"]
+def get_parser():
+    parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument("eventname", help="FITS file to read events from")
+    parser.add_argument(
+        "templatename",
+        help="Name of file to read template from, or 'harmN' for the Nth harmonic (e.g. harm1=fundamental)",
     )
-)
+    parser.add_argument("parname", help="Timing model file name")
+    parser.add_argument("--orbfile", help="Name of orbit file", default=None)
+    parser.add_argument(
+        "--phasecol",
+        help="Name of a column in the event FITS file holding pre-computed pulse "
+        "phases (values in [0,1)). If given, these phases are used directly "
+        "instead of computing them from the timing model with modelin.phase(), "
+        "which can be slow for large numbers of photons. The timing model "
+        "(parname) is still loaded and used for everything else (e.g. "
+        "barycentering and the local spin frequency used to form each TOA).",
+        default=None,
+    )
+    parser.add_argument(
+        "--ephem", help="Planetary ephemeris to use (default=DE421)", default="DE421"
+    )
+    parser.add_argument(
+        "--plot", help="Show phaseogram plot.", action="store_true", default=False
+    )
+    parser.add_argument(
+        "--plotfile", help="Output figure file name (default=None)", default=None
+    )
+    # parser.add_argument("--fitbg",help="Fit an overall background level (e.g. for changing particle background level (default=False).",action='store_true',default=False)
+    parser.add_argument(
+        "--unbinned",
+        help="Fit position with unbinned likelihood.  Don't use for large data sets. (default=False)",
+        action="store_true",
+        default=False,
+    )
+    # parser.add_argument("--fix",help="Adjust times to fix 1.0 second offset in NICER data (default=False)", action='store_true',default=False)
+    parser.add_argument(
+        "--tint",
+        help="Integrate for tint seconds for each TOA, or until the total integration exceeds maxint.  The algorithm is based on GTI, so the integration will slightly exceed tint (default None; see maxint.)",
+        default=None,
+    )
+    parser.add_argument(
+        "--maxint",
+        help="Maximum time interval to accumulate exposure for a single TOA (default=2*86400s)",
+        type=float,
+        default=2 * 86400.0,
+    )
+    parser.add_argument(
+        "--minexp",
+        help="Minimum exposure (s) for which to include a TOA (default=0.0).",
+        default=0.0,
+        type=float,
+    )
+    parser.add_argument(
+        "--track",
+        help="Assume model is close to good and only search near 0 phase (to avoid getting TOAs off by 0.5 in double peaked pulsars)",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--dice",
+        help="Dice up long GTIs into chunks of length <= tint",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--grid",
+        help="Compute TOAs on a regular grid of <arg> days",
+        type=float,
+        default=0.0,
+    )
+    parser.add_argument(
+        "--use_bipm",
+        help="Use BIPM clock corrections",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--use_gps",
+        help="Use GPS to UTC clock corrections",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--topo",
+        help="Make topocentric TOAs; include the spacecraft ECI position on the TOA line",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--outfile",
+        help="Name of file to save TOAs to (default is STDOUT)",
+        default=None,
+    )
+    parser.add_argument(
+        "--gtiextname",
+        help="Name GTI extenstion to use (default is GTI)",
+        default="GTI",
+    )
+    parser.add_argument(
+        "--append",
+        help="Append TOAs to output file instead of overwriting",
+        default=False,
+        action="store_true",
+    )
+    return parser
 
-# If the FITS events are barycentered then these keywords should be set
-# TIMESYS = 'TDB     '           / All times in this file are TDB
-# TIMEREF = 'SOLARSYSTEM'        / Times are pathlength-corrected to barycenter
-if hdr["TIMESYS"].startswith("TDB"):
-    barydata = True
-else:
-    barydata = False
-log.info(
-    "Event time system = {0}, reference = {1}".format(hdr["TIMESYS"], hdr["TIMEREF"])
-)
 
-if args.topo and barydata:
-    log.error("Can't compute topocentric TOAs from barycentered events!")
-    sys.exit(1)
+def main(argv=None):
+    ## Parse arguments
+    args = get_parser().parse_args(argv)
 
-if (args.orbfile is not None) and barydata:
-    log.warning("Data are barycentered, so ignoring orbfile!")
+    # Load PINT model objects
+    modelin = pint.models.get_model(args.parname)
+    log.info(str(modelin))
 
-if hdr["TELESCOP"] == "NICER":
-    # Instantiate NICERObs once so it gets added to the observatory registry
-    if barydata:
-        obs = "Barycenter"
+    # check for consistency between ephemeris and options
+    ##### Really should set BIPM here as well! ####
+    if modelin.PLANET_SHAPIRO.quantity:
+        planets = True
     else:
-        if args.orbfile is not None:
-            log.info("Setting up NICER observatory")
-            obs = get_satellite_observatory("NICER", args.orbfile)
-        else:
-            log.error(
-                "NICER .orb file required for non-barycentered events!\n"
-                "Please specify with --orbfile"
-            )
-            sys.exit(2)
+        planets = False
 
-    # Read event file into TOAs object
-    try:
-        ts = get_NICER_TOAs(
+    # Load Template objects
+    if args.templatename.startswith("harm"):
+        template = "harm"
+        harmnum = int(args.templatename.replace("harm", ""))
+        log.info(f"Computing phases from harmonic {harmnum} instead of a template")
+        try:
+            from nicer.fourier import compute_fourier
+        except:
+            print(
+                "ERROR: import nicer.fourier FAILED! Harmonic phase calculation requires NICERSoft (https://github.com/paulray/NICERSoft)."
+            )
+    else:
+        harmnum = 0
+        try:
+            template = pickle.load(open(args.templatename, "r"))
+        except:
+            primitives, norms = prim_io(args.templatename)
+            template = LCTemplate(primitives, norms)
+        # print(template)
+
+    # Load photons as PINT toas, and weights, if specified
+    # Here I might loop over the files specified
+    # Read event file header to figure out what instrument is is from
+    hdr = pyfits.getheader(args.eventname, ext=1)
+    log.info(
+        "Event file TELESCOPE = {0}, INSTRUMENT = {1}".format(
+            hdr["TELESCOP"], hdr["INSTRUME"]
+        )
+    )
+
+    # If the FITS events are barycentered then these keywords should be set
+    # TIMESYS = 'TDB     '           / All times in this file are TDB
+    # TIMEREF = 'SOLARSYSTEM'        / Times are pathlength-corrected to barycenter
+    if hdr["TIMESYS"].startswith("TDB"):
+        barydata = True
+    else:
+        barydata = False
+    log.info(
+        "Event time system = {0}, reference = {1}".format(
+            hdr["TIMESYS"], hdr["TIMEREF"]
+        )
+    )
+
+    if args.topo and barydata:
+        log.error("Can't compute topocentric TOAs from barycentered events!")
+        sys.exit(1)
+
+    if (args.orbfile is not None) and barydata:
+        log.warning("Data are barycentered, so ignoring orbfile!")
+
+    if hdr["TELESCOP"] == "NICER":
+        # Instantiate NICERObs once so it gets added to the observatory registry
+        if barydata:
+            obs = "Barycenter"
+        else:
+            if args.orbfile is not None:
+                log.info("Setting up NICER observatory")
+                obs = get_satellite_observatory("NICER", args.orbfile)
+            else:
+                log.error(
+                    "NICER .orb file required for non-barycentered events!\n"
+                    "Please specify with --orbfile"
+                )
+                sys.exit(2)
+
+        # Read event file into TOAs object
+        try:
+            ts = get_NICER_TOAs(
+                args.eventname,
+                ephem=args.ephem,
+                planets=planets,
+                include_bipm=args.use_bipm,
+            )
+            with pyfits.open(args.eventname) as f:
+                mets = f["events"].data.field("time")
+                ### SHOULD ADD TIMEZERO, I think
+        except KeyError:
+            log.error(
+                "Failed to load NICER TOAs. Make sure orbit file is specified on command line!"
+            )
+            raise
+    elif hdr["TELESCOP"] == "XTE":
+        if barydata:
+            obs = "Barycenter"
+        else:
+            # Instantiate RXTEObs once so it gets added to the observatory registry
+            if args.orbfile is not None:
+                # Determine what observatory type is.
+                log.info("Setting up RXTE observatory")
+                obs = get_satellite_observatory(
+                    "RXTE",
+                    args.orbfile,
+                    include_bipm=args.use_bipm,
+                )
+            else:
+                log.error(
+                    "RXTE FPorbit file required for non-barycentered events!\n"
+                    "Please specify with --orbfile"
+                )
+                sys.exit(2)
+        # Read event file and return list of TOA objects
+        ts = get_RXTE_TOAs(
+            args.eventname,
+            ephem=args.ephem,
+            planets=planets,
+            include_bipm=args.use_bipm,
+        )
+        with pyfits.open(args.eventname) as f:
+            mets = f[1].data.field("time")
+
+    elif hdr["TELESCOP"].startswith("XMM"):
+        # Not loading orbit file here, since that is not yet supported.
+        if barydata:
+            obs = "Barycenter"
+        else:
+            log.error("Non-barycentered XMM data not yet supported")
+            sys.exit(3)
+        ts = get_XMM_TOAs(
+            args.eventname,
+            ephem=args.ephem,
+            planets=planets,
+            include_bipm=args.use_bipm,
+            include_gps=args.use_gps,
+        )
+        with pyfits.open(args.eventname) as f:
+            mets = f["events"].data.field("time")
+    elif hdr["TELESCOP"].startswith("NuSTAR"):
+        # Not loading orbit file here, since that is not yet supported.
+        if barydata:
+            obs = "Barycenter"
+        else:
+            log.error("Non-barycentered NuSTAR data not yet supported")
+            sys.exit(3)
+        ts = get_NuSTAR_TOAs(
             args.eventname,
             ephem=args.ephem,
             planets=planets,
@@ -435,283 +542,234 @@ if hdr["TELESCOP"] == "NICER":
         )
         with pyfits.open(args.eventname) as f:
             mets = f["events"].data.field("time")
-            ### SHOULD ADD TIMEZERO, I think
-    except KeyError:
-        log.error(
-            "Failed to load NICER TOAs. Make sure orbit file is specified on command line!"
-        )
-        raise
-elif hdr["TELESCOP"] == "XTE":
-    if barydata:
-        obs = "Barycenter"
-    else:
-        # Instantiate RXTEObs once so it gets added to the observatory registry
-        if args.orbfile is not None:
-            # Determine what observatory type is.
-            log.info("Setting up RXTE observatory")
-            obs = get_satellite_observatory(
-                "RXTE",
-                args.orbfile,
-                include_bipm=args.use_bipm,
-            )
+    elif hdr["TELESCOP"].startswith("SWIFT"):
+        # Not loading orbit file here, since that is not yet supported.
+        if barydata:
+            obs = "Barycenter"
         else:
-            log.error(
-                "RXTE FPorbit file required for non-barycentered events!\n"
-                "Please specify with --orbfile"
-            )
-            sys.exit(2)
-    # Read event file and return list of TOA objects
-    ts = get_RXTE_TOAs(
-        args.eventname,
-        ephem=args.ephem,
-        planets=planets,
-        include_bipm=args.use_bipm,
-    )
-    with pyfits.open(args.eventname) as f:
-        mets = f[1].data.field("time")
-
-elif hdr["TELESCOP"].startswith("XMM"):
-    # Not loading orbit file here, since that is not yet supported.
-    if barydata:
-        obs = "Barycenter"
-    else:
-        log.error("Non-barycentered XMM data not yet supported")
-        sys.exit(3)
-    ts = get_XMM_TOAs(
-        args.eventname,
-        ephem=args.ephem,
-        planets=planets,
-        include_bipm=args.use_bipm,
-        include_gps=args.use_gps,
-    )
-    with pyfits.open(args.eventname) as f:
-        mets = f["events"].data.field("time")
-elif hdr["TELESCOP"].startswith("NuSTAR"):
-    # Not loading orbit file here, since that is not yet supported.
-    if barydata:
-        obs = "Barycenter"
-    else:
-        log.error("Non-barycentered NuSTAR data not yet supported")
-        sys.exit(3)
-    ts = get_NuSTAR_TOAs(
-        args.eventname,
-        ephem=args.ephem,
-        planets=planets,
-        include_bipm=args.use_bipm,
-    )
-    with pyfits.open(args.eventname) as f:
-        mets = f["events"].data.field("time")
-elif hdr["TELESCOP"].startswith("SWIFT"):
-    # Not loading orbit file here, since that is not yet supported.
-    if barydata:
-        obs = "Barycenter"
-    else:
-        log.error("Non-barycentered SWIFT data not yet supported")
-        sys.exit(3)
-    ts = get_Swift_TOAs(
-        args.eventname,
-        ephem=args.ephem,
-        planets=planets,
-        include_bipm=args.use_bipm,
-    )
-    with pyfits.open(args.eventname) as f:
-        mets = f["events"].data.field("time")
-else:
-    log.error(
-        "FITS file not recognized, TELESCOPE = {0}, INSTRUMENT = {1}".format(
-            hdr["TELESCOP"], hdr["INSTRUME"]
+            log.error("Non-barycentered SWIFT data not yet supported")
+            sys.exit(3)
+        ts = get_Swift_TOAs(
+            args.eventname,
+            ephem=args.ephem,
+            planets=planets,
+            include_bipm=args.use_bipm,
         )
-    )
-    sys.exit(1)
-
-if args.topo:  # for writing UTC topo toas
-    T2SpacecraftObs(name="spacecraft")
-
-if len(ts.table) <= 0:
-    log.error("No TOAs found. Aborting.")
-    sys.exit(1)
-
-ts.filename = args.eventname
-log.info(ts.print_summary())
-mjds = (
-    ts.get_mjds()
-)  # TT topocentric MJDs as floats; only used to find the index of the photon time closest to the middle of the MJD range
-
-# Compute model phase for each TOA, or read pre-computed phases from a
-# FITS column if --phasecol was given (avoids a possibly slow per-photon
-# PINT phase evaluation; the timing model is still used for everything else).
-if args.phasecol is not None:
-    with pyfits.open(args.eventname) as f:
-        col_phases = np.asarray(f[1].data.field(args.phasecol), dtype=float)
-    if len(col_phases) != len(mets):
+        with pyfits.open(args.eventname) as f:
+            mets = f["events"].data.field("time")
+    else:
         log.error(
-            "Length of --phasecol column '{0}' ({1}) does not match number "
-            "of events ({2})".format(args.phasecol, len(col_phases), len(mets))
+            "FITS file not recognized, TELESCOPE = {0}, INSTRUMENT = {1}".format(
+                hdr["TELESCOP"], hdr["INSTRUME"]
+            )
         )
         sys.exit(1)
-    log.info(f"Using pre-computed phases from column '{args.phasecol}'")
-    phss = np.mod(col_phases, 1.0)
-else:
-    phss = modelin.phase(ts, abs_phase=True).frac.value  # discard units
 
-# Note that you can compute barycentric TOAs from topocentric data, so
-# just because topo is False does NOT mean that data are barycentered!
-if barydata:
-    ph_times = ts.table["tdb"]
-else:
-    ph_times = ts.table["mjd"]
+    if args.topo:  # for writing UTC topo toas
+        T2SpacecraftObs(name="spacecraft")
 
-# ensure all positive
-phases = np.where(phss < 0.0, phss + 1.0, phss)
+    if len(ts.table) <= 0:
+        log.error("No TOAs found. Aborting.")
+        sys.exit(1)
 
-h = float(hm(phases))
-print("Htest : {0:.2f} ({1:.2f} sigma)".format(h, h2sig(h)))
-if args.plot:
-    phaseogram_binned(mjds, phases, bins=100, plotfile=args.plotfile)
+    ts.filename = args.eventname
+    log.info(ts.print_summary())
+    mjds = (
+        ts.get_mjds()
+    )  # TT topocentric MJDs as floats; only used to find the index of the photon time closest to the middle of the MJD range
 
-# get exposure information
-try:
-    f = pyfits.open(args.eventname)
-    exposure = f[1].header["exposure"]
-    f.close()
-except:
-    exposure = 0
+    # Compute model phase for each TOA, or read pre-computed phases from a
+    # FITS column if --phasecol was given (avoids a possibly slow per-photon
+    # PINT phase evaluation; the timing model is still used for everything else).
+    if args.phasecol is not None:
+        with pyfits.open(args.eventname) as f:
+            col_phases = np.asarray(f[1].data.field(args.phasecol), dtype=float)
+        if len(col_phases) != len(mets):
+            log.error(
+                "Length of --phasecol column '{0}' ({1}) does not match number "
+                "of events ({2})".format(args.phasecol, len(col_phases), len(mets))
+            )
+            sys.exit(1)
+        log.info(f"Using pre-computed phases from column '{args.phasecol}'")
+        phss = np.mod(col_phases, 1.0)
+    else:
+        phss = modelin.phase(ts, abs_phase=True).frac.value  # discard units
 
+    # Note that you can compute barycentric TOAs from topocentric data, so
+    # just because topo is False does NOT mean that data are barycentered!
+    if barydata:
+        ph_times = ts.table["tdb"]
+    else:
+        ph_times = ts.table["mjd"]
 
-if args.grid > 0.0:
-    dT = args.grid
-    mjdvals = mjds.to_value(u.d)
-    ngrids = int((mjdvals.max() - mjdvals.min()) / dT)
-    print("ngrids ", ngrids)
-    gridpoints = mjdvals.min() + 0.5 * dT + np.arange(ngrids) * dT
-    print(gridpoints)
-    toas = deque()
-    for i in range(ngrids):
-        # make a TOA
-        ph0, ph1 = np.searchsorted(
-            mjdvals, [gridpoints[i] - 0.5 * dT, gridpoints[i] + 0.5 * dT]
-        )
-        m, p, t = mjds[ph0:ph1], phases[ph0:ph1], ph_times[ph0:ph1]
-        print(
-            "Generating TOA ph0={}, ph1={}, len(m)={}, i={}".format(ph0, ph1, len(m), i)
-        )
-        if not args.topo:
-            tmid = Time(gridpoints[i], format="mjd", scale="tdb")
-        else:
-            tmid = Time(gridpoints[i], format="mjd", scale="utc")
-        if len(m) > 0:
-            print("m[0]={0}, m[1]={1}".format(m[0], m[-1]))
-            toas.append(estimate_toa(m, p, t, args.topo, obs, modelin, tmid))
-            toas[-1][0].flags["htest"] = "{0:.2f}".format(hm(p))
-    toafinal, toafinal_err = list(zip(*toas))
-elif args.tint is None:
-    # do a single TOA for table
-    toafinal, toafinal_err = estimate_toa(
-        mjds, phases, ph_times, args.topo, obs, modelin
+    # ensure all positive
+    phases = np.where(phss < 0.0, phss + 1.0, phss)
+
+    h = float(hm(phases))
+    print("Htest : {0:.2f} ({1:.2f} sigma)".format(h, h2sig(h)))
+    if args.plot:
+        phaseogram_binned(mjds, phases, bins=100, plotfile=args.plotfile)
+
+    # get exposure information
+    try:
+        f = pyfits.open(args.eventname)
+        exposure = f[1].header["exposure"]
+        f.close()
+    except:
+        exposure = 0
+
+    toa_kwargs = dict(
+        args=args,
+        template=template,
+        harmnum=harmnum,
+        planets=planets,
+        exposure=exposure,
     )
-    if "OBS_ID" in hdr:
-        # Add ObsID to the TOA flags
-        toafinal.flags["obsid"] = hdr["OBS_ID"]
-    toafinal.flags["htest"] = "{0:.2f}".format(hm(phases))
-    toafinal = [toafinal]
-    toafinal_err = [toafinal_err]
-else:  # tint is set and not doing a regular grid
-    # Load in GTIs
-    f = pyfits.open(args.eventname)
-    # Warning:: This is ignoring TIMEZERO!!!!
-    gti_t0 = f[args.gtiextname].data.field("start")
-    gti_t1 = f[args.gtiextname].data.field("stop")
-    gti_dt = gti_t1 - gti_t0
 
-    tint = float(args.tint)
-
-    if args.dice:
-        # Break up larger GTIs into small chunks
-        new_t0s = deque()
-        new_t1s = deque()
-        for t0, t1 in zip(gti_t0, gti_t1):
-            dt = t1 - t0
-            if dt < tint:
-                new_t0s.append(t0)
-                new_t1s.append(t1)
+    if args.grid > 0.0:
+        dT = args.grid
+        mjdvals = mjds.to_value(u.d)
+        ngrids = int((mjdvals.max() - mjdvals.min()) / dT)
+        print("ngrids ", ngrids)
+        gridpoints = mjdvals.min() + 0.5 * dT + np.arange(ngrids) * dT
+        print(gridpoints)
+        toas = deque()
+        for i in range(ngrids):
+            # make a TOA
+            ph0, ph1 = np.searchsorted(
+                mjdvals, [gridpoints[i] - 0.5 * dT, gridpoints[i] + 0.5 * dT]
+            )
+            m, p, t = mjds[ph0:ph1], phases[ph0:ph1], ph_times[ph0:ph1]
+            print(
+                "Generating TOA ph0={}, ph1={}, len(m)={}, i={}".format(
+                    ph0, ph1, len(m), i
+                )
+            )
+            if not args.topo:
+                tmid = Time(gridpoints[i], format="mjd", scale="tdb")
             else:
-                # break up GTI in such a way to avoid losing time (to tmin) and
-                # to avoid having pieces longer than tint
-                npiece = int(np.floor(dt / tint)) + 1
-                new_edges = np.linspace(t0, t1, npiece + 1)
-                for it0, it1 in zip(new_edges[:-1], new_edges[1:]):
-                    new_t0s.append(it0)
-                    new_t1s.append(it1)
-        gti_t0 = np.asarray(new_t0s)
-        gti_t1 = np.asarray(new_t1s)
+                tmid = Time(gridpoints[i], format="mjd", scale="utc")
+            if len(m) > 0:
+                print("m[0]={0}, m[1]={1}".format(m[0], m[-1]))
+                toas.append(
+                    estimate_toa(m, p, t, args.topo, obs, modelin, tmid, **toa_kwargs)
+                )
+                toas[-1][0].flags["htest"] = "{0:.2f}".format(hm(p))
+        toafinal, toafinal_err = list(zip(*toas))
+    elif args.tint is None:
+        # do a single TOA for table
+        toafinal, toafinal_err = estimate_toa(
+            mjds, phases, ph_times, args.topo, obs, modelin, **toa_kwargs
+        )
+        if "OBS_ID" in hdr:
+            # Add ObsID to the TOA flags
+            toafinal.flags["obsid"] = hdr["OBS_ID"]
+        toafinal.flags["htest"] = "{0:.2f}".format(hm(phases))
+        toafinal = [toafinal]
+        toafinal_err = [toafinal_err]
+    else:  # tint is set and not doing a regular grid
+        # Load in GTIs
+        f = pyfits.open(args.eventname)
+        # Warning:: This is ignoring TIMEZERO!!!!
+        gti_t0 = f[args.gtiextname].data.field("start")
+        gti_t1 = f[args.gtiextname].data.field("stop")
         gti_dt = gti_t1 - gti_t0
 
-    # the algorithm here is simple -- go through the GTI and add them up
-    # until either the good time exceeds tint, or until the total time
-    # interval exceeds maxint
-    i0 = 0
-    current = 0.0
-    toas = deque()
-    maxint = float(args.maxint)
-    for i in range(len(gti_t0)):
-        current += gti_dt[i]
-        # print('iteration=%d, current=%f'%(i,current))
-        if (
-            (current >= tint)
-            or ((gti_t1[i] - gti_t0[i0]) > maxint)
-            or (i == len(gti_t0) - 1)
-        ):
-            # make a TOA
-            ph0, ph1 = np.searchsorted(mets, [gti_t0[i0], gti_t1[i]])
-            m, p, t = mjds[ph0:ph1], phases[ph0:ph1], ph_times[ph0:ph1]
-            # print('Generating TOA ph0={0}, ph1={1}, len(m)={2}, i0={3}, i={4}'.format(ph0,ph1,len(m),i0,i))
-            # print('m[0]={0}, m[1]={1}'.format(m[0],m[-1]))
-            if len(m) > 0:
-                toas.append(estimate_toa(m, p, t, args.topo, obs, modelin))
-                toas[-1][0].flags["htest"] = "{0:.2f}".format(hm(p))
-                # fix exposure
-                toas[-1][0].flags["exposure"] = str(current)
-            current = 0.0
-            i0 = i + 1
-    toafinal, toafinal_err = list(zip(*toas))
+        tint = float(args.tint)
 
-if args.minexp > 0.0:
-    x = [
-        (t, e)
-        for t, e in zip(toafinal, toafinal_err)
-        if float(t.flags["exposure"]) > args.minexp
-    ]
-    if len(x) > 0:
-        toafinal, toafinal_err = list(zip(*x))
+        if args.dice:
+            # Break up larger GTIs into small chunks
+            new_t0s = deque()
+            new_t1s = deque()
+            for t0, t1 in zip(gti_t0, gti_t1):
+                dt = t1 - t0
+                if dt < tint:
+                    new_t0s.append(t0)
+                    new_t1s.append(t1)
+                else:
+                    # break up GTI in such a way to avoid losing time (to tmin) and
+                    # to avoid having pieces longer than tint
+                    npiece = int(np.floor(dt / tint)) + 1
+                    new_edges = np.linspace(t0, t1, npiece + 1)
+                    for it0, it1 in zip(new_edges[:-1], new_edges[1:]):
+                        new_t0s.append(it0)
+                        new_t1s.append(it1)
+            gti_t0 = np.asarray(new_t0s)
+            gti_t1 = np.asarray(new_t1s)
+            gti_dt = gti_t1 - gti_t0
+
+        # the algorithm here is simple -- go through the GTI and add them up
+        # until either the good time exceeds tint, or until the total time
+        # interval exceeds maxint
+        i0 = 0
+        current = 0.0
+        toas = deque()
+        maxint = float(args.maxint)
+        for i in range(len(gti_t0)):
+            current += gti_dt[i]
+            # print('iteration=%d, current=%f'%(i,current))
+            if (
+                (current >= tint)
+                or ((gti_t1[i] - gti_t0[i0]) > maxint)
+                or (i == len(gti_t0) - 1)
+            ):
+                # make a TOA
+                ph0, ph1 = np.searchsorted(mets, [gti_t0[i0], gti_t1[i]])
+                m, p, t = mjds[ph0:ph1], phases[ph0:ph1], ph_times[ph0:ph1]
+                # print('Generating TOA ph0={0}, ph1={1}, len(m)={2}, i0={3}, i={4}'.format(ph0,ph1,len(m),i0,i))
+                # print('m[0]={0}, m[1]={1}'.format(m[0],m[-1]))
+                if len(m) > 0:
+                    toas.append(
+                        estimate_toa(m, p, t, args.topo, obs, modelin, **toa_kwargs)
+                    )
+                    toas[-1][0].flags["htest"] = "{0:.2f}".format(hm(p))
+                    # fix exposure
+                    toas[-1][0].flags["exposure"] = str(current)
+                current = 0.0
+                i0 = i + 1
+        toafinal, toafinal_err = list(zip(*toas))
+
+    if args.minexp > 0.0:
+        x = [
+            (t, e)
+            for t, e in zip(toafinal, toafinal_err)
+            if float(t.flags["exposure"]) > args.minexp
+        ]
+        if len(x) > 0:
+            toafinal, toafinal_err = list(zip(*x))
+        else:
+            print("No TOAs passed exposure cut!")
+            sys.exit(0)
+
+    for t in toafinal:
+        t.flags["t"] = hdr["TELESCOP"]
+    toas = pint.toa.TOAs(toalist=toafinal)
+    toas.table["error"][:] = np.asarray(toafinal_err)
+    sio = io.StringIO()
+    toas.write_TOA_file(sio, name="photon_toa", format="tempo2")
+    output = sio.getvalue()
+
+    if args.topo:
+        output = output.replace("spacecraft", "STL_GEO")
     else:
-        print("No TOAs passed exposure cut!")
-        sys.exit(0)
+        output = output.replace("bat", "@")
 
-for t in toafinal:
-    t.flags["t"] = hdr["TELESCOP"]
-toas = pint.toa.TOAs(toalist=toafinal)
-toas.table["error"][:] = np.asarray(toafinal_err)
-sio = io.StringIO()
-toas.write_TOA_file(sio, name="photon_toa", format="tempo2")
-output = sio.getvalue()
+    if args.append:
+        output = output.replace("FORMAT 1", "C ")
+        # Try to remove blank lines
+        output = output.replace("\n\n", "\n")
 
-if args.topo:
-    output = output.replace("spacecraft", "STL_GEO")
-else:
-    output = output.replace("bat", "@")
-
-if args.append:
-    output = output.replace("FORMAT 1", "C ")
-    # Try to remove blank lines
-    output = output.replace("\n\n", "\n")
-
-if args.outfile is not None:
-    if harmnum > 0:
-        print(
-            output,
-            file=open(args.outfile + f"-h{harmnum}", "a" if args.append else "w"),
-        )
+    if args.outfile is not None:
+        if harmnum > 0:
+            print(
+                output,
+                file=open(args.outfile + f"-h{harmnum}", "a" if args.append else "w"),
+            )
+        else:
+            print(output, file=open(args.outfile, "a" if args.append else "w"))
     else:
-        print(output, file=open(args.outfile, "a" if args.append else "w"))
-else:
-    print(output)
+        print(output)
+
+
+if __name__ == "__main__":
+    main()

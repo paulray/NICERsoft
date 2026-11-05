@@ -19,7 +19,7 @@ def compute_phist(phases, nbins=200):
     return edges[:-1], h
 
 
-if __name__ == "__main__":
+def get_parser():
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -58,7 +58,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--emax", help="Maximum energy to include (keV)", default=12.0, type=float
     )
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv=None):
+    args = get_parser().parse_args(argv)
 
     if args.txt:
         exposure = None
@@ -293,3 +297,7 @@ if __name__ == "__main__":
 
     if not args.noplot:
         plt.show()
+
+
+if __name__ == "__main__":
+    main()
