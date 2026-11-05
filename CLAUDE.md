@@ -175,7 +175,8 @@ Good Time Intervals are critical for clean data:
 
 ## Important Conventions
 
-- Scripts are designed to be run from command line with argparse interfaces
+- Scripts are designed to be run from command line with argparse interfaces. Each Python script builds its parser in `get_parser()` and runs in `main(argv=None)` behind an `if __name__ == "__main__":` guard; the docs are generated from `get_parser()`, so keep module-level code free of anything needing data, HEASoft or PyXspec
+- New scripts must be added to a page in `docs/scripts/` (the docs build warns otherwise); `nicer/` code uses NumPy-style docstrings
 - Most scripts use `loguru` logger (imported as `log`) instead of standard logging
 - FITS file operations use `astropy.io.fits` (imported as `pyfits`)
 - Phases are typically computed using the PINT pulsar timing package
@@ -192,6 +193,6 @@ Focus on what was changed and why, using imperative mood for the first line.
 
 ## Documentation
 
-Primary documentation is on the GitHub wiki: https://github.com/paulray/NICERsoft/wiki
+Documentation is built with Sphinx (MyST Markdown, sphinx_rtd_theme) from `docs/` and published to GitHub Pages (https://paulray.github.io/NICERsoft/) by `.github/workflows/docs.yml` on pushes to master. Build locally with `pip install -e ".[docs]"` and `make html` (or `make livehtml`) in `docs/`.
 
 Additional useful tools from George Younes: https://github.com/georgeyounes/NICERUTIL

@@ -41,10 +41,17 @@ dev = [
     "pytest",
     "pytest-cov",
 ]
+docs = [
+    "sphinx",
+    "sphinx-rtd-theme",
+    "myst-parser",
+    "sphinx-argparse",
+    "sphinx-autobuild",
+]
 
 [project.urls]
 Homepage = "https://github.com/paulray/NICERsoft"
-Documentation = "https://github.com/paulray/NICERsoft/wiki"
+Documentation = "https://paulray.github.io/NICERsoft/"
 Repository = "https://github.com/paulray/NICERsoft"
 Issues = "https://github.com/paulray/NICERsoft/issues"
 

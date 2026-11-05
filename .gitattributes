@@ -12,3 +12,4 @@
 *.gz       binary
 *.bz2      binary
 *.xz       binary
+*.bat      text eol=crlf

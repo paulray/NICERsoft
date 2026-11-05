@@ -15,7 +15,10 @@ understanding what it is doing.
 
 ## Documentation
 
-See the Wiki for some documentation: https://github.com/paulray/NICERsoft/wiki
+Documentation is at https://paulray.github.io/NICERsoft/
+
+To build it locally, run `pip install -e ".[docs]"`, then `make html` in the
+`docs` directory, and open `docs/_build/html/index.html`.
 
 ## Installation
 
