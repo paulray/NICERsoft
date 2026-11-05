@@ -5,7 +5,7 @@ from astropy.time import Time
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 from matplotlib.ticker import FixedLocator
-from astropy.coordinates import SkyCoord, get_sun, get_moon, ICRS, Angle
+from astropy.coordinates import SkyCoord, get_sun, get_body, ICRS, Angle
 from astropy.coordinates.name_resolve import get_icrs_coordinates
 from pyorbital import tlefile
 import argparse
@@ -122,7 +122,7 @@ def PulsarVis(sourcename,times):
     # comparing different frames with different obstimes.
     SunPos = get_sun(times)
     SunPos = SkyCoord(SunPos.ra, SunPos.dec, frame='icrs')
-    MoonPos = get_moon(times)
+    MoonPos = get_body("moon", times)
     MoonPos = SkyCoord(MoonPos.ra, MoonPos.dec, frame='icrs')
     # Hold indicies when Sun and Moon cause constraint violation
     sunseps = SourcePos.separation(SunPos).to(u.deg)

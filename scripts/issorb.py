@@ -3,7 +3,7 @@ import numpy as np
 import astropy.units as u
 from astropy.time import Time
 import matplotlib.pyplot as plt
-from astropy.coordinates import SkyCoord, get_sun, get_moon, ICRS, Angle
+from astropy.coordinates import SkyCoord, get_sun, get_body, ICRS, Angle
 from astropy.coordinates.name_resolve import get_icrs_coordinates
 from pyorbital import tlefile
 import argparse
@@ -148,7 +148,7 @@ def main(argv=None):
     # comparing different frames with different obstimes.
     SunPos = get_sun(times)
     SunPos = SkyCoord(SunPos.ra, SunPos.dec, frame="icrs")
-    MoonPos = get_moon(times)
+    MoonPos = get_body("moon", times)
     MoonPos = SkyCoord(MoonPos.ra, MoonPos.dec, frame="icrs")
     # Plot dots for Sun and Moon separation when they violate the constraint
     sunseps = SourcePos.separation(SunPos).to(u.deg)
