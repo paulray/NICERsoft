@@ -94,3 +94,8 @@ ENV/
 
 # Pycharm files
 .idea/
+
+# Local stuff to not commit
+pars
+nicer-sample-data
+nicer_resp_*
