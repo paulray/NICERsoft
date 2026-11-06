@@ -786,7 +786,7 @@ def plot_fft_of_power(etable, nyquist, pslog, writeps):
     if writeps:
         data = np.array([x, power])
         data = data.T
-        np.savetxt(file("powspec.txt", "w"), data, fmt=["%f", "%f"])
+        np.savetxt("powspec.txt", data, fmt=["%f", "%f"])
 
     plot.title("Power Spectrum")
     plot.xlabel("Frequency")

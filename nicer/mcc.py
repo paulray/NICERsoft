@@ -32,16 +32,16 @@ class MCC:
     """
 
     def __init__(self, mccname):
-        mccfile = file(mccname)
-        header1 = mccfile.readline().strip()
-        header2 = mccfile.readline().strip()
-        self.mcc_epoch_year = float(header2.split()[0])
-        self.mcc_epoch = Time(
-            "{0:4.0f}-01-01T00:00:00".format(self.mcc_epoch_year),
-            format="isot",
-            scale="utc",
-        )
-        cols = np.loadtxt(mccfile, usecols=(0, 1, 2, 3), unpack=True)
+        with open(mccname) as mccfile:
+            header1 = mccfile.readline().strip()
+            header2 = mccfile.readline().strip()
+            self.mcc_epoch_year = float(header2.split()[0])
+            self.mcc_epoch = Time(
+                "{0:4.0f}-01-01T00:00:00".format(self.mcc_epoch_year),
+                format="isot",
+                scale="utc",
+            )
+            cols = np.loadtxt(mccfile, usecols=(0, 1, 2, 3), unpack=True)
         self.t = cols[0] * u.s + self.mcc_epoch
         self.met = (self.t - MET0).to(u.s).value
         self.eci_x = (cols[1] * u.imperial.foot).to(u.m)
