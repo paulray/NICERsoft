@@ -3,7 +3,7 @@
 NICERsoft is a collection of user-contributed analysis tools for data from the
 [NICER](https://heasarc.gsfc.nasa.gov/docs/nicer/) X-ray telescope on the
 International Space Station. It is separate from the NICER team's software that
-is distributed as part of HEASoft, and nothing here should be taken as formally
+is distributed as part of [HEASoft](https://heasarc.gsfc.nasa.gov/docs/software/lheasoft/), and nothing here should be taken as formally
 recommended by the NICER instrument team.
 
 The tools are mostly aimed at pulsar timing and spectral analysis:

@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- **Python 3.8 or later.**
+- **Python 3.9 or later.**
 - **[HEASoft](https://heasarc.gsfc.nasa.gov/docs/software/heasoft/)** with the
   NICER Data Analysis Software, initialized (for example with `heainit`) in the
   shell you run the scripts from. Most of the pipelines call FTOOLS such as
