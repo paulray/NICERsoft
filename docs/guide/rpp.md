@@ -18,19 +18,18 @@ RPP-prep.py --srcname J0030 J0030+0451.par /data/j0030
 It:
 
 1. Runs {ref}`psrpipe.py <psrpipe>` on every ObsID, with the cuts used for the
-   catalog, to make phase-tagged event files.
+   catalog (`--nomap --emin 0.22 --emax 15.01 --tidy --cormin 1.5 --kpmax 5 --mingti 100 --maxovershoot 1.5 --maxundershoot 600 --medianundershoot=100`), to make phase-tagged event files.
 2. Merges the event files (`merged.evt`) and makes a 2–10 keV light curve.
 3. Removes background flares with {ref}`cr_cut.py <cr-cut>`, cutting at a
-   percentile of the count-rate distribution (`--cps_cut_percentile`), to make
-   `merged_cut.evt`.
+   percentile of the count-rate distribution (`--cps_cut_percentile`, default 95%), to make `merged_cut.evt`.
 4. Plots a phaseogram with {ref}`niphaseogram.py <niphaseogram>`.
 5. Makes a spectrum and a SCORPEON background model with `nicerl3-spect`,
-   writing XSPEC and PyXspec load scripts.
+   writing XSPEC and PyXspec load scripts (`load_pulsedspec.xcm` and `load_pulsedspec.py`, respectively).
 6. Finds the energy range with the most significant pulsations, with
    {ref}`nioptcuts.py <nioptcuts>`, unless `--emin` and `--emax` are given.
 7. Analyzes the pulse profile with {ref}`RPP-profile.py <rpp-profile>`, which
    finds the off-pulse phase range with Bayesian blocks and writes the results
-   to a YAML file.
+   to a YAML file (`<psr name>_profinfo.yml`).
 8. Makes on-pulse and off-pulse spectra with
    {ref}`RPP-pulsedspec.py <rpp-pulsedspec>`, for fitting the pulsed spectrum.
 
@@ -44,8 +43,7 @@ absorption lines. Each fit makes a plot and a YAML file of results, including
 fluxes.
 
 If you would rather do a fit by hand in XSPEC, save it with `save all
-mymodel.xcm` and use {ref}`RPP-spec-from-xcm.py <rpp-spec-from-xcm>` or
-{ref}`RPP-xcm-plot.py <rpp-xcm-plot>` to make the same products.
+mymodel.xcm` and use {ref}`RPP-spec-from-xcm.py <rpp-spec-from-xcm>` to refit the spectrum and plot or {ref}`RPP-xcm-plot.py <rpp-xcm-plot>` to plot only, to make the same products.
 
 ## Fitting the pulsed spectrum
 
