@@ -1,3 +1,5 @@
+"""Interpolate the spacecraft latitude and longitude from tabulated values."""
+
 import numpy as np
 import astropy.units as u
 from astropy.time import Time
@@ -16,13 +18,20 @@ from nicer.values import *
 
 
 class LatLonInterp:
-    """LatLonInterp
-    Class to allow interpolating lat, lon
+    """Interpolate the spacecraft latitude and longitude at any time.
 
-    Initialize with a set of met, lat, lon
+    The positions are converted to Earth-fixed Cartesian coordinates and
+    interpolated with splines, which avoids problems with longitude wrapping.
+    Outside the tabulated range, the first or last value is returned.
 
-    Provides interpolated lat, long for any MET time during the ephemeris valid
-    interval.
+    Parameters
+    ----------
+    met : array_like
+        Times of the tabulated positions, in MET seconds (for example
+        ``mktable["TIME"]``).
+    lat, lon : astropy.units.Quantity
+        Latitudes and longitudes at those times (for example
+        ``mktable["SAT_LAT"]`` and ``mktable["SAT_LON"]``).
     """
 
     def __init__(self, met, lat, lon):
@@ -48,6 +57,18 @@ class LatLonInterp:
         )
 
     def latlon(self, met):
+        """Return the interpolated latitude and longitude.
+
+        Parameters
+        ----------
+        met : float or array_like
+            Time(s), in MET seconds.
+
+        Returns
+        -------
+        lat : astropy.coordinates.Latitude
+        lon : astropy.coordinates.Longitude
+        """
         x = self.ecef_x(met)
         y = self.ecef_y(met)
         z = self.ecef_z(met)

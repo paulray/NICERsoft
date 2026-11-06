@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+"""Maps of the background rates against spacecraft position."""
+
 import numpy as np
 import matplotlib.pyplot as plot
 from loguru import logger as log
@@ -17,6 +19,28 @@ from nicer.latloninterp import LatLonInterp
 
 # def cartography(hkmet, overshootrate, args, undershootrate, etable, mktable, gtitable):
 def cartography(etable, mktable, gtitable, args):
+    """Make a figure of maps of the overshoot rate, undershoot rate and GTIs.
+
+    Each map shows the values at the spacecraft latitude and longitude from
+    the filter file during the GTIs, with the SAA and polar-horn regions
+    outlined. Requires cartopy.
+
+    Parameters
+    ----------
+    etable : astropy.table.Table
+        Event table, used for the figure title.
+    mktable : astropy.table.Table
+        Filter (``.mkf``) table.
+    gtitable : astropy.table.Table
+        GTI table with ``START``, ``STOP``, ``DURATION`` and ``CUMTIME``
+        columns.
+    args : argparse.Namespace
+        Options from :file:`nicerql.py`.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+    """
 
     from cartopy.crs import PlateCarree
 

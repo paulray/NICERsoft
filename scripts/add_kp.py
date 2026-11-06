@@ -81,7 +81,7 @@ def read_kp_GOF(fname):
     return (dat["TIME"], dat["KP"])
 
 
-if __name__ == "__main__":
+def get_parser():
     parser = argparse.ArgumentParser(
         description="Add Kp values as a column to an existing MKF file"
     )
@@ -105,7 +105,11 @@ if __name__ == "__main__":
         help="Path to NICER GOF kp.fits file (default $CALDB/data/gen/pcf/kp.fits). Only used if not --potsdam.",
         default=None,
     )
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv=None):
+    args = get_parser().parse_args(argv)
 
     # Read the Pottsdam Kp index data files
     if args.potsdam:
@@ -151,3 +155,7 @@ if __name__ == "__main__":
 
             hdulist.writeto(mkf, overwrite=True)
             hdulist.close()
+
+
+if __name__ == "__main__":
+    main()

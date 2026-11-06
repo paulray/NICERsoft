@@ -14,85 +14,51 @@ import os.path
 outdict = {}
 
 
-parser = argparse.ArgumentParser(
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    description="Do RPP catalog pulse profile analysis on a merged event file.",
-)
-parser.add_argument(
-    "evtfile", help="Input event file to process. Must have PULSE_PHASE column"
-)
-parser.add_argument("--nbins", help="Number of profile bins", default=32, type=int)
-parser.add_argument(
-    "--numharm",
-    help="Number of Fourier harmonics to use (-1=auto)",
-    default=4,
-    type=int,
-)
-parser.add_argument(
-    "--optemin", type=float, default=0.4, help="Minimum energy to include."
-)
-parser.add_argument(
-    "--optemax", type=float, default=2.0, help="Maximum energy to include."
-)
-parser.add_argument(
-    "--p0", type=float, default=0.005, help="p0 probability for Bayesian block analysis"
-)
-parser.add_argument(
-    "--outbase",
-    help="Output file for plot (type determined by extension)",
-    default=None,
-)
-parser.add_argument(
-    "--srcname",
-    help="Source name (used in output .yml file).",
-    default=None,
-)
-parser.add_argument(
-    "--fermi",
-    help="Fermi LAT event file (FT1) name, with PULSE_PHASE and MODEL_WEIGHT columns",
-    default=None,
-)
-parser.add_argument(
-    "--lat3pc",
-    help="Fermi LAT 3PC data file for this pulsar, e.g. J0218+4232_3PC_data.fits",
-    default=None,
-)
-args = parser.parse_args()
-
-
-hdulist = pyfits.open(args.evtfile)
-dat = hdulist[1].data
-hdr = hdulist[1].header
-basename = os.path.splitext(args.evtfile)[0]
-mjdstart = (dat["TIME"].min() + float(hdr["TIMEZERO"]))/86400.0 + float(hdr["MJDREFI"]) + float(hdr["MJDREFF"])
-mjdstop = (dat["TIME"].max() + float(hdr["TIMEZERO"]))/86400.0 + float(hdr["MJDREFI"]) + float(hdr["MJDREFF"])
-
-print(f"mjdstart = {mjdstart}")
-
-exp = float(hdr["EXPOSURE"])
-objname = hdr["OBJECT"]
-
-outdict[objname] = {}
-
-print(f"Object {objname}")
-print(f"Exposure = {exp/1000.0} ks")
-
-# Get phases and sort them in order
-phases = dat["PULSE_PHASE"]
-sortidx = np.argsort(phases)
-ph = phases[sortidx]
-
-# Get photon energies, with same sort
-energies = dat["PI"] * PI_TO_KEV
-en = energies[sortidx]
-
-# Make 3 sets of events: optimal band, soft band, hard band
-opt_idx = np.where(np.logical_and((en >= args.optemin), (en <= args.optemax)))
-ph_opt = ph[opt_idx]
-soft_idx = np.where(np.logical_and((en >= SOFT_EMIN), (en <= SOFT_EMAX)))
-ph_soft = ph[soft_idx]
-hard_idx = np.where(np.logical_and((en >= HARD_EMIN), (en <= HARD_EMAX)))
-ph_hard = ph[hard_idx]
+def get_parser():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description="Do RPP catalog pulse profile analysis on a merged event file.",
+    )
+    parser.add_argument(
+        "evtfile", help="Input event file to process. Must have PULSE_PHASE column"
+    )
+    parser.add_argument("--nbins", help="Number of profile bins", default=32, type=int)
+    parser.add_argument(
+        "--numharm",
+        help="Number of Fourier harmonics to use (-1=auto)",
+        default=4,
+        type=int,
+    )
+    parser.add_argument(
+        "--optemin", type=float, default=0.4, help="Minimum energy to include."
+    )
+    parser.add_argument(
+        "--optemax", type=float, default=2.0, help="Maximum energy to include."
+    )
+    parser.add_argument(
+        "--p0", type=float, default=0.005, help="p0 probability for Bayesian block analysis"
+    )
+    parser.add_argument(
+        "--outbase",
+        help="Output file for plot (type determined by extension)",
+        default=None,
+    )
+    parser.add_argument(
+        "--srcname",
+        help="Source name (used in output .yml file).",
+        default=None,
+    )
+    parser.add_argument(
+        "--fermi",
+        help="Fermi LAT event file (FT1) name, with PULSE_PHASE and MODEL_WEIGHT columns",
+        default=None,
+    )
+    parser.add_argument(
+        "--lat3pc",
+        help="Fermi LAT 3PC data file for this pulsar, e.g. J0218+4232_3PC_data.fits",
+        default=None,
+    )
+    return parser
 
 
 def compute_blocks(ph,p0=0.005):
@@ -140,7 +106,7 @@ def compute_blocks(ph,p0=0.005):
     return bb_hist, bb_edges
 
 
-def band_analysis(ph_band, bandemin, bandemax, ax=None, plotoffpulse=False):
+def band_analysis(ph_band, bandemin, bandemax, ax=None, plotoffpulse=False, *, exp, args):
     "Perform analysis for a specific energy band and return dict of results"
     print(
         f"Band  {bandemin} - {bandemax}: {len(ph_band)} photons, {len(ph_band)/exp:.3f} c/s"
@@ -245,142 +211,187 @@ def band_analysis(ph_band, bandemin, bandemax, ax=None, plotoffpulse=False):
     return resdict
 
 
-# fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(9, 16), sharex=True)
-fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(6, 8), sharex=True)
-
-# Analyze all 3 bands
-optres = band_analysis(ph_opt, args.optemin, args.optemax, ax=axs[0], plotoffpulse=True)
-softres = band_analysis(ph_soft, SOFT_EMIN, SOFT_EMAX, ax=axs[1])
-hardres = band_analysis(ph_hard, HARD_EMIN, HARD_EMAX, ax=axs[2])
-
-if args.srcname is None:
-    outfile = open(f"{basename}_profinfo.yml", "w")
-else:
-    outfile = open(args.srcname + "_profinfo.yml", "w")
-outdict[objname]["name"] = objname
-outdict[objname]["exposure"] = exp
-outdict[objname]["optres"] = optres
-outdict[objname]["softres"] = softres
-outdict[objname]["hardres"] = hardres
-outdict[objname]["mjdstart"] =  float(mjdstart)
-outdict[objname]["mjdstop"] =  float(mjdstop)
-yaml.dump(outdict, outfile, default_flow_style=False)
+def main(argv=None):
+    args = get_parser().parse_args(argv)
 
 
-if args.srcname is not None:
-    fig.suptitle(f"{args.srcname} Exp={exp/1000.0:.3f} ks", y=0.95)
-else:
-    fig.suptitle(f"{objname} Exp={exp/1000.0:.3f} ks", y=0.95)
-axs[2].set_xlabel("Phase")
+    hdulist = pyfits.open(args.evtfile)
+    dat = hdulist[1].data
+    hdr = hdulist[1].header
+    basename = os.path.splitext(args.evtfile)[0]
+    mjdstart = (dat["TIME"].min() + float(hdr["TIMEZERO"]))/86400.0 + float(hdr["MJDREFI"]) + float(hdr["MJDREFF"])
+    mjdstop = (dat["TIME"].max() + float(hdr["TIMEZERO"]))/86400.0 + float(hdr["MJDREFI"]) + float(hdr["MJDREFF"])
 
-if args.outbase is not None:
-    fig.savefig(f"{args.outbase}.png")
+    print(f"mjdstart = {mjdstart}")
 
-if args.fermi:
-    from pint.fits_utils import read_fits_event_mjds
+    exp = float(hdr["EXPOSURE"])
+    objname = hdr["OBJECT"]
 
-    latfig, latax = plt.subplots(1, 1)
-    f = pyfits.open(args.fermi)
-    latph = f["EVENTS"].data.field("PULSE_PHASE")
-    laten = f["EVENTS"].data.field("ENERGY")
-    latwt = f["EVENTS"].data.field("MODEL_WEIGHT")
-    latmjds = read_fits_event_mjds(f["EVENTS"]) * u.d
-    nfermi, fedges = np.histogram(
-        latph, bins=np.linspace(0.0, 1.0, 64, endpoint=True), weights=latwt
+    outdict[objname] = {}
+
+    print(f"Object {objname}")
+    print(f"Exposure = {exp/1000.0} ks")
+
+    # Get phases and sort them in order
+    phases = dat["PULSE_PHASE"]
+    sortidx = np.argsort(phases)
+    ph = phases[sortidx]
+
+    # Get photon energies, with same sort
+    energies = dat["PI"] * PI_TO_KEV
+    en = energies[sortidx]
+
+    # Make 3 sets of events: optimal band, soft band, hard band
+    opt_idx = np.where(np.logical_and((en >= args.optemin), (en <= args.optemax)))
+    ph_opt = ph[opt_idx]
+    soft_idx = np.where(np.logical_and((en >= SOFT_EMIN), (en <= SOFT_EMAX)))
+    ph_soft = ph[soft_idx]
+    hard_idx = np.where(np.logical_and((en >= HARD_EMIN), (en <= HARD_EMAX)))
+    ph_hard = ph[hard_idx]
+
+
+    # fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(9, 16), sharex=True)
+    fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(6, 8), sharex=True)
+
+    # Analyze all 3 bands
+    optres = band_analysis(
+        ph_opt, args.optemin, args.optemax, ax=axs[0], plotoffpulse=True, exp=exp, args=args
     )
-    x = np.concatenate((fedges[:-1], fedges[:-1] + 1.0))
-    latax.step(x, np.concatenate((nfermi, nfermi)), where="post")
-    latax.set_xlim((0.0, 2.0))
-    latax.set_title("LAT Profile")
-    if args.outbase is not None:
-        latfig.savefig(f"{args.outbase}_LAT.png")
+    softres = band_analysis(ph_soft, SOFT_EMIN, SOFT_EMAX, ax=axs[1], exp=exp, args=args)
+    hardres = band_analysis(ph_hard, HARD_EMIN, HARD_EMAX, ax=axs[2], exp=exp, args=args)
 
-if args.lat3pc:
-    print(f"3PC {args.lat3pc}")
-    multifig, multiax = plt.subplots(1, 1)
-
-    # --- NICER profile (always available): compute, but don't plot yet
-    prof, edges = np.histogram(
-        ph_opt,
-        range=(0.0, 1.0),
-        bins=np.linspace(0.0, 1.0, args.nbins + 1, endpoint=True),
-    )
-    prof = np.array(prof, dtype=float)
-    rates = prof / (exp / args.nbins)
-    rmin = rates.min()
-    rmax = rates.max()
-    scrates = (rates - rmin) / (rmax - rmin + 1e-12)
-
-    # Flags and data holders
-    has_lat = False
-    has_radio = False
-    lat_x = lat_y = None
-    radio_x = radio_y = None
-
-    # --- Try to read LAT and RADIO from the 3PC file
-    with pyfits.open(args.lat3pc) as f:
-        if "GAMMA_LC" in f:
-            has_lat = True
-            dataphmin = f["GAMMA_LC"].data["Ph_Min"]
-            dataphmax = f["GAMMA_LC"].data["Ph_Max"]
-            dataCounts = f["GAMMA_LC"].data["GT100_WtCnt"]
-            mid = (dataphmin + dataphmax) / 2.0
-            dmin = np.nanmin(dataCounts)
-            dmax = np.nanmax(dataCounts)
-            scdata = (dataCounts - dmin) / (dmax - dmin + 1e-12)
-            lat_x, lat_y = mid, scdata
-
-        if "RADIO_PROFILE" in f:
-            has_radio = True
-            radiophmin = f["RADIO_PROFILE"].data["Ph_Min"]
-            radiophmax = f["RADIO_PROFILE"].data["Ph_Max"]
-            radio = f["RADIO_PROFILE"].data["Norm_Intensity"]
-            midr = (radiophmin + radiophmax) / 2.0
-            rmin_r = np.nanmin(radio)
-            rmax_r = np.nanmax(radio)
-            sradio = (radio - rmin_r) / (rmax_r - rmin_r + 1e-12)
-            radio_x, radio_y = midr, sradio
-
-    # --- Dynamic stacking: assign vertical levels only to available series
-    level = 0.0
-    if has_radio:
-        multiax.plot(radio_x, radio_y, "r-", label="Radio", alpha=0.7)
-        level += 1.0
-
-    # NICER goes next
-    multiax.step(
-        np.concatenate((edges[:-1], 1.0 + edges)),
-        np.concatenate((scrates, scrates, np.array(scrates[-1:]))) + (level if level else 0.0),
-        where="post",
-        label="NICER"
-    )
-    level += 1.0
-
-    # LAT on top if present
-    if has_lat:
-        multiax.step(lat_x, lat_y + level, "k-", where="post", label="Fermi/LAT")
-        level += 1.0
-
-
-    # Off-pulse region
-    multiax.plot([float(optres["BB_OFFPULSE"][0]),float(optres["BB_OFFPULSE"][0])],[1,2], linestyle="--", color="k",label='Off-pulse')
-    if float(optres["BB_OFFPULSE"][1]) > float(optres["BB_OFFPULSE"][0]):
-        multiax.plot([float(optres["BB_OFFPULSE"][1]),float(optres["BB_OFFPULSE"][1])],[1,2], linestyle="--", color="k")
+    if args.srcname is None:
+        outfile = open(f"{basename}_profinfo.yml", "w")
     else:
-        # It wraps over phase=1; move it so that it doesn't look weird/discontinuous when 2 rotations are shown:
-        multiax.plot([float(optres["BB_OFFPULSE"][1])+1,float(optres["BB_OFFPULSE"][1])+1],[1,2], linestyle="--", color="k")
-        
-    # Layout
-    multiax.set_xlabel("Phase")
-    multiax.set_ylabel("Relative Intensity")
-    multiax.set_title(f"Multiband Profile for {args.srcname}")
-    multiax.grid(True)
-    multiax.legend(loc='upper center',ncol=4)
-    multiax.set_xlim((0.0, 2.0))
-    multiax.set_ylim(0.0, level + 0.35) # enough room on top for legend
+        outfile = open(args.srcname + "_profinfo.yml", "w")
+    outdict[objname]["name"] = objname
+    outdict[objname]["exposure"] = exp
+    outdict[objname]["optres"] = optres
+    outdict[objname]["softres"] = softres
+    outdict[objname]["hardres"] = hardres
+    outdict[objname]["mjdstart"] =  float(mjdstart)
+    outdict[objname]["mjdstop"] =  float(mjdstop)
+    yaml.dump(outdict, outfile, default_flow_style=False)
+
+
+    if args.srcname is not None:
+        fig.suptitle(f"{args.srcname} Exp={exp/1000.0:.3f} ks", y=0.95)
+    else:
+        fig.suptitle(f"{objname} Exp={exp/1000.0:.3f} ks", y=0.95)
+    axs[2].set_xlabel("Phase")
 
     if args.outbase is not None:
-        plt.savefig(f"{args.outbase}_multi.png")
+        fig.savefig(f"{args.outbase}.png")
 
-if args.outbase is None:
-    plt.show()
+    if args.fermi:
+        from pint.fits_utils import read_fits_event_mjds
+
+        latfig, latax = plt.subplots(1, 1)
+        f = pyfits.open(args.fermi)
+        latph = f["EVENTS"].data.field("PULSE_PHASE")
+        laten = f["EVENTS"].data.field("ENERGY")
+        latwt = f["EVENTS"].data.field("MODEL_WEIGHT")
+        latmjds = read_fits_event_mjds(f["EVENTS"]) * u.d
+        nfermi, fedges = np.histogram(
+            latph, bins=np.linspace(0.0, 1.0, 64, endpoint=True), weights=latwt
+        )
+        x = np.concatenate((fedges[:-1], fedges[:-1] + 1.0))
+        latax.step(x, np.concatenate((nfermi, nfermi)), where="post")
+        latax.set_xlim((0.0, 2.0))
+        latax.set_title("LAT Profile")
+        if args.outbase is not None:
+            latfig.savefig(f"{args.outbase}_LAT.png")
+
+    if args.lat3pc:
+        print(f"3PC {args.lat3pc}")
+        multifig, multiax = plt.subplots(1, 1)
+
+        # --- NICER profile (always available): compute, but don't plot yet
+        prof, edges = np.histogram(
+            ph_opt,
+            range=(0.0, 1.0),
+            bins=np.linspace(0.0, 1.0, args.nbins + 1, endpoint=True),
+        )
+        prof = np.array(prof, dtype=float)
+        rates = prof / (exp / args.nbins)
+        rmin = rates.min()
+        rmax = rates.max()
+        scrates = (rates - rmin) / (rmax - rmin + 1e-12)
+
+        # Flags and data holders
+        has_lat = False
+        has_radio = False
+        lat_x = lat_y = None
+        radio_x = radio_y = None
+
+        # --- Try to read LAT and RADIO from the 3PC file
+        with pyfits.open(args.lat3pc) as f:
+            if "GAMMA_LC" in f:
+                has_lat = True
+                dataphmin = f["GAMMA_LC"].data["Ph_Min"]
+                dataphmax = f["GAMMA_LC"].data["Ph_Max"]
+                dataCounts = f["GAMMA_LC"].data["GT100_WtCnt"]
+                mid = (dataphmin + dataphmax) / 2.0
+                dmin = np.nanmin(dataCounts)
+                dmax = np.nanmax(dataCounts)
+                scdata = (dataCounts - dmin) / (dmax - dmin + 1e-12)
+                lat_x, lat_y = mid, scdata
+
+            if "RADIO_PROFILE" in f:
+                has_radio = True
+                radiophmin = f["RADIO_PROFILE"].data["Ph_Min"]
+                radiophmax = f["RADIO_PROFILE"].data["Ph_Max"]
+                radio = f["RADIO_PROFILE"].data["Norm_Intensity"]
+                midr = (radiophmin + radiophmax) / 2.0
+                rmin_r = np.nanmin(radio)
+                rmax_r = np.nanmax(radio)
+                sradio = (radio - rmin_r) / (rmax_r - rmin_r + 1e-12)
+                radio_x, radio_y = midr, sradio
+
+        # --- Dynamic stacking: assign vertical levels only to available series
+        level = 0.0
+        if has_radio:
+            multiax.plot(radio_x, radio_y, "r-", label="Radio", alpha=0.7)
+            level += 1.0
+
+        # NICER goes next
+        multiax.step(
+            np.concatenate((edges[:-1], 1.0 + edges)),
+            np.concatenate((scrates, scrates, np.array(scrates[-1:]))) + (level if level else 0.0),
+            where="post",
+            label="NICER"
+        )
+        level += 1.0
+
+        # LAT on top if present
+        if has_lat:
+            multiax.step(lat_x, lat_y + level, "k-", where="post", label="Fermi/LAT")
+            level += 1.0
+
+
+        # Off-pulse region
+        multiax.plot([float(optres["BB_OFFPULSE"][0]),float(optres["BB_OFFPULSE"][0])],[1,2], linestyle="--", color="k",label='Off-pulse')
+        if float(optres["BB_OFFPULSE"][1]) > float(optres["BB_OFFPULSE"][0]):
+            multiax.plot([float(optres["BB_OFFPULSE"][1]),float(optres["BB_OFFPULSE"][1])],[1,2], linestyle="--", color="k")
+        else:
+            # It wraps over phase=1; move it so that it doesn't look weird/discontinuous when 2 rotations are shown:
+            multiax.plot([float(optres["BB_OFFPULSE"][1])+1,float(optres["BB_OFFPULSE"][1])+1],[1,2], linestyle="--", color="k")
+
+        # Layout
+        multiax.set_xlabel("Phase")
+        multiax.set_ylabel("Relative Intensity")
+        multiax.set_title(f"Multiband Profile for {args.srcname}")
+        multiax.grid(True)
+        multiax.legend(loc='upper center',ncol=4)
+        multiax.set_xlim((0.0, 2.0))
+        multiax.set_ylim(0.0, level + 0.35) # enough room on top for legend
+
+        if args.outbase is not None:
+            plt.savefig(f"{args.outbase}_multi.png")
+
+    if args.outbase is None:
+        plt.show()
+
+
+if __name__ == "__main__":
+    main()

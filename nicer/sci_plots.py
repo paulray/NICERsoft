@@ -1,3 +1,5 @@
+"""The "science" quick-look page made by :file:`nicerql.py`."""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.gridspec as gridspec
@@ -8,6 +10,29 @@ from nicer.plotutils import *
 
 
 def sci_plots(etable, gtitable, args):
+    """Make the science quick-look figure.
+
+    The figure has the energy spectrum, the slow/fast PI ratio plot (or the
+    power spectrum, if ``args.powspec`` is set), the pulse profile (if a timing
+    model and orbit file, or a folding frequency, are given), the light curve,
+    and a summary of the observation times, exposure and GTIs. If
+    ``args.filtratio`` is set, events above the slow/fast ratio cut are
+    removed after the ratio plot is made.
+
+    Parameters
+    ----------
+    etable : astropy.table.Table
+        Event table.
+    gtitable : astropy.table.Table
+        GTI table with ``START``, ``STOP``, ``DURATION`` and ``CUMTIME``
+        columns.
+    args : argparse.Namespace
+        Options from :file:`nicerql.py`.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+    """
     # GRID SET UP
     figure2 = plt.figure(figsize=(11, 8.5), facecolor="white")
     sci_grid = gridspec.GridSpec(5, 7)

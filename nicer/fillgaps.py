@@ -1,7 +1,12 @@
-"""
-A script to fill data gaps in a way that retains the noise characteristic of the live data set and preserves AVAR curves. 
-An implementation of the algorithm described in:
-Howe and Schlossberger, "Characterizing Frequency Stability Measurements having Multiple Data Gaps"
+"""Fill gaps in a time series while preserving its noise characteristics.
+
+Gaps are filled by reflecting and inverting the data on either side of
+each gap, so that Allan variance (AVAR) curves are preserved. This is an
+implementation of the algorithm in Howe and Schlossberger,
+"Characterizing Frequency Stability Measurements having Multiple Data
+Gaps".
+
+Can also be run as a script: ``python fillgaps.py datafile savefile``.
 """
 
 import sys
@@ -16,12 +21,22 @@ from loguru import logger as log
 
 
 def fillgaps(x, y):
-    """A method to fill gaps in data and preserve data noise characteristics.
+    """Fill gaps in a time series while preserving its noise characteristics.
 
-    Parameters:
-    x : array of time values, which should be on a grid, but can be missing points (data gaps)
-    y : array of time offset values for each x
+    Parameters
+    ----------
+    x : array_like
+        Times, which should lie on a regular grid with some points missing
+        (the gaps).
+    y : array_like
+        Values (for example, time offsets) at each time in ``x``.
 
+    Returns
+    -------
+    xfilled : numpy.ndarray
+        The complete, evenly spaced time grid.
+    data : numpy.ndarray
+        The values on that grid, with the gaps filled.
     """
 
     # create equispaced array for x-axis
@@ -133,9 +148,19 @@ def fillgaps(x, y):
 
 
 def filterfunction(data):
-    """
-    Takes a continuous block of data and multiplies it in the frequency domain by exp(-2^3 f/T)
-    (The fft shows the positive frequencies followed by flipped negative frequencies, so we flip the exponential filter and append itself to its end)
+    """Filter a continuous block of data in the frequency domain.
+
+    The Fourier transform of the data is multiplied by ``exp(-2**3 f/T)``.
+
+    Parameters
+    ----------
+    data : array_like
+        A block of data with no gaps.
+
+    Returns
+    -------
+    numpy.ndarray
+        The filtered data.
     """
     # pad dataset
     data = np.append(np.flip(data), np.append(data, np.flip(data)))
@@ -162,8 +187,17 @@ def filterfunction(data):
 
 
 def filter_all(data):
-    """
-    Takes a set of data with gaps and applies the filter to each continuous block of data within the dataset
+    """Apply :func:`filterfunction` to each continuous block of data between gaps.
+
+    Parameters
+    ----------
+    data : array_like
+        Data with gaps marked as NaN.
+
+    Returns
+    -------
+    numpy.ndarray
+        The filtered data.
     """
     # filter individual blocks of continuous data
     datablocks = [list(v) for k, v in groupby(data, np.isfinite) if k]
@@ -195,15 +229,22 @@ def filter_all(data):
 
 
 def check_right(data, gaps, curgap, curgap_size, curgap_num, gap_total):
-    """A method to check the right-hand side of the data to obtain the correct number of points to fill the gap.
+    """Find the points to the right of a gap to use for filling it.
 
-    Parameters:
-            data - np.array, the data being imputed
-            gaps - dict, stores the gap indeces with their respective number
-            curgap - tuple, (start, end) indeces for current gap
-            curgap_size - int, size of current gap
-            curgap_num - int, number of current gap
-            gap_total - int, total number of gaps
+    Parameters
+    ----------
+    data : numpy.ndarray
+        The data being filled (modified in place).
+    gaps : dict
+        Maps gap number to the (start, end) indices of each gap.
+    curgap : tuple of int
+        (start, end) indices of the current gap.
+    curgap_size : int
+        Size of the current gap.
+    curgap_num : int
+        Number of the current gap.
+    gap_total : int
+        Total number of gaps.
     """
     if (
         len(data) - 1 - curgap[1]
@@ -242,15 +283,22 @@ def check_right(data, gaps, curgap, curgap_size, curgap_num, gap_total):
 
 
 def check_both_sides(data, gaps, curgap, curgap_size, curgap_num, gap_total):
-    """A method to check both sides of the data to obtain the correct number of points to fill the gap (half left, half right).
+    """Find the points on both sides of a gap to use for filling it (half from each side).
 
-    Parameters:
-            data - np.array, the data being imputed
-            gaps - dict, stores the gap indeces with their respective number
-            curgap - tuple, (start, end) indeces for current gap
-            curgap_size - int, size of current gap
-            curgap_num - int, number of current gap
-            gap_total - int, total number of gaps
+    Parameters
+    ----------
+    data : numpy.ndarray
+        The data being filled (modified in place).
+    gaps : dict
+        Maps gap number to the (start, end) indices of each gap.
+    curgap : tuple of int
+        (start, end) indices of the current gap.
+    curgap_size : int
+        Size of the current gap.
+    curgap_num : int
+        Number of the current gap.
+    gap_total : int
+        Total number of gaps.
     """
     # either print error message and exit or impute from left and right sides
     if curgap_num == 1:  # if this is the first gap in the dataset
@@ -322,15 +370,22 @@ def check_both_sides(data, gaps, curgap, curgap_size, curgap_num, gap_total):
 
 
 def check_left(data, gaps, curgap, curgap_size, curgap_num, gap_total):
-    """A method to check the left-hand side of the data to obtain the correct number of points to fill the gap.
+    """Find the points to the left of a gap to use for filling it.
 
-    Parameters:
-            data - np.array, the data being imputed
-            gaps - dict, stores the gap indeces with their respective number
-            curgap - tuple, (start, end) indeces for current gap
-            curgap_size - int, size of current gap
-            curgap_num - int, number of current gap
-            gap_total - int, total number of gaps
+    Parameters
+    ----------
+    data : numpy.ndarray
+        The data being filled (modified in place).
+    gaps : dict
+        Maps gap number to the (start, end) indices of each gap.
+    curgap : tuple of int
+        (start, end) indices of the current gap.
+    curgap_size : int
+        Size of the current gap.
+    curgap_num : int
+        Number of the current gap.
+    gap_total : int
+        Total number of gaps.
     """
     if curgap_num == 1:  # if this is the first gap
         pts_to_reflect = copy.deepcopy(data[(curgap[0] - curgap_size) : (curgap[0])])
@@ -350,14 +405,28 @@ def check_left(data, gaps, curgap, curgap_size, curgap_num, gap_total):
 
 
 def fill(data, gaps, gap_total, gap_num, xcoords, reverse=False):
-    """A method to fill the gap_num-th gap in the data by reflecting and inverting data on one/both sides of the gap.
+    """Fill one gap by reflecting and inverting the data on one or both sides of it.
 
-    Parameters:
-            data - np.array, the data being imputed
-            gaps - dict, stores the gap indeces with their respective number
-            gap_total - int, total number of gaps
-            gap_num - int, number of current gap
-            xcoords - np.array, the x-coordinates corresponding to the data and gaps
+    Parameters
+    ----------
+    data : numpy.ndarray
+        The data being filled (modified in place).
+    gaps : dict
+        Maps gap number to the (start, end) indices of each gap.
+    gap_total : int
+        Total number of gaps.
+    gap_num : int
+        Number of the gap to fill.
+    xcoords : numpy.ndarray
+        Times corresponding to ``data``.
+    reverse : bool, optional
+        If True, work through the data in reverse.
+
+    Returns
+    -------
+    tuple of int or None
+        The number of the next gap to fill and the number of gaps remaining,
+        or None if the gap could not be filled.
     """
     # find size of gap
     curgap = gaps[gap_num]
@@ -464,20 +533,19 @@ def fill(data, gaps, gap_total, gap_num, xcoords, reverse=False):
 
 
 def fillgaps_main(datafile, savefile="NaN", plotresults=True):
-    """A method to fill gaps in data and preserve data noise characteristics.
+    """Read a time series from a file, fill its gaps, and optionally save and plot the result.
 
-    Parameters:
-    datafile: (string) a file path ending in ".csv" to a comma delimited csv file with two columns formatted as
-              <time,equispaced>, <data>
-              or a .txt file with two columns separated by whitespace
-
-              The first column is a time, usually in seconds
-              The second column is a time offset (residual) of one clock relative to another
-
-    savefile: (string) a file path ending in ".csv" to which to save the imputed results
-
-    plotresults: (Bool) whether or not to make a plot of the input data and filled data
-
+    Parameters
+    ----------
+    datafile : str
+        Input file with two columns: an evenly spaced time (usually seconds)
+        and a value (usually the time offset of one clock relative to
+        another). A ``.csv`` file is read as comma-separated; a ``.txt`` file
+        as whitespace-separated.
+    savefile : str, optional
+        If given, write the filled time series to this CSV file.
+    plotresults : bool, optional
+        If True, plot the input and filled data.
     """
 
     y = []

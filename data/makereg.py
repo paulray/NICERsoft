@@ -8,14 +8,14 @@ lon = saacols[:, 0]
 lon[lon < 0] += 360.0
 saacols[:, 0] = lon
 
-outfile = file("saa.reg", "w")
+outfile = open("saa.reg", "w")
 print("-polygon(", file=outfile, end="")
 coordstring = ", ".join(["{0}".format(x) for x in saacols.flatten()])
 print(coordstring, file=outfile, end="")
 print(")", file=outfile)
 outfile.close()
 
-outfile = file("polarhorns.reg", "w")
+outfile = open("polarhorns.reg", "w")
 
 ## Northern Polar Horn
 nphcols = np.loadtxt("nph_lonlat.txt")

@@ -14,7 +14,7 @@ import astropy.io.fits as pyfits
 from pint.templates.lcprimitives import LCGaussian, LCKernelDensity, LCEmpiricalFourier
 from pint.templates.lcfitters import LCFitter
 from pint.templates.lctemplate import LCTemplate
-from optparse import OptionParser
+import argparse
 import pickle
 
 
@@ -237,96 +237,99 @@ class InteractiveFitter(object):
         )
 
 
-if __name__ == "__main__":
-
+def get_parser():
     desc = (
         "Read an FT1 file containing PULSE_PHASE info and interactively fit a template."
         ""
     )
-    parser = OptionParser(usage=" %prog [options] [FT1_FILENAME]", description=desc)
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument(
+        "ft1file", help="FT1 (or event) FITS file with a PULSE_PHASE column."
+    )
+    parser.add_argument(
         "--nhistbins",
-        type="int",
+        type=int,
         default=50,
         help="Number of bins to use in phase histogram.",
     )
-    parser.add_option(
+    parser.add_argument(
         "--nprofbins",
-        type="int",
+        type=int,
         default=256,
         help="Number of bins to use output tabular profile.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-u",
         "--unbinned",
         action="store_true",
         default=False,
         help="Perform fit with unbinned likelihood.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-a",
         "--align",
         action="store_true",
         default=False,
         help="Align template such that peak falls at phase 0.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-w",
         "--weights",
         action="store_true",
         default=False,
         help="Use weighted light curve",
     )
-    parser.add_option(
+    parser.add_argument(
         "-c",
         "--weightcol",
-        type="string",
+        type=str,
         default="WEIGHT",
         help="Column in FITS file that holds the weight",
     )
-    parser.add_option(
+    parser.add_argument(
         "-p",
         "--prof",
-        type="string",
+        type=str,
         default=None,
         help="Output name for products (default itemplate.*",
     )
-    parser.add_option(
+    parser.add_argument(
         "-m",
         "--min_weight",
-        type="float",
+        type=float,
         default=1e-2,
         help="Minimum weight to include in fit.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-t",
         "--tmin",
-        type="float",
+        type=float,
         default=0,
         help="Minimum time to include in fit.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-T",
         "--tmax",
-        type="float",
+        type=float,
         default=999999999,
         help="Maximum time to include in fit.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-e",
         "--errors",
         action="store_true",
         default=False,
         help="Compute errors on components.",
     )
+    return parser
 
+
+def main(argv=None):
     ## Parse arguments
-    (options, args) = parser.parse_args()
-    if len(args) < 1:
-        raise ValueError("Must provide an input FITS file!")
+    options = get_parser().parse_args(argv)
 
     phases, weights = get_phases(
-        args[0], get_weights=options.weights, weightcol=options.weightcol, tmin=options.tmin, tmax=options.tmax
+        options.ft1file, get_weights=options.weights, weightcol=options.weightcol, tmin=options.tmin, tmax=options.tmax
     )
 
     if options.weights:
@@ -397,3 +400,7 @@ if __name__ == "__main__":
         pickle.dump(intf.fitter.template, open(prof + ".pickle", "wb"))
 
     print("Goodbye!")
+
+
+if __name__ == "__main__":
+    main()

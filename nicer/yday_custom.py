@@ -1,15 +1,22 @@
+"""An astropy time format for year and day-of-year strings.
+
+Importing this module registers the ``yday_custom`` format with
+:class:`astropy.time.Time`.
+"""
+
 from astropy.time import TimeISO
 
 
 class TimeYearDayTimeCustom(TimeISO):
-    """
-    Year, day-of-year and time as "<YYYY>-<DOY>T<HH>:<MM>:<SS.sss...>".
-    The day-of-year (DOY) goes from 001 to 365 (366 in leap years).
-    For example, 2000-001T00:00:00.000 is midnight on January 1, 2000.
+    """Year, day-of-year and time as ``<YYYY>-<DOY>T<HH>:<MM>:<SS>``.
+
+    The day of year (DOY) goes from 001 to 365 (366 in leap years). For
+    example, ``2000-001T00:00:00`` is midnight on January 1, 2000.
     The allowed subformats are:
-    - 'date_hms': date + hours, mins, secs (and optional fractional secs)
-    - 'date_hm': date + hours, mins
-    - 'date': date
+
+    - ``date_hms``: date + hours, minutes, seconds
+    - ``date_hm``: date + hours, minutes
+    - ``date``: date only
     """
 
     name = "yday_custom"

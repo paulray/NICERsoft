@@ -18,65 +18,83 @@ from nicer.mcc import MCC
 from nicer.sps import SPS
 from nicer.values import *
 
-parser = argparse.ArgumentParser(description="Plot HKP data on map")
-parser.add_argument(
-    "mpuhkfiles", help="Input file names (should end in mpu?.hk)", nargs="+"
-)
-parser.add_argument("--mcc", help="Specify MCC file to use for positions", default=None)
-parser.add_argument(
-    "--sps", help="Specify SPS file (_apid0260.hk) to use for positions", default=None
-)
-args = parser.parse_args()
 
-log.info("Reading " + args.mpuhkfiles[0])
-hdulist = pyfits.open(args.mpuhkfiles[0])
-td = hdulist[1].data
-met = td["TIME"]
-log.info("MET Range {0} to {1}".format(met.min(), met.max()))
-t = MET0 + met * u.s
-overshootrate = td["MPU_OVER_COUNT"].sum(axis=1)
+def get_parser():
+    parser = argparse.ArgumentParser(description="Plot HKP data on map")
+    parser.add_argument(
+        "mpuhkfiles", help="Input file names (should end in mpu?.hk)", nargs="+"
+    )
+    parser.add_argument(
+        "--mcc", help="Specify MCC file to use for positions", default=None
+    )
+    parser.add_argument(
+        "--sps",
+        help="Specify SPS file (_apid0260.hk) to use for positions",
+        default=None,
+    )
+    return parser
 
-for fn in args.mpuhkfiles[1:]:
-    log.info("Reading " + fn)
-    hdulist = pyfits.open(fn)
-    mytd = hdulist[1].data
-    mymet = td["TIME"]
-    myt = MET0 + met * u.s
-    myovershootrate = td["MPU_OVER_COUNT"].sum(axis=1)
-    if not np.all(mymet == met):
-        log.error("TIME axes are not compatible")
-        sys.exit(1)
-    overshootrate += myovershootrate
 
-if args.mcc is not None:
-    eph = MCC(args.mcc)
-    lat, lon = eph.latlon(met)
-elif args.sps is not None:
-    eph = SPS(args.sps)
-    lat, lon = eph.latlon(met)
-else:
-    log.error("Must specify --sps or --mcc")
-    sys.exit(2)
+def main(argv=None):
+    args = get_parser().parse_args(argv)
 
-saa_lon, saa_lat = np.loadtxt(path.join(datadir, "saa_lonlat.txt"), unpack=True)
-nph_lon, nph_lat = np.loadtxt(path.join(datadir, "nph_lonlat.txt"), unpack=True)
-neph_lon, neph_lat = np.loadtxt(path.join(datadir, "neph_lonlat.txt"), unpack=True)
-sph_lon, sph_lat = np.loadtxt(path.join(datadir, "sph_lonlat.txt"), unpack=True)
+    log.info("Reading " + args.mpuhkfiles[0])
+    hdulist = pyfits.open(args.mpuhkfiles[0])
+    td = hdulist[1].data
+    met = td["TIME"]
+    log.info("MET Range {0} to {1}".format(met.min(), met.max()))
+    t = MET0 + met * u.s
+    overshootrate = td["MPU_OVER_COUNT"].sum(axis=1)
 
-fig, ax = plt.subplots(figsize=(16, 9), projection=PlateCarree())
-ax.coastlines()
-ax.set_extent([-180, 180, -61, 61], crs=PlateCarree())
-ax.set_xticks([])
-ax.set_yticks([])
+    for fn in args.mpuhkfiles[1:]:
+        log.info("Reading " + fn)
+        hdulist = pyfits.open(fn)
+        mytd = hdulist[1].data
+        mymet = td["TIME"]
+        myt = MET0 + met * u.s
+        myovershootrate = td["MPU_OVER_COUNT"].sum(axis=1)
+        if not np.all(mymet == met):
+            log.error("TIME axes are not compatible")
+            sys.exit(1)
+        overshootrate += myovershootrate
 
-sc = ax.scatter(
-    lon, lat, c=overshootrate, norm=LogNorm(vmin=10.0, vmax=1000.0), cmap="jet"
-)
-ax.plot(saa_lon, saa_lat, "r", lw=2)
-ax.plot(nph_lon, nph_lat, color="orange", marker="o", markersize=10.0, linestyle="-")
-ax.plot(neph_lon, neph_lat, color="orange", marker="o", markersize=10.0, linestyle="-")
-ax.plot(sph_lon, sph_lat, "orange", marker="o", markersize=10.0, linestyle="-")
-cbar = plot.colorbar(sc1, location="bottom", pad=0.05, aspect=60)
-ax.set_aspect("auto", adjustable=None)
-cbar.set_label("Overshoot Rate")
-plt.show()
+    if args.mcc is not None:
+        eph = MCC(args.mcc)
+        lat, lon = eph.latlon(met)
+    elif args.sps is not None:
+        eph = SPS(args.sps)
+        lat, lon = eph.latlon(met)
+    else:
+        log.error("Must specify --sps or --mcc")
+        sys.exit(2)
+
+    saa_lon, saa_lat = np.loadtxt(path.join(datadir, "saa_lonlat.txt"), unpack=True)
+    nph_lon, nph_lat = np.loadtxt(path.join(datadir, "nph_lonlat.txt"), unpack=True)
+    neph_lon, neph_lat = np.loadtxt(path.join(datadir, "neph_lonlat.txt"), unpack=True)
+    sph_lon, sph_lat = np.loadtxt(path.join(datadir, "sph_lonlat.txt"), unpack=True)
+
+    fig, ax = plt.subplots(figsize=(16, 9), projection=PlateCarree())
+    ax.coastlines()
+    ax.set_extent([-180, 180, -61, 61], crs=PlateCarree())
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    sc = ax.scatter(
+        lon, lat, c=overshootrate, norm=LogNorm(vmin=10.0, vmax=1000.0), cmap="jet"
+    )
+    ax.plot(saa_lon, saa_lat, "r", lw=2)
+    ax.plot(
+        nph_lon, nph_lat, color="orange", marker="o", markersize=10.0, linestyle="-"
+    )
+    ax.plot(
+        neph_lon, neph_lat, color="orange", marker="o", markersize=10.0, linestyle="-"
+    )
+    ax.plot(sph_lon, sph_lat, "orange", marker="o", markersize=10.0, linestyle="-")
+    cbar = plot.colorbar(sc1, location="bottom", pad=0.05, aspect=60)
+    ax.set_aspect("auto", adjustable=None)
+    cbar.set_label("Overshoot Rate")
+    plt.show()
+
+
+if __name__ == "__main__":
+    main()

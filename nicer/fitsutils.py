@@ -1,3 +1,8 @@
+"""Helpers that run FTOOLS to merge and filter event files.
+
+All of these need HEASoft to be installed and initialized.
+"""
+
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,6 +19,21 @@ from nicer.values import *
 
 
 def runcmd(cmd):
+    """Run a command, logging it first.
+
+    Parameters
+    ----------
+    cmd : list of str
+        The command and its arguments. It is not passed through a shell.
+
+    Raises
+    ------
+    OSError
+        If the command could not be run (for example, if FTOOLS is not
+        initialized).
+    subprocess.CalledProcessError
+        If the command returns a non-zero exit status.
+    """
     # CMD should be a list of strings since it is not processed by a shell
     log.info("CMD: " + " ".join(cmd))
     try:
@@ -24,7 +44,22 @@ def runcmd(cmd):
 
 
 def filtallandmerge_ftools(evfiles, workdir=None):
-    "Merges and filters a set of event files, returning an etable"
+    """Merge event files with ``ftmerge``, keeping only standard science events.
+
+    Events are selected with ``EVENT_FLAGS==bx1x000``.
+
+    Parameters
+    ----------
+    evfiles : list of str
+        Event files to merge.
+    workdir : str, optional
+        Directory in which to make the temporary working directory.
+
+    Returns
+    -------
+    astropy.table.Table
+        The selected events, with ``TIMEZERO`` added to ``TIME``.
+    """
 
     tmpdir = tempfile.mkdtemp(dir=workdir)
 
@@ -67,7 +102,22 @@ def filtallandmerge_ftools(evfiles, workdir=None):
 
 
 def get_eventovershoots_ftools(evfiles, workdir=None):
-    "Merges and filters a set of event files, returning an etable with only the OVERSHOOT-only events"
+    """Merge event files with ``ftmerge``, keeping only overshoot-only events.
+
+    Events are selected with ``EVENT_FLAGS==bxxx010``.
+
+    Parameters
+    ----------
+    evfiles : list of str
+        Event files to merge.
+    workdir : str, optional
+        Directory in which to make the temporary working directory.
+
+    Returns
+    -------
+    astropy.table.Table
+        The selected events, with ``TIMEZERO`` added to ``TIME``.
+    """
 
     tmpdir = tempfile.mkdtemp(dir=workdir)
 
@@ -108,7 +158,22 @@ def get_eventovershoots_ftools(evfiles, workdir=None):
 
 
 def get_eventundershoots_ftools(evfiles, workdir=None):
-    "Merges and filters a set of event files, returning an etable with only the UNDERSHOOT-only events"
+    """Merge event files with ``ftmerge``, keeping only undershoot-only events.
+
+    Events are selected with ``EVENT_FLAGS==bxxx001``.
+
+    Parameters
+    ----------
+    evfiles : list of str
+        Event files to merge.
+    workdir : str, optional
+        Directory in which to make the temporary working directory.
+
+    Returns
+    -------
+    astropy.table.Table
+        The selected events, with ``TIMEZERO`` added to ``TIME``.
+    """
 
     tmpdir = tempfile.mkdtemp(dir=workdir)
 
@@ -149,8 +214,22 @@ def get_eventundershoots_ftools(evfiles, workdir=None):
 
 
 def get_eventbothshoots_ftools(evfiles, workdir=None):
-    """Merges and filters a set of event files, returning an etable with
-    events that are both OVERSHOOT and UNDERSHOOT"""
+    """Merge event files with ``ftmerge``, keeping only events flagged as both overshoot and undershoot.
+
+    Events are selected with ``EVENT_FLAGS==bxxx011``.
+
+    Parameters
+    ----------
+    evfiles : list of str
+        Event files to merge.
+    workdir : str, optional
+        Directory in which to make the temporary working directory.
+
+    Returns
+    -------
+    astropy.table.Table
+        The selected events, with ``TIMEZERO`` added to ``TIME``.
+    """
 
     tmpdir = tempfile.mkdtemp(dir=workdir)
 
@@ -191,7 +270,23 @@ def get_eventbothshoots_ftools(evfiles, workdir=None):
 
 
 def get_badratioevents_ftools(evfiles, workdir=None):
-    "Merges and filters a set of event files, returning an etable with only the events that are above the PI ratio trumpet"
+    """Merge event files with ``ftmerge``, keeping only events above the slow/fast ratio "trumpet".
+
+    Events are selected with ``EVENT_FLAGS==bx11000`` and
+    ``PI/PI_FAST > 1.1 + 120/PI``.
+
+    Parameters
+    ----------
+    evfiles : list of str
+        Event files to merge.
+    workdir : str, optional
+        Directory in which to make the temporary working directory.
+
+    Returns
+    -------
+    astropy.table.Table
+        The selected events, with ``TIMEZERO`` added to ``TIME``.
+    """
 
     tmpdir = tempfile.mkdtemp(dir=workdir)
 

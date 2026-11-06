@@ -8,68 +8,78 @@ import numpy as np
 import astropy.io.fits as pyfits
 from subprocess import check_call
 
-# Checking the presence of HEASOFT
-try:
-    check_call("nicerversion", env=os.environ)
-except:
-    print(
-        "You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!",
-        file=sys.stderr,
+
+def get_parser():
+    parser = argparse.ArgumentParser(description="Plot source and background spectra")
+    parser.add_argument("tot", help="PHA file name with src+bkg spectrum")
+    parser.add_argument("bkg", help="PHA file name with bkg estimate spectrum")
+    parser.add_argument("--outfile", help="Output plot file name.")
+    return parser
+
+
+def main(argv=None):
+    args = get_parser().parse_args(argv)
+
+    # Checking the presence of HEASOFT
+    try:
+        check_call("nicerversion", env=os.environ)
+    except:
+        print(
+            "You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!",
+            file=sys.stderr,
+        )
+        exit()
+
+
+    tot = Spectrum(args.tot)
+    bkg = Spectrum(args.bkg)
+
+    objname = pyfits.getval(args.tot, "OBJECT")
+    exposure = pyfits.getval(args.tot, "EXPOSURE")
+
+    tot.response = path.join(
+        os.environ["CALDB"], "data/nicer/xti/cpf/rmf/nixtiref20170601v001.rmf"
     )
-    exit()
+    tot.response.arf = path.join(
+        os.environ["CALDB"], "data/nicer/xti/cpf/arf/nixtiaveonaxis20170601v002.arf"
+    )
 
-parser = argparse.ArgumentParser(description="Plot source and background spectra")
-parser.add_argument("tot", help="PHA file name with src+bkg spectrum")
-parser.add_argument("bkg", help="PHA file name with bkg estimate spectrum")
-parser.add_argument("--outfile", help="Output plot file name.")
-args = parser.parse_args()
+    bkg.response = path.join(
+        os.environ["CALDB"], "data/nicer/xti/cpf/rmf/nixtiref20170601v001.rmf"
+    )
+    bkg.response.arf = path.join(
+        os.environ["CALDB"], "data/nicer/xti/cpf/arf/nixtiaveonaxis20170601v002.arf"
+    )
 
-tot = Spectrum(args.tot)
-bkg = Spectrum(args.bkg)
+    tot.ignore("**-0.3,8.0-**")
+    bkg.ignore("**-0.3,8.0-**")
 
-objname = pyfits.getval(args.tot, "OBJECT")
-exposure = pyfits.getval(args.tot, "EXPOSURE")
+    # Plot.device = '/xs'
+    Plot.device = "/null"
+    Plot.xAxis = "keV"
+    Plot("data")
 
-tot.response = path.join(
-    os.environ["CALDB"], "data/nicer/xti/cpf/rmf/nixtiref20170601v001.rmf"
-)
-tot.response.arf = path.join(
-    os.environ["CALDB"], "data/nicer/xti/cpf/arf/nixtiaveonaxis20170601v002.arf"
-)
+    energies = np.array(Plot.x(1))
+    p_tot = np.array(Plot.y(1))
+    p_toterr = np.array(Plot.yErr(1))
+    p_bkg = np.array(Plot.y(2))
 
-bkg.response = path.join(
-    os.environ["CALDB"], "data/nicer/xti/cpf/rmf/nixtiref20170601v001.rmf"
-)
-bkg.response.arf = path.join(
-    os.environ["CALDB"], "data/nicer/xti/cpf/arf/nixtiaveonaxis20170601v002.arf"
-)
+    # Plot using Matplotlib:
+    fig, axs = plt.subplots(nrows=2, ncols=1, sharey=True)
+    axs[0].errorbar(energies, p_tot, yerr=p_toterr, alpha=0.5)
+    axs[0].plot(energies, p_bkg, "r", alpha=0.5)
+    axs[0].set_xscale("log")
+    axs[0].grid(True)
+    axs[0].set_title("{0} Spectrum (Exposure = {1})".format(objname, exposure))
+
+    axs[1].errorbar(energies, p_tot - p_bkg, yerr=p_toterr)
+    axs[1].set_xlabel("Energy (keV)")
+    axs[1].set_xscale("log")
+    axs[1].grid(True)
+    if args.outfile is not None:
+        plt.savefig(args.outfile)
+    plt.show()
 
 
-tot.ignore("**-0.3,8.0-**")
-bkg.ignore("**-0.3,8.0-**")
-
-# Plot.device = '/xs'
-Plot.device = "/null"
-Plot.xAxis = "keV"
-Plot("data")
-
-energies = np.array(Plot.x(1))
-p_tot = np.array(Plot.y(1))
-p_toterr = np.array(Plot.yErr(1))
-p_bkg = np.array(Plot.y(2))
-
-# Plot using Matplotlib:
-fig, axs = plt.subplots(nrows=2, ncols=1, sharey=True)
-axs[0].errorbar(energies, p_tot, yerr=p_toterr, alpha=0.5)
-axs[0].plot(energies, p_bkg, "r", alpha=0.5)
-axs[0].set_xscale("log")
-axs[0].grid(True)
-axs[0].set_title("{0} Spectrum (Exposure = {1})".format(objname, exposure))
-
-axs[1].errorbar(energies, p_tot - p_bkg, yerr=p_toterr)
-axs[1].set_xlabel("Energy (keV)")
-axs[1].set_xscale("log")
-axs[1].grid(True)
-if args.outfile is not None:
-    plt.savefig(args.outfile)
-plt.show()
+if __name__ == "__main__":
+    main()

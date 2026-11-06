@@ -28,166 +28,143 @@ to sort GTI by background rate
 and evaluate H-test
 """
 
-parser = argparse.ArgumentParser(description=desc)
-parser.add_argument(
-    "infile", help="file or text file with list of event file", nargs="+"
-)
-parser.add_argument("outfile", help="name for output files")
-parser.add_argument(
-    "--emin",
-    help="Minimum energy to include (keV, default=0.25)",
-    type=float,
-    default=0.25,
-)
-parser.add_argument(
-    "--emax",
-    help="Maximum energy to include (keV, default=2.00)",
-    type=float,
-    default=2.00,
-)
-parser.add_argument(
-    "--maxemin",
-    help="Maximum emin to use in grid search (keV, default=1.00)",
-    type=float,
-    default=1.00,
-)
-parser.add_argument(
-    "--minemax",
-    help="Minimum emax to use in grid search (keV, default=1.00)",
-    type=float,
-    default=1.00,
-)
-parser.add_argument(
-    "--delta_emin",
-    help="Step size of the lower bound of the search grid (keV, default=0.01)",
-    type=float,
-    default=0.01,
-)
-parser.add_argument(
-    "--delta_emax",
-    help="Step size of the lower bound of the search grid (keV, default=0.02)",
-    type=float,
-    default=0.02,
-)
-parser.add_argument(
-    "--gridsearch",
-    help="Search over energies to find max H-test",
-    action="store_true",
-    default=False,
-)
-parser.add_argument(
-    "--minbw",
-    help="Minimum fractional bandwidth used during energy grid searching.  E.g., --minbw=0.5 would allow a 1.0 to 1.5 (50%%) keV energy range, but not a 2.0 to 2.2 (10%%) range.",
-    type=float,
-    default=None,
-)
-parser.add_argument(
-    "--minexp",
-    help="Minimum exposure allowed for a candidate cut, expressed as a fraction of the total.  E.g., --minexp=0.2 would allow a cut that throws away 80%% of the GTI.",
-    type=float,
-    default=None,
-)
-parser.add_argument(
-    "--mingti",
-    help="Minimum GTI length to allow -- short GTIs don't give a reliable count rate. (seconds, default=10.0)",
-    type=float,
-    default=10.0,
-)
-parser.add_argument(
-    "--nopulsetest",
-    help="Only use the predicted S/N to determine the GTIs to use.",
-    action="store_true",
-    default=False,
-)
-parser.add_argument(
-    "--verbosity",
-    help="Verbosity (0=quiet,1=default,2=verbose,3=very verbose).",
-    type=int,
-    default=1,
-)
-parser.add_argument(
-    "--writegti",
-    help="Write out the GTI corresponding to the event selection.",
-    action="store_true",
-    default=False,
-)
-parser.add_argument(
-    "--writeevents",
-    help="Write out the corresponding event file",
-    action="store_true",
-    default=False,
-)
-parser.add_argument(
-    "--remote",
-    help="Disable interactive plotting backend",
-    action="store_true",
-    default=False,
-)
 
-parser.add_argument(
-    "--save_profile",
-    help="export optimal profile as ascii file",
-    action="store_true",
-    default=False,
-)
+def get_parser():
+    parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument(
+        "infile", help="file or text file with list of event file", nargs="+"
+    )
+    parser.add_argument("outfile", help="name for output files")
+    parser.add_argument(
+        "--emin",
+        help="Minimum energy to include (keV, default=0.25)",
+        type=float,
+        default=0.25,
+    )
+    parser.add_argument(
+        "--emax",
+        help="Maximum energy to include (keV, default=2.00)",
+        type=float,
+        default=2.00,
+    )
+    parser.add_argument(
+        "--maxemin",
+        help="Maximum emin to use in grid search (keV, default=1.00)",
+        type=float,
+        default=1.00,
+    )
+    parser.add_argument(
+        "--minemax",
+        help="Minimum emax to use in grid search (keV, default=1.00)",
+        type=float,
+        default=1.00,
+    )
+    parser.add_argument(
+        "--delta_emin",
+        help="Step size of the lower bound of the search grid (keV, default=0.01)",
+        type=float,
+        default=0.01,
+    )
+    parser.add_argument(
+        "--delta_emax",
+        help="Step size of the lower bound of the search grid (keV, default=0.02)",
+        type=float,
+        default=0.02,
+    )
+    parser.add_argument(
+        "--gridsearch",
+        help="Search over energies to find max H-test",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--minbw",
+        help="Minimum fractional bandwidth used during energy grid searching.  E.g., --minbw=0.5 would allow a 1.0 to 1.5 (50%%) keV energy range, but not a 2.0 to 2.2 (10%%) range.",
+        type=float,
+        default=None,
+    )
+    parser.add_argument(
+        "--minexp",
+        help="Minimum exposure allowed for a candidate cut, expressed as a fraction of the total.  E.g., --minexp=0.2 would allow a cut that throws away 80%% of the GTI.",
+        type=float,
+        default=None,
+    )
+    parser.add_argument(
+        "--mingti",
+        help="Minimum GTI length to allow -- short GTIs don't give a reliable count rate. (seconds, default=10.0)",
+        type=float,
+        default=10.0,
+    )
+    parser.add_argument(
+        "--nopulsetest",
+        help="Only use the predicted S/N to determine the GTIs to use.",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--verbosity",
+        help="Verbosity (0=quiet,1=default,2=verbose,3=very verbose).",
+        type=int,
+        default=1,
+    )
+    parser.add_argument(
+        "--writegti",
+        help="Write out the GTI corresponding to the event selection.",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--writeevents",
+        help="Write out the corresponding event file",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--remote",
+        help="Disable interactive plotting backend",
+        action="store_true",
+        default=False,
+    )
 
-parser.add_argument(
-    "--save_rates",
-    help="export count rates from optimal GTI selection (also saves a figure)",
-    action="store_true",
-    default=False,
-)
+    parser.add_argument(
+        "--save_profile",
+        help="export optimal profile as ascii file",
+        action="store_true",
+        default=False,
+    )
 
-parser.add_argument(
-    "--usez",
-    help="Use Z^2_2 test instead of H test.",
-    action="store_true",
-    default=False,
-)
-parser.add_argument(
-    "--nbins",
-    help="Number of bins for plotting pulse profile (default=16)",
-    type=int,
-    default=16,
-)
-parser.add_argument(
-    "--name", help="Pulsar name for output figure", type=str, default=""
-)
+    parser.add_argument(
+        "--save_rates",
+        help="export count rates from optimal GTI selection (also saves a figure)",
+        action="store_true",
+        default=False,
+    )
 
-parser.add_argument(
-    "--log-level",
-    type=str,
-    choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),
-    default="INFO",
-    help="Logging level",
-    dest="loglevel",
-)
+    parser.add_argument(
+        "--usez",
+        help="Use Z^2_2 test instead of H test.",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "--nbins",
+        help="Number of bins for plotting pulse profile (default=16)",
+        type=int,
+        default=16,
+    )
+    parser.add_argument(
+        "--name", help="Pulsar name for output figure", type=str, default=""
+    )
 
-args = parser.parse_args()
-
-log.remove()
-log.add(
-    sys.stderr,
-    level=args.loglevel,
-    colorize=True,
-    format='<level>{level: <8}</level> ({name: <30}): <level>{message}</level>'
-    #filter=pint.logging.LogFilter(),
-)
-
-import matplotlib
-
-if args.remote:
-    matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
-plt.rc("font", size=14)  # controls default text sizes
-plt.rc("axes", labelsize=13)  # fontsize of the x and y labels
-plt.rc("xtick", labelsize=13)  # fontsize of the tick labels
-plt.rc("ytick", labelsize=13)  # fontsize of the tick labels
-plt.rc("legend", fontsize=14)  # legend fontsize
-plt.rc("axes", linewidth=1.5)
-plt.rc("xtick.major", size=4, width=1.5)
-plt.rc("ytick.major", size=4, width=1.5)
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        choices=("TRACE", "DEBUG", "INFO", "WARNING", "ERROR"),
+        default="INFO",
+        help="Logging level",
+        dest="loglevel",
+    )
+    return parser
 
 
 def local_h2sig(h):
@@ -321,6 +298,8 @@ def runcmd(cmd):
     # CMD should be a list of strings since it is not processed by a shell
     log.info("CMD: " + " ".join(cmd))
     os.system(" ".join(cmd))
+
+
     ## Some ftools calls don't work properly with check_call...not sure why!
     ## so I am using os.system instead of check_call
     # check_call(cmd,env=os.environ)
@@ -388,7 +367,7 @@ def dice_gtis(data, tmax=100):
     return times, phases, pis, np.asarray(new_t0s), np.asarray(new_t1s)
 
 
-def write_gtis(gti_start, gti_stop, outfile, merge_gti=False):
+def write_gtis(gti_start, gti_stop, outfile, merge_gti=False, infiles=None):
     # write out GTIs -- sort them by time rather than bkg
     a = np.argsort(gti_start)
     gti_start = gti_start[a]
@@ -432,9 +411,9 @@ def write_gtis(gti_start, gti_stop, outfile, merge_gti=False):
     runcmd(cmd)
 
     ## Extracting the new event file using the new GTI file created
-    if args.writeevents:
-        if len(args.infile) == 1:
-            eventfile = args.infile[0]
+    if infiles is not None:
+        if len(infiles) == 1:
+            eventfile = infiles[0]
             outevtfile = "{}_OptimalEvents.fits".format(outfile)
             cmd = [
                 "niextract-events",
@@ -570,95 +549,223 @@ def make_sn(data, rate=0.1, usez=False, snonly=False, minexp=None):
     return sn, sn0, hs, ph_gti, list(pi_gti), gti_rts_s, gti_len_s, gti_t0_s, gti_t1_s
 
 
-if len(args.infile) == 1:
-    if args.infile[0].startswith("@"):
-        inputfile = args.infile[0].split("@")[1]
-        log.info("Reading input ObsID list: {}".format(inputfile))
-        all_files = np.loadtxt(inputfile, dtype=str)
+def main(argv=None):
+    args = get_parser().parse_args(argv)
+
+    log.remove()
+    log.add(
+        sys.stderr,
+        level=args.loglevel,
+        colorize=True,
+        format='<level>{level: <8}</level> ({name: <30}): <level>{message}</level>'
+        #filter=pint.logging.LogFilter(),
+    )
+
+    import matplotlib
+
+    if args.remote:
+        matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    plt.rc("font", size=14)  # controls default text sizes
+    plt.rc("axes", labelsize=13)  # fontsize of the x and y labels
+    plt.rc("xtick", labelsize=13)  # fontsize of the tick labels
+    plt.rc("ytick", labelsize=13)  # fontsize of the tick labels
+    plt.rc("legend", fontsize=14)  # legend fontsize
+    plt.rc("axes", linewidth=1.5)
+    plt.rc("xtick.major", size=4, width=1.5)
+    plt.rc("ytick.major", size=4, width=1.5)
+
+
+    if len(args.infile) == 1:
+        if args.infile[0].startswith("@"):
+            inputfile = args.infile[0].split("@")[1]
+            log.info("Reading input ObsID list: {}".format(inputfile))
+            all_files = np.loadtxt(inputfile, dtype=str)
+        else:
+            all_files = args.infile
     else:
         all_files = args.infile
-else:
-    all_files = args.infile
 
-data = load_files(all_files)
-data_diced = data.dice_gtis(tmax=100)
-data_diced = data_diced.apply_min_gti(args.mingti)
-assert data_diced.check_gti()
+    data = load_files(all_files)
+    data_diced = data.dice_gtis(tmax=100)
+    data_diced = data_diced.apply_min_gti(args.mingti)
+    assert data_diced.check_gti()
 
-if args.writeevents:
-    args.writegti = True
+    if args.writeevents:
+        args.writegti = True
 
-if args.writegti:
-    # Checking the presence of HEASOFT
-    try:
-        check_call("nicerversion", env=os.environ)
-    except:
-        log.error("You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!")
-        exit()
+    if args.writegti:
+        # Checking the presence of HEASOFT
+        try:
+            check_call("nicerversion", env=os.environ)
+        except:
+            log.error("You need to initialize FTOOLS/HEASOFT first (e.g., type 'heainit')!")
+            exit()
 
-    # Checking the presence of gti header and columns in data/
-    gticolumns = os.path.join(datadir, "gti_columns.txt")
-    gtiheader = os.path.join(datadir, "gti_header.txt")
-    if not os.path.isfile(gtiheader) or not os.path.isfile(gticolumns):
-        log.error(
-            "The files gti_header.txt or gti_columns.txt are missing.  Check the {} directory".format(
-                os.path.abspath(datadir)
+        # Checking the presence of gti header and columns in data/
+        gticolumns = os.path.join(datadir, "gti_columns.txt")
+        gtiheader = os.path.join(datadir, "gti_header.txt")
+        if not os.path.isfile(gtiheader) or not os.path.isfile(gticolumns):
+            log.error(
+                "The files gti_header.txt or gti_columns.txt are missing.  Check the {} directory".format(
+                    os.path.abspath(datadir)
+                )
             )
-        )
-        exit()
+            exit()
 
-
-if args.gridsearch:
-    all_emin = np.arange(args.emin, args.maxemin + 0.005, args.delta_emin)
-else:
-    all_emin = np.array([args.emin])
-
-hbest = 0.0
-eminbest = 0.0
-emaxbest = 100.0
-
-eminlist = []
-emaxlist = []
-hgrid = []
-
-log.info("Energy cuts: ")
-if args.gridsearch:
-    log.info("  Emin range: {:0.2f}-{:0.2f} keV with steps of {:0.2f} keV".format(all_emin[0],all_emin[-1],args.delta_emin))
-    log.info("  Emax range: {:0.2f}-{:0.2f} keV with steps of {:0.2f} keV".format(args.minemax,args.emax,args.delta_emax))
-else:
-    log.info("  Emin: {:0.2f} keV".format(args.emin))
-    log.info("  Emax: {:0.2f} keV".format(args.emax))
-
-
-for emin in tqdm.tqdm(all_emin,position=0, leave=True):
 
     if args.gridsearch:
-        all_emax = np.arange(args.minemax, args.emax + 0.005, args.delta_emax)
+        all_emin = np.arange(args.emin, args.maxemin + 0.005, args.delta_emin)
     else:
-        args.delta_emax = 0
-        all_emax = np.array([args.emax])
+        all_emin = np.array([args.emin])
 
-    if len(all_emax) == 0:
-        break
+    hbest = 0.0
+    eminbest = 0.0
+    emaxbest = 100.0
 
-    for emax in tqdm.tqdm(all_emax, desc="Emin={:0.2f} keV".format(emin),leave=False):
+    eminlist = []
+    emaxlist = []
+    hgrid = []
 
-        # test for energy bandwidth
-        if args.gridsearch and (args.minbw is not None):
-            if emax / emin - 1 < args.minbw:
-                log.debug(
-                    "Excluding emin={:0.2f}, emax={:0.2f} because smaller than specified minbw".format(
-                        emin, emax
+    log.info("Energy cuts: ")
+    if args.gridsearch:
+        log.info("  Emin range: {:0.2f}-{:0.2f} keV with steps of {:0.2f} keV".format(all_emin[0],all_emin[-1],args.delta_emin))
+        log.info("  Emax range: {:0.2f}-{:0.2f} keV with steps of {:0.2f} keV".format(args.minemax,args.emax,args.delta_emax))
+    else:
+        log.info("  Emin: {:0.2f} keV".format(args.emin))
+        log.info("  Emax: {:0.2f} keV".format(args.emax))
+
+
+    for emin in tqdm.tqdm(all_emin,position=0, leave=True):
+
+        if args.gridsearch:
+            all_emax = np.arange(args.minemax, args.emax + 0.005, args.delta_emax)
+        else:
+            args.delta_emax = 0
+            all_emax = np.array([args.emax])
+
+        if len(all_emax) == 0:
+            break
+
+        for emax in tqdm.tqdm(all_emax, desc="Emin={:0.2f} keV".format(emin),leave=False):
+
+            # test for energy bandwidth
+            if args.gridsearch and (args.minbw is not None):
+                if emax / emin - 1 < args.minbw:
+                    log.debug(
+                        "Excluding emin={:0.2f}, emax={:0.2f} because smaller than specified minbw".format(
+                            emin, emax
+                        )
                     )
-                )
-                continue
+                    continue
 
-        local_data = data_diced.apply_pi_mask(emin, emax)
+            local_data = data_diced.apply_pi_mask(emin, emax)
+            pred_rate = 0.05 / 10.0  # 2241
+            sn, sn0, hs, ph_gti, pi_gti, gti_rts_s, gti_len_s, gti_t0_s, gti_t1_s = make_sn(
+                local_data, rate=pred_rate, usez=args.usez, minexp=args.minexp
+            )
+            exposure = np.cumsum(gti_len_s)
+
+            # scale exposure to the expected S/N
+            amax = np.argmax(sn)
+            exposure_scale = sn[amax] / exposure[amax] ** 0.5
+
+            if args.nopulsetest:
+                Hmax = amax
+            else:
+                Hmax = np.argmax(hs)
+
+            if not args.gridsearch:
+                # Make output plots after single iteration.
+                plt.figure(5)
+                plt.clf()
+                if not args.nopulsetest:
+                    hsig = get_sigma(hs, usez=args.usez)
+                    if args.usez:
+                        plt.plot(gti_rts_s, hsig, label="Z-test significance")
+                    else:
+                        plt.plot(gti_rts_s, hsig, label="H-test significance")
+                    plt.axvline(
+                        gti_rts_s[amax],
+                        color="k",
+                        ls="--",
+                        label="No  H-test (sig={:0.3f})".format(hsig[amax]),
+                    )
+                    plt.axvline(
+                        gti_rts_s[Hmax],
+                        color="r",
+                        ls="--",
+                        label="Max H-test (sig={:0.3f})".format(hsig[Hmax]),
+                    )
+                plt.xlabel("Background Rate (ct/s)")
+                plt.ylabel("Significance (sigma)")
+                plt.title("{} - [{:0.2f},{:0.2f}]".format(args.name, emin, emax))
+                plt.legend(loc="lower right")
+                plt.savefig("{}_sig.png".format(args.outfile))
+
+                log.info("Effective count rate cut: {:0.3f} ct/s".format(gti_rts_s[Hmax]))
+                plt.clf()
+                nbins = args.nbins
+                select_ph = np.concatenate(ph_gti[: Hmax + 1]).ravel()
+                profbins = np.linspace(0.0, 1.0, nbins + 1, endpoint=True)
+                profile, edges = np.histogram(select_ph, bins=profbins)
+                bbins = np.concatenate((profbins, profbins[1:] + 1.0, profbins[1:] + 2.0))
+                fullprof = np.concatenate(
+                    (profile, profile, profile, np.array([profile[0]]))
+                )
+                plt.errorbar(
+                    bbins - (0.5 / nbins),
+                    fullprof,
+                    yerr=fullprof**0.5,
+                    marker="",
+                    drawstyle="steps-mid",
+                    linewidth=1.5,
+                    color="k",
+                    label="{:0.2f}-{:0.2f} keV".format(emin, emax),
+                )
+                # plt.subplots_adjust(left=0.15, right=0.93)  #, bottom=0.1)
+                plt.tight_layout()
+                plt.xlim((0.0, 2.0))
+                plt.ylabel("Photons")
+                plt.xlabel("Phase")
+                plt.title(args.name)
+                plt.legend(loc="upper left")
+                plt.savefig("{}_profile.png".format(args.outfile))
+                plt.clf()
+
+                if args.writegti:
+                    write_gtis(
+                        gti_t0_s[: Hmax + 1],
+                        gti_t1_s[: Hmax + 1],
+                        args.outfile,
+                        infiles=args.infile if args.writeevents else None,
+                    )
+                eminbest = emin
+                emaxbest = emax
+
+            else:
+                # store data for future comparison
+                eminlist.append(emin)
+                emaxlist.append(emax)
+                hsig = get_sigma(hs[Hmax], usez=args.usez)[0]
+                hgrid.append(hsig)
+                if hsig >= hbest:
+                    hbest = hsig
+                    eminbest = emin
+                    emaxbest = emax
+
+    if args.gridsearch:
+
+        # recreate data optimization -- really need to encapsulate this!
+
+        local_data = data_diced.apply_pi_mask(eminbest, emaxbest)
         pred_rate = 0.05 / 10.0  # 2241
         sn, sn0, hs, ph_gti, pi_gti, gti_rts_s, gti_len_s, gti_t0_s, gti_t1_s = make_sn(
             local_data, rate=pred_rate, usez=args.usez, minexp=args.minexp
         )
         exposure = np.cumsum(gti_len_s)
+        hsig = get_sigma(hs, usez=args.usez)
 
         # scale exposure to the expected S/N
         amax = np.argmax(sn)
@@ -667,238 +774,152 @@ for emin in tqdm.tqdm(all_emin,position=0, leave=True):
         if args.nopulsetest:
             Hmax = amax
         else:
-            Hmax = np.argmax(hs)
+            Hmax = np.argmax(hsig)
 
-        if not args.gridsearch:
-            # Make output plots after single iteration.
-            plt.figure(5)
-            plt.clf()
-            if not args.nopulsetest:
-                hsig = get_sigma(hs, usez=args.usez)
-                if args.usez:
-                    plt.plot(gti_rts_s, hsig, label="Z-test significance")
-                else:
-                    plt.plot(gti_rts_s, hsig, label="H-test significance")
-                plt.axvline(
-                    gti_rts_s[amax],
-                    color="k",
-                    ls="--",
-                    label="No  H-test (sig={:0.3f})".format(hsig[amax]),
-                )
-                plt.axvline(
-                    gti_rts_s[Hmax],
-                    color="r",
-                    ls="--",
-                    label="Max H-test (sig={:0.3f})".format(hsig[Hmax]),
-                )
-            plt.xlabel("Background Rate (ct/s)")
-            plt.ylabel("Significance (sigma)")
-            plt.title("{} - [{:0.2f},{:0.2f}]".format(args.name, emin, emax))
-            plt.legend(loc="lower right")
-            plt.savefig("{}_sig.png".format(args.outfile))
-
-            log.info("Effective count rate cut: {:0.3f} ct/s".format(gti_rts_s[Hmax]))
-            plt.clf()
-            nbins = args.nbins
-            select_ph = np.concatenate(ph_gti[: Hmax + 1]).ravel()
-            profbins = np.linspace(0.0, 1.0, nbins + 1, endpoint=True)
-            profile, edges = np.histogram(select_ph, bins=profbins)
-            bbins = np.concatenate((profbins, profbins[1:] + 1.0, profbins[1:] + 2.0))
-            fullprof = np.concatenate(
-                (profile, profile, profile, np.array([profile[0]]))
-            )
-            plt.errorbar(
-                bbins - (0.5 / nbins),
-                fullprof,
-                yerr=fullprof**0.5,
-                marker="",
-                drawstyle="steps-mid",
-                linewidth=1.5,
-                color="k",
-                label="{:0.2f}-{:0.2f} keV".format(emin, emax),
-            )
-            # plt.subplots_adjust(left=0.15, right=0.93)  #, bottom=0.1)
-            plt.tight_layout()
-            plt.xlim((0.0, 2.0))
-            plt.ylabel("Photons")
-            plt.xlabel("Phase")
-            plt.title(args.name)
-            plt.legend(loc="upper left")
-            plt.savefig("{}_profile.png".format(args.outfile))
-            plt.clf()
-
-            if args.writegti:
-                write_gtis(gti_t0_s[: Hmax + 1], gti_t1_s[: Hmax + 1], args.outfile)
-            eminbest = emin
-            emaxbest = emax
-
+        plt.figure(5)
+        plt.clf()
+        if args.usez:
+            plt.plot(gti_rts_s, hsig, label="Z-test significance")
         else:
-            # store data for future comparison
-            eminlist.append(emin)
-            emaxlist.append(emax)
-            hsig = get_sigma(hs[Hmax], usez=args.usez)[0]
-            hgrid.append(hsig)
-            if hsig >= hbest:
-                hbest = hsig
-                eminbest = emin
-                emaxbest = emax
-
-if args.gridsearch:
-
-    # recreate data optimization -- really need to encapsulate this!
-
-    local_data = data_diced.apply_pi_mask(eminbest, emaxbest)
-    pred_rate = 0.05 / 10.0  # 2241
-    sn, sn0, hs, ph_gti, pi_gti, gti_rts_s, gti_len_s, gti_t0_s, gti_t1_s = make_sn(
-        local_data, rate=pred_rate, usez=args.usez, minexp=args.minexp
-    )
-    exposure = np.cumsum(gti_len_s)
-    hsig = get_sigma(hs, usez=args.usez)
-
-    # scale exposure to the expected S/N
-    amax = np.argmax(sn)
-    exposure_scale = sn[amax] / exposure[amax] ** 0.5
-
-    if args.nopulsetest:
-        Hmax = amax
-    else:
-        Hmax = np.argmax(hsig)
-
-    plt.figure(5)
-    plt.clf()
-    if args.usez:
-        plt.plot(gti_rts_s, hsig, label="Z-test significance")
-    else:
-        plt.plot(gti_rts_s, hsig, label="H-test significance")
-    plt.axvline(
-        gti_rts_s[amax],
-        color="k",
-        ls="--",
-        label="No  H-test (sig={:0.3f})".format(hsig[amax]),
-    )
-    if not args.nopulsetest:
+            plt.plot(gti_rts_s, hsig, label="H-test significance")
         plt.axvline(
-            gti_rts_s[Hmax],
-            color="r",
+            gti_rts_s[amax],
+            color="k",
             ls="--",
-            label="Max H-test (sig={:0.3f})".format(hsig[Hmax]),
+            label="No  H-test (sig={:0.3f})".format(hsig[amax]),
         )
-    log.info("Effective count rate cut: {:0.3f} ct/s".format(gti_rts_s[Hmax]))
-    plt.xlabel("Background Rate (ct/s)")
-    plt.ylabel("Significance (sigma)")
-    plt.title("{} - [{:0.2f},{:0.2f}]".format(args.name, eminbest, emaxbest))
-    plt.legend(loc="lower right")
-    plt.savefig("{}_sig_bestrange.png".format(args.outfile))
+        if not args.nopulsetest:
+            plt.axvline(
+                gti_rts_s[Hmax],
+                color="r",
+                ls="--",
+                label="Max H-test (sig={:0.3f})".format(hsig[Hmax]),
+            )
+        log.info("Effective count rate cut: {:0.3f} ct/s".format(gti_rts_s[Hmax]))
+        plt.xlabel("Background Rate (ct/s)")
+        plt.ylabel("Significance (sigma)")
+        plt.title("{} - [{:0.2f},{:0.2f}]".format(args.name, eminbest, emaxbest))
+        plt.legend(loc="lower right")
+        plt.savefig("{}_sig_bestrange.png".format(args.outfile))
 
-    plt.clf()
-    plt.scatter(eminlist, emaxlist, c=hgrid, s=10)
-    cbar = plt.colorbar()
-    if args.usez:
-        cbar.set_label("Z-test")
+        plt.clf()
+        plt.scatter(eminlist, emaxlist, c=hgrid, s=10)
+        cbar = plt.colorbar()
+        if args.usez:
+            cbar.set_label("Z-test")
+        else:
+            cbar.set_label("H-test")
+        plt.xlabel("Low Energy Cut (keV)")
+        plt.ylabel("High Energy Cut (keV)")
+        plt.savefig("{}_grid.png".format(args.outfile))
+        plt.clf()
+
+        nbins = args.nbins
+        select_ph = np.concatenate(ph_gti[: Hmax + 1]).ravel()
+        profbins = np.linspace(0.0, 1.0, nbins + 1, endpoint=True)
+        profile, edges = np.histogram(select_ph, bins=profbins)
+        bbins = np.concatenate((profbins, profbins[1:] + 1.0, profbins[1:] + 2.0))
+        fullprof = np.concatenate((profile, profile, profile, np.array([profile[0]])))
+        plt.errorbar(
+            bbins - (0.5 / nbins),
+            fullprof,
+            yerr=fullprof**0.5,
+            marker="",
+            drawstyle="steps-mid",
+            linewidth=1.5,
+            color="k",
+            label="{:0.2f}-{:0.2f} keV".format(eminbest, emaxbest),
+        )
+
+        plt.xlim((0.0, 2.0))
+        plt.ylabel("Photons")
+        plt.xlabel("Phase")
+        plt.title(args.name)
+        plt.savefig("{}_profile.png".format(args.outfile))
+        plt.clf()
+        log.info("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
+        log.info(
+            "   obtained in {:0.2f} (out of {:0.2f} ksec)".format(
+                exposure[Hmax] / 1000, exposure[-1] / 1000
+            )
+        )
+        log.info("   between {:0.2f} and {:0.2f} keV".format(eminbest, emaxbest))
+        log.info("   for {} events".format(len(select_ph)))
+
+        if args.writegti:
+            write_gtis(
+                gti_t0_s[: Hmax + 1],
+                gti_t1_s[: Hmax + 1],
+                args.outfile,
+                infiles=args.infile if args.writeevents else None,
+            )
+
     else:
-        cbar.set_label("H-test")
-    plt.xlabel("Low Energy Cut (keV)")
-    plt.ylabel("High Energy Cut (keV)")
-    plt.savefig("{}_grid.png".format(args.outfile))
-    plt.clf()
 
-    nbins = args.nbins
-    select_ph = np.concatenate(ph_gti[: Hmax + 1]).ravel()
-    profbins = np.linspace(0.0, 1.0, nbins + 1, endpoint=True)
-    profile, edges = np.histogram(select_ph, bins=profbins)
-    bbins = np.concatenate((profbins, profbins[1:] + 1.0, profbins[1:] + 2.0))
-    fullprof = np.concatenate((profile, profile, profile, np.array([profile[0]])))
-    plt.errorbar(
-        bbins - (0.5 / nbins),
-        fullprof,
-        yerr=fullprof**0.5,
-        marker="",
-        drawstyle="steps-mid",
-        linewidth=1.5,
-        color="k",
-        label="{:0.2f}-{:0.2f} keV".format(eminbest, emaxbest),
-    )
-
-    plt.xlim((0.0, 2.0))
-    plt.ylabel("Photons")
-    plt.xlabel("Phase")
-    plt.title(args.name)
-    plt.savefig("{}_profile.png".format(args.outfile))
-    plt.clf()
-    log.info("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
-    log.info(
-        "   obtained in {:0.2f} (out of {:0.2f} ksec)".format(
-            exposure[Hmax] / 1000, exposure[-1] / 1000
+        log.info("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
+        log.info(
+            "   obtained in {:0.2f} ksec (out of {:0.2f} ksec)".format(
+                exposure[Hmax] / 1000, exposure[-1] / 1000
+            )
         )
+        log.info("   for {} events".format(len(select_ph)))
+
+    if args.save_profile:
+        output_data = np.array([bbins - (0.5 / nbins), fullprof, fullprof**0.5]).T
+        np.savetxt("{}_profile.txt".format(args.outfile),
+                   output_data,
+                   header='Phase      Counts     ErrorBar')
+
+    if args.save_rates:
+
+        gti_centers = 0.5 * (gti_t0_s[: Hmax + 1] + gti_t1_s[: Hmax + 1])
+        select_rates = gti_rts_s[: Hmax + 1]
+        sorted_ind = gti_centers.argsort()
+        # gti_centers = gti_centers[sorted_ind[::-1]]
+        # select_rates = select_rates[sorted_ind[::-1]]
+        gti_centers = gti_centers[sorted_ind]
+        select_rates = select_rates[sorted_ind]
+
+        # Figure of count rate
+        plt.scatter(gti_centers-gti_centers[0], select_rates, s=1)
+        plt.xlabel('Elapsed time (s)')
+        plt.ylabel('Count rate (ct/s) in selected GTIs')
+        plt.title('Count rate light curve in selected GTIs'.format(args.name))
+        plt.tight_layout()
+        plt.savefig("{}_lightcurve.png".format(args.outfile))
+
+        # Dump data points
+        output_data = np.array([gti_centers,select_rates]).T
+        np.savetxt("{}_lightcurve.txt".format(args.outfile),
+                   output_data,
+                   header='GTI Center (s)    Count rate (c/s)')
+
+    # output summary results to text file
+    a50 = int(round(len(gti_rts_s) * 0.5))
+    a90 = int(round(len(gti_rts_s) * 0.9))
+    output = open("%s_stats.txt" % args.outfile, "w")
+    output.write("ni_Htest_sortGTI.py invoked as follows: \n")
+    output.write(" ".join(sys.argv) + "\n")
+    output.write(
+        "Optimal TS (%s-test): %.2f (%.2f sigma).\n"
+        % ("Z" if args.usez else "H", hs[Hmax], hsig[Hmax])
     )
-    log.info("   between {:0.2f} and {:0.2f} keV".format(eminbest, emaxbest))
-    log.info("   for {} events".format(len(select_ph)))
-
-    if args.writegti:
-        write_gtis(gti_t0_s[: Hmax + 1], gti_t1_s[: Hmax + 1], args.outfile)
-
-else:
-
-    log.info("Maximum significance: {:0.3f} sigma".format(hsig[Hmax]))
-    log.info(
-        "   obtained in {:0.2f} ksec (out of {:0.2f} ksec)".format(
-            exposure[Hmax] / 1000, exposure[-1] / 1000
-        )
+    output.write("Optimal energy range: %.2f to %.2f keV.\n" % (eminbest, emaxbest))
+    output.write("Total exposure  : {:0.2f} kiloseconds.\n".format(exposure[-1] / 1000))
+    output.write("Optimal exposure: {:0.2f} kiloseconds.\n".format(exposure[Hmax] / 1000))
+    output.write("Optimal GTI count rate: %.3f cps.\n" % (gti_rts_s[Hmax]))
+    output.write("-----------------------\n")
+    output.write("Median (50%%)   GTI count rate: %.3f cps.\n" % (gti_rts_s[a50]))
+    output.write(
+        "Exposure for GTIs <= 50%% count rate : %.2f kilseconds.\n" % (exposure[a50] / 1000)
     )
-    log.info("   for {} events".format(len(select_ph)))
+    output.write("-----------------------\n")
+    output.write("90th Percentile GTI count rate: %.3f cps.\n" % (gti_rts_s[a90]))
+    output.write(
+        "Exposure for GTIs <= 90%% count rate: %.2f kilseconds.\n" % (exposure[a90] / 1000)
+    )
+    output.close()
 
-if args.save_profile:
-    output_data = np.array([bbins - (0.5 / nbins), fullprof, fullprof**0.5]).T
-    np.savetxt("{}_profile.txt".format(args.outfile),
-               output_data,
-               header='Phase      Counts     ErrorBar')
 
-if args.save_rates:
-
-    gti_centers = 0.5 * (gti_t0_s[: Hmax + 1] + gti_t1_s[: Hmax + 1])
-    select_rates = gti_rts_s[: Hmax + 1]
-    sorted_ind = gti_centers.argsort()
-    # gti_centers = gti_centers[sorted_ind[::-1]]
-    # select_rates = select_rates[sorted_ind[::-1]]
-    gti_centers = gti_centers[sorted_ind]
-    select_rates = select_rates[sorted_ind]
-
-    # Figure of count rate
-    plt.scatter(gti_centers-gti_centers[0], select_rates, s=1)
-    plt.xlabel('Elapsed time (s)')
-    plt.ylabel('Count rate (ct/s) in selected GTIs')
-    plt.title('Count rate light curve in selected GTIs'.format(args.name))
-    plt.tight_layout()
-    plt.savefig("{}_lightcurve.png".format(args.outfile))
-
-    # Dump data points
-    output_data = np.array([gti_centers,select_rates]).T
-    np.savetxt("{}_lightcurve.txt".format(args.outfile),
-               output_data,
-               header='GTI Center (s)    Count rate (c/s)')
-
-# output summary results to text file
-a50 = int(round(len(gti_rts_s) * 0.5))
-a90 = int(round(len(gti_rts_s) * 0.9))
-output = open("%s_stats.txt" % args.outfile, "w")
-output.write("ni_Htest_sortGTI.py invoked as follows: \n")
-output.write(" ".join(sys.argv) + "\n")
-output.write(
-    "Optimal TS (%s-test): %.2f (%.2f sigma).\n"
-    % ("Z" if args.usez else "H", hs[Hmax], hsig[Hmax])
-)
-output.write("Optimal energy range: %.2f to %.2f keV.\n" % (eminbest, emaxbest))
-output.write("Total exposure  : {:0.2f} kiloseconds.\n".format(exposure[-1] / 1000))
-output.write("Optimal exposure: {:0.2f} kiloseconds.\n".format(exposure[Hmax] / 1000))
-output.write("Optimal GTI count rate: %.3f cps.\n" % (gti_rts_s[Hmax]))
-output.write("-----------------------\n")
-output.write("Median (50%%)   GTI count rate: %.3f cps.\n" % (gti_rts_s[a50]))
-output.write(
-    "Exposure for GTIs <= 50%% count rate : %.2f kilseconds.\n" % (exposure[a50] / 1000)
-)
-output.write("-----------------------\n")
-output.write("90th Percentile GTI count rate: %.3f cps.\n" % (gti_rts_s[a90]))
-output.write(
-    "Exposure for GTIs <= 90%% count rate: %.2f kilseconds.\n" % (exposure[a90] / 1000)
-)
-output.close()
+if __name__ == "__main__":
+    main()

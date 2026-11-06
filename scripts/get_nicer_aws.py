@@ -98,7 +98,7 @@ def download_obs_from_aws(obsid, year_month, output_base):
     return
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
         description="Download NICER observations from AWS for a given sourcename or coordinates and time range."
     )
@@ -114,7 +114,11 @@ def main():
                         help="Start date (YYYY-MM-DD; default: 2017-01-01)")
     parser.add_argument("-e", "--end", type=str, default="2030-12-31T00:00:00",
                         help="End date (YYYY-MM-DD; default: 2030-12-31)")
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv=None):
+    args = get_parser().parse_args(argv)
 
     # Query NICER observations
     if args.srcname:

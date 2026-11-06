@@ -1,3 +1,5 @@
+"""ISS position from an MCC (Mission Control Center) ephemeris file."""
+
 import numpy as np
 import astropy.units as u
 from astropy.time import Time
@@ -17,26 +19,29 @@ u.imperial.enable()
 
 
 class MCC:
-    """MCC
-    Class to represent an MCC ephemeris for the ISS
+    """Interpolate the ISS position from an MCC ephemeris.
 
-    Initialize with an MCC ephemeris file.
+    The ephemeris gives ECI positions in feet; these are interpolated with
+    splines and converted to latitude and longitude with astropy. Times outside
+    the ephemeris raise an error.
 
-    Provides interpolated lat, long for any MET time during the ephemeris valid
-    interval.
+    Parameters
+    ----------
+    mccname : str
+        MCC ephemeris file.
     """
 
     def __init__(self, mccname):
-        mccfile = file(mccname)
-        header1 = mccfile.readline().strip()
-        header2 = mccfile.readline().strip()
-        self.mcc_epoch_year = float(header2.split()[0])
-        self.mcc_epoch = Time(
-            "{0:4.0f}-01-01T00:00:00".format(self.mcc_epoch_year),
-            format="isot",
-            scale="utc",
-        )
-        cols = np.loadtxt(mccfile, usecols=(0, 1, 2, 3), unpack=True)
+        with open(mccname) as mccfile:
+            header1 = mccfile.readline().strip()
+            header2 = mccfile.readline().strip()
+            self.mcc_epoch_year = float(header2.split()[0])
+            self.mcc_epoch = Time(
+                "{0:4.0f}-01-01T00:00:00".format(self.mcc_epoch_year),
+                format="isot",
+                scale="utc",
+            )
+            cols = np.loadtxt(mccfile, usecols=(0, 1, 2, 3), unpack=True)
         self.t = cols[0] * u.s + self.mcc_epoch
         self.met = (self.t - MET0).to(u.s).value
         self.eci_x = (cols[1] * u.imperial.foot).to(u.m)
@@ -60,6 +65,18 @@ class MCC:
         self.lon = ecef.earth_location.lon
 
     def latlon(self, met):
+        """Return the interpolated latitude and longitude.
+
+        Parameters
+        ----------
+        met : float or array_like
+            Time(s), in MET seconds.
+
+        Returns
+        -------
+        lat : astropy.coordinates.Latitude
+        lon : astropy.coordinates.Longitude
+        """
         x = self.eci_x_interp(met)
         y = self.eci_y_interp(met)
         z = self.eci_z_interp(met)
@@ -71,6 +88,7 @@ class MCC:
         return (lat, lon)
 
     def plot(self):
+        """Plot the ECI x, y and z positions against time."""
         import matplotlib.pyplot as plt
 
         plt.plot(self.met, self.eci_x)

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=77.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,8 +7,9 @@ name = "nicersoft"
 version = "0.1.0"
 description = "User-contributed analysis tools for the NICER mission"
 readme = "README.md"
-requires-python = ">=3.8"
-license = {text = "MIT"}
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     {name = "Paul Ray", email = "paul.ray@nrl.navy.mil"},
 ]
@@ -16,9 +17,7 @@ keywords = ["astronomy", "NICER", "X-ray", "pulsar", "timing"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -41,10 +40,17 @@ dev = [
     "pytest",
     "pytest-cov",
 ]
+docs = [
+    "sphinx",
+    "sphinx-rtd-theme",
+    "myst-parser",
+    "sphinx-argparse",
+    "sphinx-autobuild",
+]
 
 [project.urls]
 Homepage = "https://github.com/paulray/NICERsoft"
-Documentation = "https://github.com/paulray/NICERsoft/wiki"
+Documentation = "https://paulray.github.io/NICERsoft/"
 Repository = "https://github.com/paulray/NICERsoft"
 Issues = "https://github.com/paulray/NICERsoft/issues"
 
