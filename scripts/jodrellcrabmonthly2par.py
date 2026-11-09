@@ -9,13 +9,48 @@ from astropy.table import Table
 from astropy import log
 import sys
 import os.path as path
+import urllib.request
+import urllib.error
 
 desc = "Write out Tempo2 par files based on Jodrell montly ephemeris"
+CRAB2_URL = "https://www.jb.man.ac.uk/pulsar/crab/crab2.txt"
+
+
+def download_crab2(dest="crab2.txt", prompt=True):
+    """Download crab2.txt from Jodrell Bank, optionally prompting the user."""
+    if prompt:
+        try:
+            resp = input(
+                f"{dest} does not exist. Download from {CRAB2_URL}? [Y/n]: "
+            )
+        except (EOFError, KeyboardInterrupt):
+            print()
+            return False
+        if resp.strip().lower() not in ("", "y", "yes"):
+            return False
+
+    log.info(f"Downloading {CRAB2_URL} to {dest}...")
+    try:
+        urllib.request.urlretrieve(CRAB2_URL, dest)
+        log.info("Download complete.")
+        return True
+    except urllib.error.URLError as e:
+        log.error(f"Failed to download {CRAB2_URL}: {e}")
+        return False
+    except Exception as e:
+        log.error(f"Unexpected error downloading {CRAB2_URL}: {e}")
+        return False
 
 
 def get_parser():
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument("MJD", help="MJD to extract ephemeris for", type=float)
+    parser.add_argument(
+        "--auto-download",
+        "-y",
+        action="store_true",
+        help="Automatically download crab2.txt without prompting if not found",
+    )
     return parser
 
 
@@ -24,10 +59,12 @@ def main(argv=None):
     args = get_parser().parse_args(argv)
 
     if not path.exists("crab2.txt"):
-        log.error(
-            'crab2.txt does not exist!  Download with "curl -O https://www.jb.man.ac.uk/pulsar/crab/crab2.txt"'
-        )
-        sys.exit(2)
+        success = download_crab2("crab2.txt", prompt=not args.auto_download)
+        if not success or not path.exists("crab2.txt"):
+            log.error(
+                f'crab2.txt does not exist!  Download with "curl -O {CRAB2_URL}"'
+            )
+            sys.exit(2)
 
     validmonths = [
         "JAN",
