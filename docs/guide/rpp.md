@@ -29,7 +29,13 @@ It:
    {ref}`nioptcuts.py <nioptcuts>`, unless `--emin` and `--emax` are given.
 7. Analyzes the pulse profile with {ref}`RPP-profile.py <rpp-profile>`, which
    finds the off-pulse phase range with Bayesian blocks and writes the results
-   to a YAML file (`<psr name>_profinfo.yml`).
+   to a YAML file (`<psr name>_profinfo.yml`). It also estimates the TOA
+   accuracy for a 5 ks observation: the Cramér–Rao lower bound computed from
+   the measured profile (including background and unpulsed emission), in the
+   H-test band (`toa_*` keys in `optres`) and in the energy band that
+   minimizes it (`toares`). Values are in phase units; multiply by the period
+   for time. `--toa-mc` adds a Monte Carlo check of the bound, which fails
+   for faint pulsars and double-peaked profiles.
 8. Makes on-pulse and off-pulse spectra with
    {ref}`RPP-pulsedspec.py <rpp-pulsedspec>`, for fitting the pulsed spectrum.
 

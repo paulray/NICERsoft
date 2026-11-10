@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import argparse
-import tqdm
 
 # from astropy import log
 from loguru import logger as log
@@ -14,22 +13,42 @@ import astropy.units as u
 from pint.eventstats import hm, z2m, h2sig
 
 
-def cached_hm(mask):
-    nph = mask.sum()
-    if nph == 0:
-        return 0
-    s = (cached_hm._cache[..., mask].sum(axis=2) ** 2).sum(axis=1)
-    return (
-        (2.0 / nph) * np.cumsum(s) - 4 * np.arange(0, cached_hm._cache.shape[0])
-    ).max()
+def channel_harmonic_sums(phases, pi, m):
+    """Cumulative (over PI channel) cos and sin sums of harmonics 1..m.
+
+    The sums for the photons in channels lo <= PI < hi are then
+    cum[..., hi] - cum[..., lo], so each energy band costs O(m) instead of
+    a pass over every photon.
+
+    Returns (cumN, cumC, cumS) with shapes (nchan+1,), (m, nchan+1), (m, nchan+1).
+    """
+    nchan = int(pi.max()) + 1
+    cumN = np.zeros(nchan + 1)
+    cumC = np.zeros((m, nchan + 1))
+    cumS = np.zeros((m, nchan + 1))
+    cumN[1:] = np.cumsum(np.bincount(pi, minlength=nchan))
+    for i in range(m):
+        arg = phases * (2 * np.pi * (i + 1))
+        cumC[i, 1:] = np.cumsum(np.bincount(pi, weights=np.cos(arg), minlength=nchan))
+        cumS[i, 1:] = np.cumsum(np.bincount(pi, weights=np.sin(arg), minlength=nchan))
+    return cumN, cumC, cumS
 
 
-def cached_zm(mask):
-    nph = mask.sum()
-    if nph == 0:
-        return 0
-    s = (cached_zm._cache[..., mask].sum(axis=2) ** 2).sum()
-    return (2.0 / nph) * s
+def band_ts(cum, lo, hi, ztest=False):
+    """H-test (or Z^2_m) for the photons in channels lo <= PI < hi, for arrays of bands."""
+    cumN, cumC, cumS = cum
+    lo, hi = np.broadcast_arrays(lo, hi)
+    nph = cumN[hi] - cumN[lo]
+    s = (cumC[:, hi] - cumC[:, lo]) ** 2 + (cumS[:, hi] - cumS[:, lo]) ** 2
+    with np.errstate(divide="ignore", invalid="ignore"):
+        if ztest:
+            ts = (2.0 / nph) * s.sum(axis=0)
+        else:
+            m = s.shape[0]
+            ts = (
+                (2.0 / nph) * np.cumsum(s, axis=0) - 4 * np.arange(0, m)[:, None]
+            ).max(axis=0)
+    return np.where(nph > 0, ts, 0.0)
 
 
 def get_parser():
@@ -102,6 +121,7 @@ def main(argv=None):
                 object = "unknown object"
             log.info("Opening events for {}".format(object))
         t = Table.read(fn, hdu=1)
+        t.keep_columns(["PI", "PULSE_PHASE"])
         if len(t) == 0:
             continue
         if args.min_good_time is not None:
@@ -120,8 +140,10 @@ def main(argv=None):
     del tlist
 
     m = args.maxharm
-    ts_func = cached_zm if args.ztest else cached_hm
     phasesinitial = etable["PULSE_PHASE"].astype(float)
+    pi = np.asarray(etable["PI"]).astype(np.int64)
+    # Negative PI values never pass an energy cut (emin >= 0); bincount needs PI >= 0
+    goodpi = pi >= 0
     h_ini = z2m(phasesinitial, m=m)[-1] if args.ztest else hm(phasesinitial, m=m)
     hbest = h_ini
     eminbest = 0.0
@@ -147,12 +169,11 @@ def main(argv=None):
             )
         )
 
-    # assemble cache
-    cache = np.empty([m, 2, len(phasesinitial)], dtype=float)
-    for i in range(m):
-        cache[i, 0] = np.cos(phasesinitial * (2 * np.pi * (i + 1)))
-        cache[i, 1] = np.sin(phasesinitial * (2 * np.pi * (i + 1)))
-    cached_hm._cache = cached_zm._cache = cache
+    # Harmonic sums per PI channel, accumulated over channel
+    cum = channel_harmonic_sums(phasesinitial[goodpi], pi[goodpi], m)
+    # Channel energies, computed exactly as PI * PI_TO_KEV is for each event,
+    # so that searchsorted reproduces the cut  emin < PI * PI_TO_KEV < emax
+    chan_keV = np.arange(len(cum[0]) - 1) * PI_TO_KEV
 
     eminlist = []
     emaxlist = []
@@ -160,7 +181,7 @@ def main(argv=None):
 
     emins = np.arange(args.minlowE, args.maxlowE + args.steplowE, args.steplowE)
 
-    for emin in tqdm.tqdm(emins):
+    for emin in emins:
 
         if args.minhighE is not None:
             minhighE = max(emin + args.steplowE, args.minhighE)
@@ -168,19 +189,21 @@ def main(argv=None):
             minhighE = emin + args.steplowE
         emaxs = np.arange(minhighE, args.maxhighE + args.stephighE, args.stephighE)
 
-        for emax in emaxs:
-            mask = np.logical_and(
-                etable["PI"] * PI_TO_KEV > emin, etable["PI"] * PI_TO_KEV < emax
-            )
-            h = ts_func(mask)
-            eminlist.append(emin)
-            emaxlist.append(emax)
-            hgrid.append(h)
-            if h >= hbest:
-                hbest = h
-                eminbest = emin
-                emaxbest = emax
+        lo = np.searchsorted(chan_keV, emin, side="right")  # first channel > emin
+        hi = np.searchsorted(chan_keV, emaxs, side="left")  # first channel >= emax
+        hi = np.maximum(hi, lo)
+        eminlist.extend([emin] * len(emaxs))
+        emaxlist.extend(emaxs)
+        hgrid.extend(band_ts(cum, lo, hi, ztest=args.ztest))
 
+    # Same choice as a sequential scan updating on h >= hbest: the last band
+    # with the maximum value, if that is at least the full-band value
+    hgrid = np.asarray(hgrid)
+    if len(hgrid) > 0 and hgrid.max() >= hbest:
+        ibest = len(hgrid) - 1 - np.argmax(hgrid[::-1])
+        hbest = hgrid[ibest]
+        eminbest = eminlist[ibest]
+        emaxbest = emaxlist[ibest]
 
     if args.ztest:
         log.info("Final {0} = {1}".format(ts_name, np.round(hbest, 3)))
