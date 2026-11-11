@@ -30,6 +30,7 @@ from nicer.bkg_plots import *
 from nicer.fitsutils import *
 from InteractiveLC import *
 from nicer.NicerFileSet import *
+from nicer.mkf import read_mkf
 
 
 def get_parser():
@@ -276,15 +277,7 @@ def main(argv=None):
                 basename = args.basename
 
             if args.mkf:
-                try:
-                    mktable = Table.read(args.mkf, hdu=1)
-                except TypeError:
-                    with pyfits.open(args.mkf) as hdulist:
-                        mktable = Table(hdulist[1].data)
-                        try:
-                            mktable.meta["TIMEZERO"] = hdulist[1].header["TIMEZERO"]
-                        except KeyError:
-                            pass
+                mktable = read_mkf(args.mkf)
                 if "TIMEZERO" in mktable.meta:
                     log.info(
                         "Applying TIMEZERO of {0} to mktable in nicerql".format(

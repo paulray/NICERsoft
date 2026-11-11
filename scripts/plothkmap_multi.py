@@ -18,6 +18,7 @@ from cartopy.crs import PlateCarree
 from nicer.mcc import MCC
 from nicer.sps import SPS
 from nicer.values import *
+from nicer.mkf import read_mkf
 
 
 def get_parser():
@@ -73,7 +74,7 @@ def main(argv=None):
     for obsdir in args.obsdirs:
         log.info("Processing " + obsdir)
         mkfname = glob(path.join(obsdir, "auxil/*.mkf"))[0]
-        mkf = Table.read(mkfname, hdu=1)
+        mkf = read_mkf(mkfname)
         mkf.sort("TIME")
         mkfmet = mkf["TIME"]
         earthpos = SkyCoord(mkf["EARTH_RA"], mkf["EARTH_DEC"], frame="icrs")

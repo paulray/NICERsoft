@@ -13,6 +13,7 @@ from nicer.plotutils import *
 from nicer.fitsutils import *
 from nicer.values import *
 from nicer.latloninterp import LatLonInterp
+from nicer.mkf import read_mkf
 import sys, os
 
 
@@ -125,7 +126,7 @@ class NicerFileSet:
 
         # Get name of filter (.mkf) file
         self.mkfile = glob(path.join(args.obsdir, "auxil/ni*.mkf*"))[0]
-        self.mktable = Table.read(self.mkfile, hdu=1)
+        self.mktable = read_mkf(self.mkfile)
         if "TIMEZERO" in self.mktable.meta:
             log.info(
                 "Applying TIMEZERO of {0} to mktable in NicerFileSet".format(

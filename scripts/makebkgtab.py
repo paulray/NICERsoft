@@ -8,6 +8,7 @@ from astropy.table import Table, vstack
 from os import path
 from glob import glob
 from nicer.values import *
+from nicer.mkf import read_mkf
 
 
 def get_parser():
@@ -75,7 +76,7 @@ def main(argv=None):
             etable["TIME"] += etable.meta["TIMEZERO"]
             etable.meta["TIMEZERO"] = 0.0
 
-        mktable = Table.read(mkfname, hdu=1)
+        mktable = read_mkf(mkfname)
         if "TIMEZERO" in mktable.meta:
             log.info(
                 "Applying TIMEZERO of {0} to mktable".format(mktable.meta["TIMEZERO"])
